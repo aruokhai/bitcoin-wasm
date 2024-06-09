@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+   # "bitcoin-wasm",
+   # "lightning-wasm",
+]
