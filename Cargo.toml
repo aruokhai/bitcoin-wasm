@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/store",
+]
+
+exclude = [
+"bitcoin-wasm",
+   "lightning-wasm",
+  "wallet",
+]
