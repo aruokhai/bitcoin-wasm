@@ -3,6 +3,8 @@ use crate::page_layout::PTR_SIZE;
 use std::cmp::{Eq, Ord, Ordering, PartialOrd};
 use std::convert::From;
 use std::convert::TryFrom;
+use crate::bindings::exports::component::store::types::{GuestBtree, KeyValuePair as KV};
+
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Offset(pub usize);
@@ -16,13 +18,18 @@ impl TryFrom<[u8; PTR_SIZE]> for Offset {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Debug)]
-pub struct Key(pub String);
+pub type Key = String;
 
 #[derive(Clone, Eq, Debug)]
 pub struct KeyValuePair {
     pub key: String,
     pub value: String,
+}
+
+impl From<KV> for KeyValuePair {
+    fn from(value: KV) -> Self {
+        KeyValuePair{ key: value.key, value: value.value}
+    }
 }
 
 impl Ord for KeyValuePair {

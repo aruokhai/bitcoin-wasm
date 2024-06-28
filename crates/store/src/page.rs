@@ -123,7 +123,7 @@ impl TryFrom<&Node> for Page {
                     page_offset += PTR_SIZE;
                 }
 
-                for Key(key) in keys {
+                for key in keys {
                     let key_bytes = key.as_bytes();
                     let mut raw_key: [u8; KEY_SIZE] = [0x00; KEY_SIZE];
                     if key_bytes.len() > KEY_SIZE {
@@ -244,9 +244,9 @@ mod tests {
                     Offset(PAGE_SIZE * 4),
                 ],
                 vec![
-                    Key("foo bar".to_string()),
-                    Key("lebron".to_string()),
-                    Key("ariana".to_string()),
+                    "foo bar".to_string(),
+                    "lebron".to_string(),
+                    "ariana".to_string(),
                 ],
             ),
             true,

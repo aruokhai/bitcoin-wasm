@@ -9,6 +9,7 @@ use crate::page_layout::{
 use std::convert::TryFrom;
 use std::str;
 
+
 /// Node represents a node in the BTree occupied by a single page in memory.
 #[derive(Clone, Debug)]
 pub struct Node {
@@ -55,7 +56,7 @@ impl Node {
                 let median_pair = pairs.get(b - 1).ok_or(Error::UnexpectedError)?.clone();
 
                 Ok((
-                    Key(median_pair.key),
+                    median_pair.key,
                     Node::new(
                         NodeType::Leaf(sibling_pairs),
                         false,
@@ -103,7 +104,7 @@ impl TryFrom<Page> for Node {
                     };
                     offset += KEY_SIZE;
                     // Trim leading or trailing zeros.
-                    keys.push(Key(key.trim_matches(char::from(0)).to_string()));
+                    keys.push(key.trim_matches(char::from(0)).to_string());
                 }
                 Ok(Node::new(
                     NodeType::Internal(children, keys),
@@ -214,13 +215,13 @@ mod tests {
         if let NodeType::Internal(_, keys) = node.node_type {
             assert_eq!(keys.len(), 2);
 
-            let Key(first_key) = match keys.get(0) {
+            let first_key = match keys.get(0) {
                 Some(key) => key,
                 None => return Err(Error::UnexpectedError),
             };
             assert_eq!(first_key, "hello");
 
-            let Key(second_key) = match keys.get(1) {
+            let second_key = match keys.get(1) {
                 Some(key) => key,
                 None => return Err(Error::UnexpectedError),
             };
@@ -246,7 +247,7 @@ mod tests {
         );
 
         let (median, sibling) = node.split(2)?;
-        assert_eq!(median, Key("lebron".to_string()));
+        assert_eq!(median, "lebron".to_string());
         assert_eq!(
             node.node_type,
             NodeType::Leaf(vec![
@@ -285,9 +286,9 @@ mod tests {
                     Offset(PAGE_SIZE * 4),
                 ],
                 vec![
-                    Key("foo bar".to_string()),
-                    Key("lebron".to_string()),
-                    Key("ariana".to_string()),
+                    "foo bar".to_string(),
+                    "lebron".to_string(),
+                    "ariana".to_string(),
                 ],
             ),
             true,
@@ -295,19 +296,19 @@ mod tests {
         );
 
         let (median, sibling) = node.split(2)?;
-        assert_eq!(median, Key("lebron".to_string()));
+        assert_eq!(median, "lebron".to_string());
         assert_eq!(
             node.node_type,
             NodeType::Internal(
                 vec![Offset(PAGE_SIZE), Offset(PAGE_SIZE * 2)],
-                vec![Key("foo bar".to_string())]
+                vec!["foo bar".to_string()]
             )
         );
         assert_eq!(
             sibling.node_type,
             NodeType::Internal(
                 vec![Offset(PAGE_SIZE * 3), Offset(PAGE_SIZE * 4)],
-                vec![Key("ariana".to_string())]
+                vec!["ariana".to_string()]
             )
         );
         Ok(())

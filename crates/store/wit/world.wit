@@ -1,6 +1,9 @@
-package component:keyvaluestore;
+package component:store;
 
 /// An example world for the component to target.
-world example {
-    export hello-world: func() -> string;
+world store {
+    use types.{btree, error};
+    export create-store: func() -> result<btree,error> ;
+    export types;
 }
+
