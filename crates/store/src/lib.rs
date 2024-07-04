@@ -3,10 +3,9 @@ mod bindings;
 
 use std::{borrow::BorrowMut, cell::RefCell};
 
-use bindings::{Btree, Guest};
 use btree::BTree;
 use error::Error;
-use bindings::exports::component::store::types::{GuestBtree, KeyValuePair as KV};
+use bindings::exports::component::store::types::{Guest, GuestStore, KeyValuePair as KV};
 use node_type::KeyValuePair;
 
 struct Component;
@@ -20,35 +19,33 @@ mod btree;
 mod pager;
 mod wal;
 
-struct Store {
+struct KVStore {
     inner: RefCell<BTree>,
 }
 
-impl GuestBtree for Store {
+impl GuestStore for KVStore {
     fn insert(&self, kv: KV) -> Result<(), bindings::exports::component::store::types::Error> {
         let key_value_pair = KeyValuePair::from(kv);
         return  self.inner.borrow_mut().insert(key_value_pair).map_err(|err| err.into());
     }
 
-    fn search(&self, key: bindings::exports::component::store::types::Key) -> Result<KeyValuePair, bindings::exports::component::store::types::Error> {
-        todo!()
+    fn search(&self, key: bindings::exports::component::store::types::Key) -> Result<bindings::exports::component::store::types::KeyValuePair, bindings::exports::component::store::types::Error> {
+        return self.inner.borrow_mut().search(key).map_err(|err| err.into()).map(|key_pair| KeyValuePair::into(key_pair));
     }
 
     fn delete(&self, key: bindings::exports::component::store::types::Key) -> Result<(), bindings::exports::component::store::types::Error> {
-        todo!()
+        return self.inner.borrow_mut().delete(key).map_err(|err| err.into());
+    }
+    
+    fn new() -> Self {
+        let btree = btree::BTreeBuilder::new().build().unwrap();
+        return Self{ inner:  RefCell::new(btree)};
     }
 }
 
 impl Guest for Component {
-
-    fn create_store() -> Result<BTree, Error> {
-        return btree::BTreeBuilder::new().build();
-    }
-
-   
     
-
-
+    type Store  = KVStore;
 }
 
 bindings::export!(Component with_types_in bindings);

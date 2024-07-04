@@ -14,7 +14,9 @@ interface types {
     }
     
 
-    resource btree {
+    resource store {
+
+        constructor();
 
         insert: func(kv: key-value-pair) -> result<_, error>;
 

@@ -3,7 +3,7 @@ use crate::page_layout::PTR_SIZE;
 use std::cmp::{Eq, Ord, Ordering, PartialOrd};
 use std::convert::From;
 use std::convert::TryFrom;
-use crate::bindings::exports::component::store::types::{GuestBtree, KeyValuePair as KV};
+use crate::bindings::exports::component::store::types::{KeyValuePair as KV};
 
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -29,6 +29,12 @@ pub struct KeyValuePair {
 impl From<KV> for KeyValuePair {
     fn from(value: KV) -> Self {
         KeyValuePair{ key: value.key, value: value.value}
+    }
+}
+
+impl Into<KV> for KeyValuePair {
+    fn into(self) -> KV {
+        KV{ key: self.key, value: self.value}
     }
 }
 

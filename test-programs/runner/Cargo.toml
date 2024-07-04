@@ -1,0 +1,12 @@
+[package]
+name = "runner"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wasmtime = "22.0.0"
+wasmtime-wasi = "22.0.0"
+
+[build-dependencies]
+wit-component = "0.212.0"
+serde_yaml = "0.9.34+deprecated"

@@ -1,0 +1,7 @@
+package test:artifacts;
+
+/// An example world for the component to target.
+world example {
+    import component:store/types;
+    export test-store: func();
+}
