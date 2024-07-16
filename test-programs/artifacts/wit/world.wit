@@ -2,6 +2,6 @@ package test:artifacts;
 
 /// An example world for the component to target.
 world example {
-    import component:store/types;
+    import component:store/types@0.1.0;
     export test-store: func();
 }

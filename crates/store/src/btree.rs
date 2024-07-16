@@ -9,6 +9,7 @@ use std::cmp;
 use std::convert::TryFrom;
 use std::path::Path;
 use wasi::filesystem::{self, types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags}};
+use wasi::http::outgoing_handler::ErrorCode;
 
 /// B+Tree properties.
 pub const MAX_BRANCHING_FACTOR: usize = 200;
@@ -35,19 +36,23 @@ impl BTreeBuilder {
     pub fn new() -> BTreeBuilder {
         let preopens = filesystem::preopens::get_directories();
         let (dir, _) = &preopens[0];
-        dir
+        if let Err(err) =  dir
             .create_directory_at(
                 "wasm-btree"
-            )
-            .map_err(|err| Error::FilesystemError(err.name().to_string())).unwrap();
+            ) {
+                if err != filesystem::types::ErrorCode::Exist {
+                    panic!("{}",err.name().to_string());
+                }
+            }
+            ;
         let new_dir = dir.open_at(PathFlags::empty(),
             "wasm-btree",
             OpenFlags::DIRECTORY,
-            DescriptorFlags::READ | DescriptorFlags::MUTATE_DIRECTORY | DescriptorFlags::WRITE )
+            DescriptorFlags::MUTATE_DIRECTORY)
             .map_err(|err| Error::FilesystemError(err.name().to_string())).unwrap();
         BTreeBuilder {
             path: new_dir,
-            b: 0,
+            b: 200,
         }
     }
 
@@ -72,7 +77,7 @@ impl BTreeBuilder {
         let mut pager = Pager::new(&self.path)?;
         let root = Node::new(NodeType::Leaf(vec![]), true, None);
         let root_offset = pager.write_page(Page::try_from(&root)?)?;
-        let mut wal = Wal::new()?;
+        let mut wal = Wal::new(&self.path)?;
         wal.set_root(root_offset)?;
 
         Ok(BTree {
@@ -88,7 +93,7 @@ impl BTreeBuilder {
 impl BTree {
     fn is_node_full(&self, node: &Node) -> Result<bool, Error> {
         match &node.node_type {
-            NodeType::Leaf(pairs) => Ok(pairs.len() == (2 * self.b - 1)),
+            NodeType::Leaf(pairs) => Ok(pairs.len() == (2 * self.b)),
             NodeType::Internal(_, keys) => Ok(keys.len() == (2 * self.b - 1)),
             NodeType::Unexpected => Err(Error::UnexpectedError),
         }
@@ -97,8 +102,8 @@ impl BTree {
     fn is_node_underflow(&self, node: &Node) -> Result<bool, Error> {
         match &node.node_type {
             // A root cannot really be "underflowing" as it can contain less than b-1 keys / pointers.
-            NodeType::Leaf(pairs) => Ok(pairs.len() < self.b - 1 && !node.is_root),
-            NodeType::Internal(_, keys) => Ok(keys.len() < self.b - 1 && !node.is_root),
+            NodeType::Leaf(pairs) => Ok(pairs.len() < (self.b - 1) && !node.is_root),
+            NodeType::Internal(_, keys) => Ok(keys.len() < (self.b - 1) && !node.is_root),
             NodeType::Unexpected => Err(Error::UnexpectedError),
         }
     }

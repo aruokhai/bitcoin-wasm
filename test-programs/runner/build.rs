@@ -14,6 +14,7 @@ use wit_component::ComponentEncoder;
 // }
 
 fn main() {
+    println!("cargo:rerun-if-changed=../../");
     build_and_generate_tests();
 }
 
@@ -62,8 +63,6 @@ fn compose_dep(out_dir: PathBuf) {
         .join(format!("artifacts.wasm"));
     let artifact_path = binding.to_str().unwrap();
     let binding = out_dir
-        .join("wasm32-wasi")
-        .join("debug")
         .join(format!("test.wasm"));
     let output_path = binding.to_str().unwrap();
     wac.arg("plug")

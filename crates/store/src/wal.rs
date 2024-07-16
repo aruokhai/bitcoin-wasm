@@ -12,10 +12,8 @@ pub struct Wal {
 }
 
 impl Wal {
-    pub fn new() -> Result<Self, Error> {
-        let preopens = filesystem::preopens::get_directories();
-        let (dir, _) = &preopens[0];
-        let file = dir
+    pub fn new(path: &Descriptor) -> Result<Self, Error> {
+        let file = path
             .open_at(
                 PathFlags::empty(),
                 "wal",
@@ -26,6 +24,7 @@ impl Wal {
 
         Ok(Self { file })
     }
+
 
     pub fn get_root(&mut self) -> Result<Offset, Error> {
         let mut buff: [u8; PTR_SIZE] = [0x00; PTR_SIZE];

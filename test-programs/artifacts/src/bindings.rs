@@ -131,7 +131,7 @@ pub mod component {
 
                     #[cfg(target_arch = "wasm32")]
                     {
-                        #[link(wasm_import_module = "component:store/types")]
+                        #[link(wasm_import_module = "component:store/types@0.1.0")]
                         extern "C" {
                             #[link_name = "[resource-drop]store"]
                             fn drop(_: u32);
@@ -147,7 +147,7 @@ pub mod component {
                 pub fn new() -> Self {
                     unsafe {
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:store/types")]
+                        #[link(wasm_import_module = "component:store/types@0.1.0")]
                         extern "C" {
                             #[link_name = "[constructor]store"]
                             fn wit_import() -> i32;
@@ -181,7 +181,7 @@ pub mod component {
                         let len2 = vec2.len();
                         let ptr3 = ret_area.0.as_mut_ptr().cast::<u8>();
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:store/types")]
+                        #[link(wasm_import_module = "component:store/types@0.1.0")]
                         extern "C" {
                             #[link_name = "[method]store.insert"]
                             fn wit_import(
@@ -244,7 +244,7 @@ pub mod component {
                         let len0 = vec0.len();
                         let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:store/types")]
+                        #[link(wasm_import_module = "component:store/types@0.1.0")]
                         extern "C" {
                             #[link_name = "[method]store.search"]
                             fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
@@ -300,7 +300,7 @@ pub mod component {
                         let len0 = vec0.len();
                         let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:store/types")]
+                        #[link(wasm_import_module = "component:store/types@0.1.0")]
                         extern "C" {
                             #[link_name = "[method]store.delete"]
                             fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
@@ -484,18 +484,18 @@ pub(crate) use __export_example_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:example:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 449] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc3\x02\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 455] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc9\x02\x01A\x02\x01\
 A\x04\x01B\x13\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01s\x04\
 \0\x03key\x03\0\x02\x01m\x01\x03nae\x04\0\x05error\x03\0\x04\x04\0\x05store\x03\x01\
 \x01i\x06\x01@\0\0\x07\x04\0\x12[constructor]store\x01\x08\x01h\x06\x01j\0\x01\x05\
 \x01@\x02\x04self\x09\x02kv\x01\0\x0a\x04\0\x14[method]store.insert\x01\x0b\x01j\
 \x01\x01\x01\x05\x01@\x02\x04self\x09\x03key\x03\0\x0c\x04\0\x14[method]store.se\
 arch\x01\x0d\x01@\x02\x04self\x09\x03key\x03\0\x0a\x04\0\x14[method]store.delete\
-\x01\x0e\x03\x01\x15component:store/types\x05\0\x01@\0\x01\0\x04\0\x0atest-store\
-\x01\x01\x04\x01\x16test:artifacts/example\x04\0\x0b\x0d\x01\0\x07example\x03\0\0\
-\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bind\
-gen-rust\x060.25.0";
+\x01\x0e\x03\x01\x1bcomponent:store/types@0.1.0\x05\0\x01@\0\x01\0\x04\0\x0atest\
+-store\x01\x01\x04\x01\x16test:artifacts/example\x04\0\x0b\x0d\x01\0\x07example\x03\
+\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-\
+bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

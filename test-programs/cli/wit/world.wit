@@ -1,0 +1,7 @@
+package component:cli;
+
+/// An example world for the component to target.
+world example {
+    import component:store/types@0.1.0;
+    
+}

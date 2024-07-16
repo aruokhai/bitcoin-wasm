@@ -1,8 +1,7 @@
-package component:store;
+package component:store@0.1.0;
 
 /// An example world for the component to target.
 world store {
-    use types.{store, error}; 
     export types;
 }
 
