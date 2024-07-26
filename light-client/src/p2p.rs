@@ -308,7 +308,7 @@ impl P2PConfig<NetworkMessage, RawNetworkMessage> for BitcoinP2PConfig {
     }
 
     fn wrap(&self, m: NetworkMessage) -> RawNetworkMessage {
-        RawNetworkMessage{magic: self.network.magic(), payload: m, payload_len: , checksum: todo!()  }
+        RawNetworkMessage::new(self.network.magic(), m)  
     }
 
     fn unwrap(&self, e: RawNetworkMessage) -> Result<NetworkMessage, io::Error> {
