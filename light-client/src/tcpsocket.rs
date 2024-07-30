@@ -4,24 +4,24 @@ use wasi::{io::poll, sockets::tcp::{ErrorCode, InputStream, IpSocketAddress, Net
 
 pub struct WasiTcpSocket {
     inner: Arc<TcpSocket>,
-    socket_address: IpSocketAddress,
     network_ref: Network,
-
 
 }
 
 impl  WasiTcpSocket  {
     
-    fn new( inner: TcpSocket, socket_address: IpSocketAddress , network_ref: Network) ->  Self {
-        return WasiTcpSocket{inner: Arc::new(inner), socket_address,  network_ref: network_ref}
+    pub fn new( inner: TcpSocket, network_ref: Network) ->  Self {
+        return WasiTcpSocket{inner: Arc::new(inner),  network_ref: network_ref}
     }
 
     pub fn blocking_bind(
         &self,
+        socket_address: IpSocketAddress,
+
     ) -> Result<(), ErrorCode> {
         let sub = self.inner.subscribe();
 
-        self.inner.start_bind(&self.network_ref, self.socket_address)?;
+        self.inner.start_bind(&self.network_ref, socket_address)?;
 
         loop {
             match self.inner.finish_bind() {

@@ -8,7 +8,8 @@ struct Component;
 mod p2p;
 mod p2pdummy;
 mod buffer;
-mod tcplistener;
+mod tcpsocket;
+mod node;
 
 impl Guest for Component {
     /// Say hello!
