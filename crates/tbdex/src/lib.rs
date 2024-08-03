@@ -3,9 +3,9 @@ mod bindings;
 
 use bindings::Guest;
 
-mod  crypto;
-mod dids;
+mod web5;
 mod request;
+mod json;
 struct Component;
 
 impl Guest for Component {

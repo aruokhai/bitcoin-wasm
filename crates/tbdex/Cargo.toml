@@ -18,6 +18,12 @@ url = "2.5.2"
 byteorder = { version = "1", default-features = false }
 zbase32 = "0.1.2"
 anyhow = { version = "1.0.86" }
+serde-json-core = "0.5.1"
+serde_json = { version = "1.0.122", default-features = false, features = ["alloc"] }
+regex = "1.10.6"
+jwt-compact = { version = "0.8.0", default-features = false, features = ["ed25519-compact"] }
+chrono = { version = "0.4.38", default-features = false, features = ["serde", "alloc"] }
+josekit = "0.8.7"
 
 [dev-dependencies]
 k256 = { version = "0.13.3", features = ["ecdsa", "jwk"] }
