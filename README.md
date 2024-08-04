@@ -29,7 +29,7 @@ Bitcon-Wasm Is A [WASM-WASI](https://wasi.dev/) Compliant embedded Bitcoin Payme
 ##  :beginner: About
 Add a detailed introduction about the project here, everything you want the reader to know.
 
-## :feat: Features
+## :station: Features
 - [ ] Light Client (Compact Block Filtering)
 - [ ] Descriptor Wallet 
 - [ ] Silent Payment Support
