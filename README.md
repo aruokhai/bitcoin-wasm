@@ -1,13 +1,12 @@
 [![Safety Dance](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 
- devices in order to further goal of self custodial .
-
 # Bitcoin-Wasm
-- Bitcon-Wasm Is A [WASM-WASI](https://wasi.dev/) Compliant embedded Bitcoin Payment Node. It is developed to be embedded in native applications with WASI compliant runtime sdk uch as [wasmtime](https://wasmtime.dev/) and [JCO](https://bytecodealliance.github.io/jco/). This node provides all the necessary functionalites to send, receive and convert bitcoin in a non custodial way using open standards.  The releases are .wasm files which can be utilised with WASI compliant SDK s
+Bitcon-Wasm Is A [WASM-WASI](https://wasi.dev/) Compliant embedded Bitcoin Payment Node. It is developed to be embedded in native applications with WASI compliant runtime sdk uch as [wasmtime](https://wasmtime.dev/) and [JCO](https://bytecodealliance.github.io/jco/). This node provides all the necessary functionalites to send, receive and convert bitcoin in a non custodial way using open standards.  The releases are .wasm files which can be utilised with WASI compliant SDK s
 
 ## :ledger: Index
 
 - [About](#beginner-about)
+- [Features](#feat-features)
 - [Usage](#zap-usage)
   - [Installation](#electric_plug-installation)
   - [Commands](#package-commands)
@@ -30,8 +29,17 @@
 ##  :beginner: About
 Add a detailed introduction about the project here, everything you want the reader to know.
 
+## :feat: Features
+- [ ] Light Client (Compact Block Filtering)
+- [ ] Descriptor Wallet 
+- [ ] Silent Payment Support
+     - [ ] Nostr Identity Support
+- [ ] TBDx exchange feature
+- [ ] PSBT support for External Signer
+- [ ] Wasm External Signer
+   
 ## :zap: Usage
-Write about how to use this project.
+The project is intended to be used in another project with the help of WASI SDK such as wasmtime. 
 
 ###  :electric_plug: Installation
 - Steps on how to install this project, to use it.
@@ -63,23 +71,30 @@ Add a file structure here with the basic details about files, below is an exampl
 
 ```
 .
-├── assets
-│   ├── css
-│   │   ├── index-ui.css
-│   │   └── rate-ui.css
-│   ├── images
-│   │   ├── icons
-│   │   │   ├── shrink-button.png
-│   │   │   └── umbrella.png
-│   │   ├── logo_144.png
-│   │   └── Untitled-1.psd
-│   └── javascript
-│       ├── index.js
-│       └── rate.js
-├── CNAME
-├── index.html
-├── rate.html
-└── README.md
+├── crates
+│   ├── store
+│   │   ├── src
+│   │   └── wit
+|   |   |  └──world.wit
+|   |   ├── Cargo.toml
+├── Node
+│   ├── src
+│   │   ├── lib.rs
+│   │   └── binding.rs
+│   └── cargo.toml
+├──test-programs 
+│   ├── artifacts
+│   |   ├── src
+│   │   └── wit
+|   |   |  └──world.wit
+|   |   └── Cargo.toml
+|   ├── runner
+│   |   ├── src
+│   │   └── wit
+|   |   |  └──world.wit
+|   |   └── build.rs
+└── Cargo.toml
+
 ```
 
 | No | File Name | Details 
