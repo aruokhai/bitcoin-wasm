@@ -8,8 +8,9 @@ use jsonschema::JSONSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, to_value, Map, Value};
 use uuid::Uuid;
+use wasi::random;
 
-use crate::credentials::verifiable_credential_1_1::VerifiableCredential;
+use crate::web5::credentials::verifiable_credential_1_1::VerifiableCredential;
 
 #[derive(thiserror::Error, Debug)]
 pub enum PexError {
@@ -90,7 +91,9 @@ pub struct Filter {
 }
 
 fn generate_token() -> String {
-    Uuid::new_v4().to_string()
+    let random_number1 = random::random::get_random_u64();
+    let random_number2 = random::random::get_random_u64();
+    Uuid::from_u64_pair(random_number1, random_number2).to_string()
 }
 
 impl PresentationDefinition {
@@ -239,54 +242,54 @@ impl JsonSchemaBuilder {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::collections::HashSet;
+// #[cfg(test)]
+// mod tests {
+//     use std::collections::HashSet;
 
-    use crate::test_helpers::TestVectorFile;
+//     use crate::test_helpers::TestVectorFile;
 
-    use super::PresentationDefinition;
+//     use super::PresentationDefinition;
 
-    #[derive(Debug, serde::Deserialize)]
-    struct VectorInput {
-        #[serde(rename = "presentationDefinition")]
-        pub presentation_definition: PresentationDefinition,
-        #[serde(rename = "credentialJwts")]
-        pub credential_jwts: Vec<String>,
-    }
+//     #[derive(Debug, serde::Deserialize)]
+//     struct VectorInput {
+//         #[serde(rename = "presentationDefinition")]
+//         pub presentation_definition: PresentationDefinition,
+//         #[serde(rename = "credentialJwts")]
+//         pub credential_jwts: Vec<String>,
+//     }
 
-    #[derive(Debug, serde::Deserialize)]
-    struct VectorOutput {
-        #[serde(rename = "selectedCredentials")]
-        pub selected_credentials: Vec<String>,
-    }
+//     #[derive(Debug, serde::Deserialize)]
+//     struct VectorOutput {
+//         #[serde(rename = "selectedCredentials")]
+//         pub selected_credentials: Vec<String>,
+//     }
 
-    #[test]
-    #[ignore] // TODO temporarily ignoring, because web5-spec test vectors use did:key which isn't supported
-    fn test_web5_spec_test_vectors() {
-        let path = "presentation_exchange/select_credentials.json";
-        let vectors: TestVectorFile<VectorInput, VectorOutput> =
-            TestVectorFile::load_from_path(path);
+//     #[test]
+//     #[ignore] // TODO temporarily ignoring, because web5-spec test vectors use did:key which isn't supported
+//     fn test_web5_spec_test_vectors() {
+//         let path = "presentation_exchange/select_credentials.json";
+//         let vectors: TestVectorFile<VectorInput, VectorOutput> =
+//             TestVectorFile::load_from_path(path);
 
-        for vector in vectors.vectors {
-            let presentation_definition = vector.input.presentation_definition;
-            let vc_jwts = vector.input.credential_jwts;
-            let error_msg = format!(
-                "Selected Credential test vector ({}) should not have thrown error",
-                vector.description
-            );
+//         for vector in vectors.vectors {
+//             let presentation_definition = vector.input.presentation_definition;
+//             let vc_jwts = vector.input.credential_jwts;
+//             let error_msg = format!(
+//                 "Selected Credential test vector ({}) should not have thrown error",
+//                 vector.description
+//             );
 
-            let selected_credentials = presentation_definition
-                .select_credentials(&vc_jwts)
-                .expect(&error_msg);
+//             let selected_credentials = presentation_definition
+//                 .select_credentials(&vc_jwts)
+//                 .expect(&error_msg);
 
-            let set1: HashSet<_> = selected_credentials.iter().collect();
-            let set2: HashSet<_> = vector.output.selected_credentials.iter().collect();
-            assert_eq!(
-                set1, set2,
-                "Vectors do not contain the same elements: {}",
-                error_msg
-            );
-        }
-    }
-}
+//             let set1: HashSet<_> = selected_credentials.iter().collect();
+//             let set2: HashSet<_> = vector.output.selected_credentials.iter().collect();
+//             assert_eq!(
+//                 set1, set2,
+//                 "Vectors do not contain the same elements: {}",
+//                 error_msg
+//             );
+//         }
+//     }
+// }

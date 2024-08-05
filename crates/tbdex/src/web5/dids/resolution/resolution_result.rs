@@ -1,5 +1,5 @@
 use super::{document_metadata::DocumentMetadata, resolution_metadata::ResolutionMetadata};
-use crate::dids::{
+use crate::web5::dids::{
     data_model::document::Document,
     did::Did,
     methods::did_dht::DidDht,

@@ -233,6 +233,7 @@ mod tests {
         for (uri, is_error, expected) in test_cases {
             match Did::new(uri) {
                 Ok(did) => {
+                    println!("This is Did {:?}", did.clone());
                     assert!(!is_error, "Expected error for input: {}", uri);
                     assert_eq!(did, expected.unwrap(), "Unexpected result for uri: {}", uri);
                 }

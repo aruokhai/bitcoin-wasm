@@ -2,6 +2,7 @@ pub mod ed25519;
 pub(crate) mod secp256k1;
 
 use base64::DecodeError;
+use ed25519_compact::{PublicKey, SecretKey};
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq)]
 pub enum DsaError {
@@ -56,8 +57,10 @@ impl std::str::FromStr for Dsa {
 
 pub trait Signer: Send + Sync {
     fn sign(&self, payload: &[u8]) -> Result<Vec<u8>>;
+    fn get_signing_key(&self) -> Result<SecretKey>;
 }
 
 pub trait Verifier: Send + Sync {
     fn verify(&self, payload: &[u8], signature: &[u8]) -> Result<bool>;
+    fn get_verifying_key(&self) -> Result<PublicKey>;
 }

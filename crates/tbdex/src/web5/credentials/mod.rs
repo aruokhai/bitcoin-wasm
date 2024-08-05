@@ -1,6 +1,5 @@
 use std::time::SystemTimeError;
 
-use josekit::JoseError as JosekitError;
 use serde_json::Error as SerdeJsonError;
 
 use super::dids::{
@@ -27,8 +26,6 @@ pub enum CredentialError {
     InvalidTimestamp(String),
     #[error("serde json error {0}")]
     SerdeJsonError(String),
-    #[error(transparent)]
-    Jose(#[from] JosekitError),
     #[error(transparent)]
     BearerDid(#[from] BearerDidError),
     #[error("missing kid jose header")]

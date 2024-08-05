@@ -5,7 +5,6 @@ use bindings::Guest;
 
 mod web5;
 mod request;
-mod json;
 struct Component;
 
 impl Guest for Component {
