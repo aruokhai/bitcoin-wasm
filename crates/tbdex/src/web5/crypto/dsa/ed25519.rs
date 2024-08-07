@@ -2,7 +2,7 @@ use super::{DsaError, Result, Signer, Verifier};
 use crate::web5::crypto::jwk::Jwk;
 use base64::{engine::general_purpose, Engine as _};
 use ed25519_compact::{
-    PublicKey, SecretKey, Signature
+    PublicKey, SecretKey, Seed, Signature
 };
 
 
@@ -11,9 +11,12 @@ use ed25519_compact::{
 pub struct Ed25519Generator;
 
 impl Ed25519Generator {
-    #[cfg(test)]
     pub fn generate() -> Jwk {
-        let keypair = ed25519_compact::KeyPair::generate();
+        let random_number = wasi::random::random::get_random_bytes(32);
+        let mut seed = [0; 32];
+        seed.copy_from_slice(random_number.as_slice());
+        let seed = Seed::new(seed);
+        let keypair = ed25519_compact::KeyPair::from_seed(seed);
         let verifying_key = keypair.pk;
 
         let binding = keypair.sk.to_vec();
@@ -147,13 +150,11 @@ impl Verifier for Ed25519Verifier {
         let mut signature_bytes = [0u8; Signature::BYTES];
         signature_bytes.copy_from_slice(signature);
         
-        // TODO: Fix this please
-        // let verify_result = verifying_key.verify(payload, &Signature::from_bytes(&signature_bytes));
-        // match verify_result {
-        //     Ok(_) => Ok(true),
-        //     Err(_) => Ok(false),
-        // }
-        return Ok(true)
+        let verify_result = verifying_key.verify(payload, &Signature::from_slice(&signature_bytes).unwrap());
+        match verify_result {
+            Ok(_) => Ok(true),
+            Err(_) => Ok(false),
+        }
     }
     
     fn get_verifying_key(&self) -> Result<PublicKey> {

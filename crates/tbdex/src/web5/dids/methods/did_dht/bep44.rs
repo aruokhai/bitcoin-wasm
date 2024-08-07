@@ -71,7 +71,6 @@ impl Bep44Message {
         if message_len > MAX_V_LEN {
             return Err(Bep44EncodingError::SizeError(message_len));
         }
-        // TODO: Get the correct time based on epoch  
         let seq = wall_clock::now().seconds;
 
         let signable = signable(seq, message);

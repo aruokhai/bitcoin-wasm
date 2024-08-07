@@ -1,10 +1,10 @@
 use bep44::Bep44Message;
 use wasi::http::types::{Method, Scheme};
-use crate::request::request;
 use simple_dns::Packet;
 
 use super::{MethodError, Result};
 use crate::web5::{
+    request::request,
     crypto::{
         dsa::{
             ed25519::{self, Ed25519Verifier},
@@ -27,7 +27,7 @@ pub mod bep44;
 pub mod document_packet;
 
 const JSON_WEB_KEY: &str = "JsonWebKey";
-const DEFAULT_RELAY: &str = "https://diddht.tbddev.org";
+const DEFAULT_RELAY: &str = "diddht.tbddev.org";
 
 fn create_identifier(identity_key_jwk: &Jwk) -> Result<String> {
     let pubkey_bytes = ed25519::public_jwk_extract_bytes(identity_key_jwk)?;
@@ -35,7 +35,7 @@ fn create_identifier(identity_key_jwk: &Jwk) -> Result<String> {
     Ok(format!("did:dht:{}", suffix))
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct DidDht {
     pub did: Did,
     pub document: Document,
@@ -135,14 +135,13 @@ impl DidDht {
                 .map_err(|_| ResolutionMetadataError::InvalidDid)?;
 
             // construct http endpoint from gateway url and last part of did_uri
-            let url = format!(
-                "{}/{}",
-                DEFAULT_RELAY.trim_end_matches('/'),
+            let path = format!(
+                "/{}",
                 did.id.trim_start_matches('/')
             );
 
             // Make the GET request
-            let response = request(Method::Get, Scheme::Http, &url, "", None, None, None, None, None).map_err(|_| ResolutionMetadataError::InternalError)?;
+            let response = request(Method::Get, Scheme::Https, &DEFAULT_RELAY.trim_end_matches('/'), &path, None, None, None, None, None).map_err(|_| ResolutionMetadataError::InternalError)?;
 
            
             // Check if the status is not 200
@@ -217,17 +216,17 @@ impl DidDht {
             )
         })?;
 
-        let url = format!(
-            "{}/{}",
-            DEFAULT_RELAY.trim_end_matches('/'),
+        let path = format!(
+            "/{}",
             self.did.id.trim_start_matches('/')
         );
+        println!("my did {:?}", DEFAULT_RELAY.trim_end_matches('/'));
 
         // Make Post Request
-        let response = request(Method::Post, Scheme::Http, &url, "", Some(body.as_slice()), Some(&[("Content-Type".into(), "application/octet-stream".as_bytes().to_vec())]), None, None, None)
-            .map_err(|_| MethodError::DidPublishingFailure("Failed to publish DID to mainline".to_string()))?;
+        let response = request(Method::Put, Scheme::Https, &DEFAULT_RELAY.trim_end_matches('/'), &path, Some(body.as_slice()), Some(&[("Content-Type".into(), "application/octet-stream".as_bytes().to_vec())]), None, None, None)
+            .map_err(|err| MethodError::DidPublishingFailure(err.to_string()))?;
 
-
+        println!("{:?}",response);
         if response.status != 200 {
             return Err(MethodError::DidPublishingFailure(
                 "Failed to PUT DID to mainline".to_string(),

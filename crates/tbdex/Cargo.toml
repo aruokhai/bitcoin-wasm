@@ -35,8 +35,8 @@ rand = "0.8.5"
 
 
 
-[lib]
-crate-type = ["cdylib"]
+# [lib]
+# crate-type = ["cdylib"]
 
 [profile.release]
 codegen-units = 1

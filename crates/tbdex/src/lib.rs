@@ -1,17 +1,16 @@
-#[allow(warnings)]
-mod bindings;
+// #[allow(warnings)]
+// mod bindings;
 
-use bindings::Guest;
+// use bindings::Guest;
 
-mod web5;
-mod request;
-struct Component;
+// mod web5;
+// struct Component;
 
-impl Guest for Component {
-    /// Say hello!
-    fn hello_world() -> String {
-        "Hello, World!".to_string()
-    }
-}
+// impl Guest for Component {
+//     /// Say hello!
+//     fn hello_world() -> String {
+//         "Hello, World!".to_string()
+//     }
+// }
 
-bindings::export!(Component with_types_in bindings);
+// bindings::export!(Component with_types_in bindings);

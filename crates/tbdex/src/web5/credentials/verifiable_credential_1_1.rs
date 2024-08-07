@@ -40,19 +40,13 @@ struct CustomClaims {
     /// https://tools.ietf.org/html/rfc7519#section-4.1.2
     #[serde(rename = "iss")]
     issuer: String,
-    #[serde(rename = "ndf", )]
-    not_before: u64,
     #[serde(rename = "sub")]
     subject: String,
-    #[serde(rename = "exp" ,
-    skip_serializing_if = "Option::is_none")]
-    expiration_time: Option<u64>,
     #[serde(rename = "jti")]
     jwt_id: String,
     #[serde(rename = "vc")]
     validated_credential: serde_json::Value,
-    #[serde(rename = "iat" , )]
-    issued_at: u64
+
 
 }
 
@@ -241,17 +235,20 @@ impl VerifiableCredential {
         };
         let mut expiration_time = None;
         if let Some(exp) = self.expiration_date.clone() {
-            expiration_time = Some(exp.seconds)
+            expiration_time = chrono::DateTime::from_timestamp(exp.seconds as i64, exp.nanoseconds);
+            
         }
-        let  payload = Claims::new(CustomClaims{
+        let  mut payload = Claims::new(CustomClaims{
             issuer: self.issuer.to_string(),
-            jwt_id: self.credential_subject.id.clone(),
+            jwt_id: self.id.clone(),
             validated_credential: serde_json::to_value(vc_claim)?,
             subject: self.credential_subject.id.clone(),
-            not_before: self.issuance_date.seconds,
-            issued_at: wall_clock::now().seconds,
-            expiration_time
+            
         });
+        payload.expiration = expiration_time;
+        payload.not_before = chrono::DateTime::from_timestamp(self.issuance_date.seconds as i64, self.issuance_date.nanoseconds);
+        let issud_at_date = wall_clock::now();
+        payload.issued_at = chrono::DateTime::from_timestamp(issud_at_date.seconds as i64, issud_at_date.nanoseconds);
         let  header = Header::empty()
         .with_token_type("JWT")
         .with_key_id(key_id);
@@ -288,9 +285,9 @@ impl VerifiableCredential {
 
     pub fn verify_with_verifier(vc_jwt: &str, verifier: Arc<dyn Verifier>) -> Result<Self> {
         let token: UntrustedToken = vc_jwt.try_into().unwrap();
-
-        let kid = <std::option::Option<std::string::String> as Clone>::clone(&token.header()
-            .key_id)
+        let cloned_header = token.header().clone();
+        let kid = &cloned_header
+            .key_id
             .unwrap();
 
         let signed_token = Ed25519.validator::<'static,CustomClaims>(&verifier.get_verifying_key().unwrap()).validate_for_signed_token(&token).unwrap();
@@ -313,10 +310,9 @@ impl VerifiableCredential {
             .custom
             .subject;
         let nbf = jwt_payload
-            .custom
-            .not_before;
-        let exp = jwt_payload.custom.expiration_time;
-
+            .not_before.unwrap();
+        let exp = jwt_payload.expiration;
+        println!("this is my jwt {}, this is my id {:?}", jti.clone(), vc_payload.clone().id);
         if let Some(id) = &vc_payload.id {
             if id != jti {
                 return Err(CredentialError::ClaimMismatch("id".to_string()));
@@ -337,6 +333,7 @@ impl VerifiableCredential {
         }
 
         let now = wall_clock::now();
+        let mut modified_expiration_date = None;
         match vc_payload.expiration_date {
             Some(ref vc_payload_expiration_date) => match exp {
                 None => {
@@ -347,21 +344,22 @@ impl VerifiableCredential {
                 Some(exp) => {
                     if vc_payload_expiration_date
                         .seconds
-                        != exp
+                        != exp.timestamp() as u64
                     {
                         return Err(CredentialError::ClaimMismatch(
                             "expiration_date".to_string(),
                         ));
                     }
 
-                    if now.seconds > exp {
+                    if now.seconds > exp.timestamp() as u64 {
                         return Err(CredentialError::CredentialExpired);
                     }
+                    modified_expiration_date = Some(Datetime{ seconds: exp.timestamp() as u64, nanoseconds: exp.timestamp_subsec_nanos() })
                 }
             },
             None => {
                 if let Some(exp) = exp {
-                    if now.seconds  > exp {
+                    if now.seconds  > exp.timestamp() as u64 {
                         return Err(CredentialError::CredentialExpired);
                     }
                 }
@@ -380,9 +378,8 @@ impl VerifiableCredential {
             id: jti.to_string(),
             r#type: vc_payload.r#type,
             issuer: vc_issuer,
-            issuance_date: Datetime{ seconds: nbf.clone(), nanoseconds: 0 },
-            // TODO: Fix the date time
-            expiration_date: None,
+            issuance_date: Datetime{ seconds: nbf.timestamp() as u64, nanoseconds: nbf.timestamp_subsec_nanos() },
+            expiration_date: modified_expiration_date,
             credential_subject: vc_credential_subject,
         };
 
