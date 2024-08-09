@@ -1,0 +1,28 @@
+package component:node@0.1.0;
+
+interface types { 
+
+    // record key-value-pair {
+    //     key: string,
+    //     value: string,
+    // }
+
+    // type key = string;
+
+    // enum error{
+    //     nae,
+    // }
+    
+
+    // resource store {
+
+    //     constructor();
+
+    //     insert: func(kv: key-value-pair) -> result<_, error>;
+
+    //     search: func(key: key) -> result<key-value-pair, error>;
+
+    //     delete: func(key: key) -> result<_, error>;
+
+    // }
+}

@@ -1,0 +1,6 @@
+package component:node@0.1.0;
+
+/// An example world for the component to target.
+world store {
+    export types;
+}
