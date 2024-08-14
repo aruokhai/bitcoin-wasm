@@ -1,13 +1,13 @@
 use wasi::sockets::{network::IpAddress, tcp::IpSocketAddress};
 use bitcoin::{
-    consensus::{encode, serialize, Decodable, Encodable}, network as bitcoin_network, p2p::{message::{CommandString, NetworkMessage, RawNetworkMessage}, message_network::VersionMessage}, Address, Network
+    consensus::{encode, serialize, Decodable, Encodable}, network as bitcoin_network, Network
 };
 use crate::p2p::{P2PControl, P2P};
 
 
 
 
-struct Node {
+pub struct Node {
     p2p: P2P,
 
 }
@@ -17,7 +17,7 @@ pub struct CustomIPV4SocketAddress {
     pub port: u16
 }
 
-enum WasiBitcoinNetwork {
+pub enum WasiBitcoinNetwork {
     Mainnet,
     Testnet,
     Regtest,
@@ -33,17 +33,17 @@ impl Into<bitcoin_network::Network> for WasiBitcoinNetwork {
     }
 } 
 
-struct NodeConfig {
-    socket_address: CustomIPV4SocketAddress,
-    network: WasiBitcoinNetwork
+pub struct NodeConfig {
+    pub socket_address: CustomIPV4SocketAddress,
+    pub network: WasiBitcoinNetwork
 }
 
 
 impl Node {
 
-    fn new(node_config: NodeConfig) -> Self {
+    pub fn new(node_config: NodeConfig) -> Self {
         let mut p2p = P2P::new();
-        let result = p2p.connect_peer(node_config.socket_address, node_config.network);
+        let result = p2p.connect_peer(node_config.socket_address, node_config.network.into());
         if result == false {
             panic!("cant connect to peer");
         }

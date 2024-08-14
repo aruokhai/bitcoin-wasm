@@ -1,22 +1,22 @@
-#[allow(warnings)]
-mod bindings;
+// #[allow(warnings)]
+// mod bindings;
 
-use bindings::Guest;
+// use bindings::Guest;
 
-struct Component;
+// struct Component;
 
-mod p2p;
-mod tcpsocket;
-mod node;
-mod util;
+// mod p2p;
+// mod tcpsocket;
+// mod node;
+// mod util;
 
-mod messages;
+// mod messages;
 
-impl Guest for Component {
-    /// Say hello!
-    fn hello_world() -> String {
-        "Hello, World!".to_string()
-    }
-}
+// impl Guest for Component {
+//     /// Say hello!
+//     fn hello_world() -> String {
+//         "Hello, World!".to_string()
+//     }
+// }
 
-bindings::export!(Component with_types_in bindings);
+// bindings::export!(Component with_types_in bindings);

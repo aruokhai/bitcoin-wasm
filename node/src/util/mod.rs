@@ -16,7 +16,7 @@ pub(crate) mod var_int;
 
 pub(crate) use self::bits::{lshift, rshift, Bits};
 
-pub use self::hash160::{hash160, Hash160};
+pub use self::hash160::{ Hash160};
 pub use self::hash256::{sha256d, Hash256};
 pub use self::result::{Error, Result};
 #[allow(unused_imports)]

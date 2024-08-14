@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/store", "light-client", "test-programs/artifacts", "test-programs/cli", "test-programs/runner",]
+  "crates/store", "node", "test-programs/artifacts", "test-programs/cli", "test-programs/runner",]
 
 exclude = [
 "bitcoin-wasm",

@@ -1,11 +1,15 @@
-use std::{io::{Read, Write}, net::{Ipv4Addr, SocketAddrV4}, sync::atomic::AtomicUsize};
+use std::{io::{Cursor, Read, Write}, net::{Ipv4Addr, SocketAddrV4}, sync::atomic::AtomicUsize};
 
-use wasi::{clocks::wall_clock, random::random, sockets::{instance_network, network::{self, Ipv4SocketAddress}, tcp::{InputStream, IpSocketAddress, OutputStream}, tcp_create_socket::create_tcp_socket}};
+use wasi::{cli::command, clocks::{monotonic_clock, wall_clock}, io::poll::Pollable, random::random, sockets::{instance_network, network::{self, Ipv4SocketAddress}, tcp::{InputStream, IpSocketAddress, OutputStream}, tcp_create_socket::create_tcp_socket}};
 use bitcoin::{
     consensus::{encode, Decodable, Encodable}, network as bitcoin_network, Network
 };
-use crate::{node::CustomIPV4SocketAddress, tcpsocket::WasiTcpSocket};
+use crate::messages::{self, commands::{self, PONG}, Message, MessageHeader, NodeAddr, Version};
+use crate::node::CustomIPV4SocketAddress;
+use crate::tcpsocket::WasiTcpSocket;
 use core::sync::atomic::Ordering;
+use crate::messages::Message::Ping;
+use crate::util::{Error, Result, Serializable};
 
 
 pub struct PeerId(u64);
@@ -15,14 +19,21 @@ const USER_AGENT: &'static str = concat!("/Murmel:", env!("CARGO_PKG_VERSION"), 
 pub struct Peer {
     input_stream: InputStream,
     output_stream: OutputStream,
-    peer_id: PeerId,
-    remote_address: Address,
+    peer_id: u64,
+    remote_address: NodeAddr,
     bitcoin_config: BitcoinP2PConfig,
+}
+
+pub enum MessageType {
+    VERSION,
+    Verack
+
+
 }
 
 impl Peer {
       
-      pub fn new(network: bitcoin_network::Network, input_stream: InputStream, output_stream: OutputStream, remote_address: Address) -> Self {
+      pub fn new(network: bitcoin_network::Network, input_stream: InputStream, output_stream: OutputStream, remote_address: NodeAddr) -> Self {
          let peer_id = random::get_random_u64();
          let bitcoin_config = BitcoinP2PConfig {
             network,
@@ -31,24 +42,24 @@ impl Peer {
             user_agent: USER_AGENT.to_owned(),
             height: AtomicUsize::new(0),
         };
-         let peer =  Self { peer_id, input_stream, output_stream, remote_address, bitcoin_config};
+         let mut peer =  Self { peer_id, input_stream, output_stream, remote_address, bitcoin_config};
          peer.handshake();
          return peer;
       }
 
-      fn version (&self) -> NetworkMessage {
+      fn version (&self) -> Message {
         // now in unix time
         let timestamp =  wall_clock::now().seconds;
 
         let services = 0;
         // build message
-        NetworkMessage::Version(VersionMessage {
+        Message::Version(Version {
             version:  self.bitcoin_config.max_protocol_version,
-            services: services.into(),
+            services: services as u64,
             timestamp: timestamp as i64,
-            receiver: self.remote_address.clone(),
+            recv_addr: self.remote_address.clone(),
             // sender is only dummy
-            sender: self.remote_address,
+            tx_addr: self.remote_address.clone(),
             nonce: self.bitcoin_config.nonce,
             user_agent: self.bitcoin_config.user_agent.clone(),
             start_height: self.bitcoin_config.height.load(Ordering::Relaxed) as i32,
@@ -57,43 +68,57 @@ impl Peer {
 
     }
 
-      fn handshake(&self) {
+      fn handshake(&mut self) {
         let version_message = self.version();
         self.send(version_message);
-        let res = self.receive();
-        if let NetworkMessage::Version(version) = res {
-            let res = self.receive();
-            if let NetworkMessage::Verack = res {
-                let message = RawNetworkMessage::new(self.bitcoin_config.network.magic(), NetworkMessage::Verack);
+        let res = self.receive(commands::VERSION);
+        if let Message::Version(version) = res {
+            println!("{:?}", version);
+            println!("version recieved");
+            let res = self.receive(commands::VERACK);
+            if let Message::Verack = res {
+                println!("version acknowledge");
+                let message = Message::Verack;
                 self.send(message);
                 let nonce = wall_clock::now().seconds;
                 // Write a ping message because this seems to help with connection weirdness
                 // https://bitcoin.stackexchange.com/questions/49487/getaddr-not-returning-connected-node-addresses
-                let ping_message = NetworkMessage::Ping(nonce);
+                let ping_message = Ping(messages::ping::Ping { nonce: nonce });
                 self.send(ping_message);
+                println!("pinged");
+                self.receive(PONG);
+                println!("ponged");
+                
+                return;
             }
             panic!("cant get acknowledge version");
         }
         panic!("cant get version")
       }
     
-        fn send(&mut self, message: RawNetworkMessage) {
+        fn send(&mut self, message: Message) {
             let mut bytes = Vec::new();
-            message.consensus_encode(&mut bytes).unwrap();
+            message.write(&mut bytes, [0xfa, 0xbf, 0xb5, 0xda]).unwrap();
             self.output_stream.write_all(&bytes).unwrap();
             self.output_stream.blocking_flush().unwrap();
       }
 
-      pub 
+       
 
-       fn receive(&self) -> RawNetworkMessage{
-        let mut new_vec = Vec::new();
-        let bytes = self.input_stream.read_to_end(&mut new_vec).unwrap();
-        let decoded_message: Result<RawNetworkMessage, encode::Error> =
-            Decodable::consensus_decode::<RawNetworkMessage>(&mut new_vec);
-        let message = decoded_message.unwrap();
-        return  message;
-        
+       fn receive(& mut self, message_type: [u8; 12]) -> Message{
+        let duration = monotonic_clock::now() + 10_000_000;
+        while monotonic_clock::now() < duration {
+            let mut new_vec = Vec::new();
+            let bytes = self.input_stream.read_to_end(&mut new_vec).unwrap();
+            let mut file = Cursor::new(new_vec);
+            println!("trying");
+            let decoded_message = Message::read(&mut file);
+            let message = decoded_message.unwrap();
+            if message.1.command == message_type {
+                return message.0
+            }
+        }
+        panic!("cant get message");        
   }
 
 }
@@ -142,8 +167,8 @@ impl P2PControl for P2P {
         match connect_res {
             Ok((input_stream, output_stream)) => {
                 let (a, b,c, d) = remote_address.ip;
-                let socket_address: std::net::SocketAddr = std::net::SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(a, b, c, d), remote_address.port));
-                let remote_address =  Address::new(&socket_address, 1);
+                let socket_address = std::net::IpAddr::V4(Ipv4Addr::new(a, b, c, d));
+                let remote_address = NodeAddr::new(socket_address, remote_address.port); 
                 let peer = Peer::new(network, input_stream, output_stream, remote_address);
                 self.peer = Some(peer);
                 return  true;

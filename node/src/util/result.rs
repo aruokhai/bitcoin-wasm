@@ -1,7 +1,7 @@
 use hex::FromHexError;
 use ring;
-use rust_base58::base58::FromBase58Error;
-use secp256k1;
+use base58::FromBase58Error;
+use libsecp256k1;
 use std;
 use std::io;
 use std::string::FromUtf8Error;
@@ -30,7 +30,7 @@ pub enum Error {
     /// Error evaluating the script
     ScriptError(String),
     /// Error in the Secp256k1 library
-    Secp256k1Error(secp256k1::Error),
+    Secp256k1Error(libsecp256k1::Error),
     /// The operation timed out
     Timeout,
     /// An unknown error in the Ring library
@@ -44,7 +44,7 @@ impl std::fmt::Display for Error {
         match self {
             Error::BadArgument(s) => f.write_str(&format!("Bad argument: {}", s)),
             Error::BadData(s) => f.write_str(&format!("Bad data: {}", s)),
-            Error::FromBase58Error(e) => f.write_str(&format!("Base58 decoding error: {}", e)),
+            Error::FromBase58Error(e) => f.write_str(&format!("Base58 decoding error: {}", "base58")),
             Error::FromHexError(e) => f.write_str(&format!("Hex decoding error: {}", e)),
             Error::FromUtf8Error(e) => f.write_str(&format!("Utf8 parsing error: {}", e)),
             Error::IllegalState(s) => f.write_str(&format!("Illegal state: {}", s)),
@@ -80,16 +80,16 @@ impl std::error::Error for Error {
         }
     }
 
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        match self {
-            Error::FromHexError(e) => Some(e),
-            Error::FromUtf8Error(e) => Some(e),
-            Error::IOError(e) => Some(e),
-            Error::ParseIntError(e) => Some(e),
-            Error::Secp256k1Error(e) => Some(e),
-            _ => None,
-        }
-    }
+    // fn cause(&self) -> Option<&dyn std::error::Error> {
+    //     match self {
+    //         Error::FromHexError(e) => Some(e),
+    //         Error::FromUtf8Error(e) => Some(e),
+    //         Error::IOError(e) => Some(e),
+    //         Error::ParseIntError(e) => Some(e),
+    //         Error::Secp256k1Error(e) => Some("seckp1 error"),
+    //         _ => None,
+    //     }
+    //}
 }
 
 impl From<FromBase58Error> for Error {
@@ -122,8 +122,8 @@ impl From<std::num::ParseIntError> for Error {
     }
 }
 
-impl From<secp256k1::Error> for Error {
-    fn from(e: secp256k1::Error) -> Self {
+impl From<libsecp256k1::Error> for Error {
+    fn from(e: libsecp256k1::Error) -> Self {
         Error::Secp256k1Error(e)
     }
 }
