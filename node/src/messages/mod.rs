@@ -58,12 +58,12 @@
 
 //mod addr;
 //mod block;
-//mod block_header;
-//mod block_locator;
+mod block_header;
+pub mod block_locator;
 //mod fee_filter;
 //mod filter_add;
 //mod filter_load;
-//mod headers;
+pub mod headers;
 mod inv;
 mod inv_vect;
 //mod merkle_block;
@@ -80,9 +80,10 @@ pub mod ping;
 //mod tx_out;
 mod version;
 
+
 // pub use self::addr::Addr;
 // pub use self::block::Block;
-// pub use self::block_header::BlockHeader;
+pub use self::block_header::BlockHeader;
 // pub use self::block_locator::{BlockLocator, NO_HASH_STOP};
 // pub use self::fee_filter::FeeFilter;
 // pub use self::filter_add::{FilterAdd, MAX_FILTER_ADD_DATA_SIZE};

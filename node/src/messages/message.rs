@@ -1,10 +1,10 @@
 // use crate::messages::addr::Addr;
 // use crate::messages::block::Block;
-// use crate::messages::block_locator::BlockLocator;
+use crate::messages::block_locator::BlockLocator;
 // use crate::messages::fee_filter::FeeFilter;
 // use crate::messages::filter_add::FilterAdd;
 // use crate::messages::filter_load::FilterLoad;
-// use crate::messages::headers::Headers;
+use crate::messages::headers::Headers;
 use crate::messages::inv::Inv;
 // use crate::messages::merkle_block::MerkleBlock;
 use crate::messages::message_header::MessageHeader;
@@ -121,8 +121,8 @@ pub enum Message {
     GetAddr,
     //GetBlocks(BlockLocator),
     GetData(Inv),
-    //GetHeaders(BlockLocator),
-    //Headers(Headers),
+    GetHeaders(BlockLocator),
+    Headers(Headers),
     Inv(Inv),
     Mempool,
     //MerkleBlock(MerkleBlock),
@@ -242,12 +242,12 @@ impl Message {
         //     return Ok(Message::GetHeaders(block_locator));
         // }
 
-        // // Headers
-        // if header.command == commands::HEADERS {
-        //     let payload = header.payload(reader)?;
-        //     let headers = Headers::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::Headers(headers));
-        // }
+        // Headers
+        if header.command == commands::HEADERS {
+            let payload = header.payload(reader)?;
+            let headers = Headers::read(&mut Cursor::new(payload))?;
+            return Ok(Message::Headers(headers));
+        }
 
         // Inv
         if header.command == commands::INV {
@@ -358,8 +358,8 @@ impl Message {
             Message::GetAddr => write_without_payload(writer, GETADDR, magic),
            // Message::GetBlocks(p) => write_with_payload(writer, GETBLOCKS, p, magic),
             Message::GetData(p) => write_with_payload(writer, GETDATA, p, magic),
-          //  Message::GetHeaders(p) => write_with_payload(writer, GETHEADERS, p, magic),
-          //  Message::Headers(p) => write_with_payload(writer, HEADERS, p, magic),
+            Message::GetHeaders(p) => write_with_payload(writer, GETHEADERS, p, magic),
+            Message::Headers(p) => write_with_payload(writer, HEADERS, p, magic),
             Message::Mempool => write_without_payload(writer, MEMPOOL, magic),
           //  Message::MerkleBlock(p) => write_with_payload(writer, MERKLEBLOCK, p, magic),
             Message::NotFound(p) => write_with_payload(writer, NOTFOUND, p, magic),
@@ -398,13 +398,13 @@ impl fmt::Debug for Message {
             //     .field("hash_stop", &p.hash_stop)
             //     .finish(),
             Message::GetData(p) => f.debug_struct("GetData").field("inv", &p).finish(),
-            // Message::GetHeaders(p) => f
-            //     .debug_struct("GetHeaders")
-            //     .field("version", &p.version)
-            //     .field("block_locator_hashes", &p.block_locator_hashes)
-            //     .field("hash_stop", &p.hash_stop)
-            //     .finish(),
-           // Message::Headers(p) => f.write_str(&format!("{:#?}", p)),
+            Message::GetHeaders(p) => f
+                .debug_struct("GetHeaders")
+                .field("version", &p.version)
+                .field("block_locator_hashes", &p.block_locator_hashes)
+                .field("hash_stop", &p.hash_stop)
+                .finish(),
+           Message::Headers(p) => f.write_str(&format!("{:#?}", p)),
             Message::Inv(p) => f.write_str(&format!("{:#?}", p)),
             Message::Mempool => f.write_str("Mempool"),
           //  Message::MerkleBlock(p) => f.write_str(&format!("{:#?}", p)),

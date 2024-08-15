@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use node::NodeConfig;
 fn main() {
     println!("Hello, world!");
-    let ip_config = node::CustomIPV4SocketAddress{ ip: (127,0,0,1), port: 19446 };
+    let ip_config = node::CustomIPV4SocketAddress{ ip: (127,0,0,1), port: 19444 };
     let network_config = node::WasiBitcoinNetwork::Regtest;
 
 

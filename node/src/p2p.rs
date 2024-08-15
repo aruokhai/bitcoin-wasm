@@ -2,9 +2,9 @@ use std::{io::{Cursor, Read, Write}, net::{Ipv4Addr, SocketAddrV4}, sync::atomic
 
 use wasi::{cli::command, clocks::{monotonic_clock, wall_clock}, io::poll::Pollable, random::random, sockets::{instance_network, network::{self, Ipv4SocketAddress}, tcp::{InputStream, IpSocketAddress, OutputStream}, tcp_create_socket::create_tcp_socket}};
 use bitcoin::{
-    consensus::{encode, Decodable, Encodable}, network as bitcoin_network, Network
+    block::Header, consensus::{encode, Decodable, Encodable}, network as bitcoin_network, Network
 };
-use crate::messages::{self, commands::{self, PONG}, Message, MessageHeader, NodeAddr, Version};
+use crate::{messages::{self, block_locator::{self, BlockLocator, NO_HASH_STOP }, commands::{self, PING, PONG}, BlockHeader, Message, MessageHeader, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
 use crate::node::CustomIPV4SocketAddress;
 use crate::tcpsocket::WasiTcpSocket;
 use core::sync::atomic::Ordering;
@@ -13,7 +13,7 @@ use crate::util::{Error, Result, Serializable};
 
 
 pub struct PeerId(u64);
-const MAX_PROTOCOL_VERSION: u32 = 70001;
+const MAX_PROTOCOL_VERSION: u32 = 70015;
 const USER_AGENT: &'static str = concat!("/Murmel:", env!("CARGO_PKG_VERSION"), '/');
 
 pub struct Peer {
@@ -43,7 +43,7 @@ impl Peer {
             height: AtomicUsize::new(0),
         };
          let mut peer =  Self { peer_id, input_stream, output_stream, remote_address, bitcoin_config};
-         peer.handshake();
+        peer.handshake();
          return peer;
       }
 
@@ -80,43 +80,74 @@ impl Peer {
                 println!("version acknowledge");
                 let message = Message::Verack;
                 self.send(message);
-                let nonce = wall_clock::now().seconds;
-                // Write a ping message because this seems to help with connection weirdness
-                // https://bitcoin.stackexchange.com/questions/49487/getaddr-not-returning-connected-node-addresses
+                let nonce = random::get_random_u64();
+                // // Write a ping message because this seems to help with connection weirdness
+                // // https://bitcoin.stackexchange.com/questions/49487/getaddr-not-returning-connected-node-addresses
                 let ping_message = Ping(messages::ping::Ping { nonce: nonce });
                 self.send(ping_message);
-                println!("pinged");
                 self.receive(PONG);
-                println!("ponged");
+                println!("pinged");
                 
                 return;
             }
-            panic!("cant get acknowledge version");
+            // self.handshake();
+            panic!("cant get verack")
         }
         panic!("cant get version")
       }
+
+      pub fn sync_headers(& mut self, last_known_blockhash: Hash256) -> Vec<BlockHeader> {
+            let block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![last_known_blockhash], hash_stop: NO_HASH_STOP };
+            let mut block_headers = Vec::new();
+            self.send(Message::GetHeaders(block_locator));
+            println!("gptten here");
+            loop {
+                if let Message::Headers(headers) =  self.receive(commands::HEADERS){
+                    println!("headers gooten");
+                    block_headers.extend(headers.headers.clone());
+                    if headers.headers.len() < 2000 {
+                        return block_headers;
+                    } 
+                    let new_block_hash = headers.headers.last().clone().unwrap().to_owned().hash();
+                    println!("{:?}", new_block_hash);
+                    let new_block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![new_block_hash], hash_stop: NO_HASH_STOP };
+                    self.send(Message::GetHeaders(new_block_locator))
+
+                }
+                panic!("cant get headers");
+            }
+
+      }
     
         fn send(&mut self, message: Message) {
-            let mut bytes = Vec::new();
-            message.write(&mut bytes, [0xfa, 0xbf, 0xb5, 0xda]).unwrap();
-            self.output_stream.write_all(&bytes).unwrap();
+            message.write(&mut self.output_stream, [0xfa, 0xbf, 0xb5, 0xda]).unwrap();
             self.output_stream.blocking_flush().unwrap();
       }
 
        
 
        fn receive(& mut self, message_type: [u8; 12]) -> Message{
-        let duration = monotonic_clock::now() + 10_000_000;
+        let duration = monotonic_clock::now() + 10_000_000_000;
         while monotonic_clock::now() < duration {
-            let mut new_vec = Vec::new();
-            let bytes = self.input_stream.read_to_end(&mut new_vec).unwrap();
-            let mut file = Cursor::new(new_vec);
+            
             println!("trying");
-            let decoded_message = Message::read(&mut file);
-            let message = decoded_message.unwrap();
-            if message.1.command == message_type {
-                return message.0
+            let decoded_message = Message::read(&mut self.input_stream);
+            match decoded_message{
+                Ok(message) => {
+                    if message.1.command == commands::VERACK {
+                        println!("Verack message gotten")
+                    }
+        
+                    if message.1.command == message_type {
+                        return message.0
+                    }
+                },
+                Err(Error::IOError(_)) => continue,
+                Err(_) => break
             }
+            
+            
+            
         }
         panic!("cant get message");        
   }
@@ -152,6 +183,10 @@ impl P2P {
         return P2P{ socket: wasi_socket, peer: None};
     }
 
+    pub fn sync_peer(&mut self, last_known_blockhash: Hash256) {
+        let headers = self.peer.as_mut().unwrap().sync_headers(last_known_blockhash);
+        println!("This is your headers {:?}", headers)
+    }
     
     
 
@@ -178,6 +213,8 @@ impl P2PControl for P2P {
             },
         }
     }
+    
+    
 
     fn disconnect_peer(&self) -> bool {
         todo!()
