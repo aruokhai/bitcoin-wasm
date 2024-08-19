@@ -10,3 +10,8 @@ wasmtime-wasi = "22.0.0"
 [build-dependencies]
 wit-component = "0.212.0"
 serde_yaml = "0.9.34+deprecated"
+cargo_metadata = "0.18.1"
+
+
+[package.metadata.component]
+"artifacts" = {path = "../../crates/store/wit"}

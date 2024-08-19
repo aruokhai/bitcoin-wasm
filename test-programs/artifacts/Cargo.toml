@@ -20,7 +20,7 @@ strip = true
 lto = true
 
 [package.metadata.component]
-package = "test:artifacts"
+package = "component:artifacts"
 
 [package.metadata.component.target]
 path = "wit"

@@ -5,8 +5,8 @@ use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{ DirPerms, FilePerms, WasiCtx, WasiCtxBuilder, WasiView};
 
 wasmtime::component::bindgen!({
-    path: "wit/world.wit",
-    world: "example",
+    path: "wit/artifacts.wit",
+    world: "artifacts",
     async: false
 });
 
@@ -23,7 +23,7 @@ pub fn run_test() -> wasmtime::Result<()> {
     let engine = Engine::new(&config)?;
     let mut linker = Linker::new(&engine);
     let pathtowasm  = PathBuf::from(env::var_os("OUT_DIR").unwrap())
-            .join(format!("test.wasm"));
+            .join(format!("artifactsartifacts.wasm"));
 
     // Add the command world (aka WASI CLI) to the linker
     wasmtime_wasi::add_to_linker_sync(&mut linker).unwrap();
@@ -31,7 +31,7 @@ pub fn run_test() -> wasmtime::Result<()> {
     let mut store = Store::new(&engine, wasi_view);
 
     let component = Component::from_file(&engine, pathtowasm).unwrap();
-    let (instance, _) = Example::instantiate(&mut store, &component, &linker)
+    let (instance, _) = Artifacts::instantiate(&mut store, &component, &linker)
         .unwrap();
     instance
         .call_test_store(&mut store)

@@ -16,5 +16,8 @@ lto = true
 [package.metadata.component]
 package = "component:cli"
 
+[package.metadata.component.target]
+path = "wit"
+
 [package.metadata.component.target.dependencies]
-"component:store" = {path = "../../crates/store/wit"}
+"component:artifacts" = {path = "../artifacts/wit"}
