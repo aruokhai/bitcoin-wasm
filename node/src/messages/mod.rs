@@ -64,6 +64,8 @@ pub mod block_locator;
 //mod filter_add;
 //mod filter_load;
 pub mod headers;
+pub mod filter_locator;
+pub mod compact_filter;
 mod inv;
 mod inv_vect;
 //mod merkle_block;

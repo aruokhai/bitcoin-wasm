@@ -7,7 +7,9 @@
 //!
 
 use siphasher::sip::SipHasher;
-use std::io::BufRead;
+use std::borrow::Borrow;
+use std::cmp::Ordering;
+use std::io::Read;
 use std::{cmp, io};
 use std::collections::HashSet;
 use std::hash::Hasher;
@@ -19,13 +21,43 @@ use super::{var_int, Hash256};
 const P: u8 = 19;
 const M: u64 = 784931;
 
-/// a computed or read block filter
+/// A block filter, as described by BIP 158.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlockFilter {
+    /// Golomb encoded filter
+    pub content: Vec<u8>,
+}
 
+impl BlockFilter {
+    /// Creates a new filter from pre-computed data.
+    pub fn new(content: &[u8]) -> BlockFilter { BlockFilter { content: content.to_vec() } }
+
+
+    /// Returns true if any query matches against this [`BlockFilter`].
+    pub fn match_any<I>(&self, block_hash: &Hash256, query: I) -> Result<bool, io::Error>
+    where
+        I: Iterator,
+        I::Item: Borrow<[u8]>,
+    {
+        let filter_reader = BlockFilterReader::new(block_hash);
+        filter_reader.match_any(&mut self.content.as_slice(), query)
+    }
+
+    /// Returns true if all queries match against this [`BlockFilter`].
+    pub fn match_all<I>(&self, block_hash: &Hash256, query: I) -> Result<bool, io::Error>
+    where
+        I: Iterator,
+        I::Item: Borrow<[u8]>,
+    {
+        let filter_reader = BlockFilterReader::new(block_hash);
+        filter_reader.match_all(&mut self.content.as_slice(), query)
+    }
+}
 
 
 /// Reads and interpret a block filter
 pub struct BlockFilterReader {
-    reader: GCSFilterReader
+    reader: GcsFilterReader
 }
 
 impl BlockFilterReader {
@@ -35,76 +67,127 @@ impl BlockFilterReader {
         let block_hash_as_int = block_hash.0;
         let k0 = u64::from_le_bytes(block_hash_as_int[0..8].try_into().expect("8 byte slice"));
         let k1 = u64::from_le_bytes(block_hash_as_int[8..16].try_into().expect("8 byte slice"));
-        BlockFilterReader { reader: GCSFilterReader::new(k0, k1) }
+        BlockFilterReader { reader: GcsFilterReader::new(k0, k1,M,P) }
     }
 
-    /// add a query pattern
-    pub fn add_query_pattern (&mut self, element: &[u8]) {
-        self.reader.add_query_pattern (element);
+    /// Returns true if any query matches against this [`BlockFilterReader`].
+    pub fn match_any<I, R>(&self, reader: &mut R, query: I) -> Result<bool, io::Error>
+    where
+        I: Iterator,
+        I::Item: Borrow<[u8]>,
+        R: Read ,
+    {
+        self.reader.match_any(reader, query)
     }
 
-    /// match any previously added query pattern
-    pub fn match_any (&mut self, reader: &mut dyn io::BufRead) -> Result<bool, io::Error> {
-        self.reader.match_any(reader)
+    /// Returns true if all queries match against this [`BlockFilterReader`].
+    pub fn match_all<I, R>(&self, reader: &mut R, query: I) -> Result<bool, io::Error>
+    where
+        I: Iterator,
+        I::Item: Borrow<[u8]>,
+        R: Read,
+    {
+        self.reader.match_all(reader, query)
     }
 }
 
 
-struct GCSFilterReader {
+pub struct GcsFilterReader {
     filter: GcsFilter,
-    query: HashSet<u64>
+    m: u64,
 }
 
-impl GCSFilterReader {
-    fn new (k0: u64, k1: u64) -> GCSFilterReader {
-        GCSFilterReader {
-            filter: GcsFilter::new(k0, k1,P),
-            query: HashSet::new() }
+impl GcsFilterReader {
+    /// Creates a new [`GcsFilterReader`] with specific seed to siphash.
+    pub fn new(k0: u64, k1: u64, m: u64, p: u8) -> GcsFilterReader {
+        GcsFilterReader { filter: GcsFilter::new(k0, k1, p), m }
     }
 
-    fn add_query_pattern (&mut self, element: &[u8]) {
-        self.query.insert (self.filter.hash(element));
-    }
-
-    fn match_any (&mut self, reader: &mut dyn io::BufRead) -> Result<bool, io::Error> {
-        let mut decoder = reader;
-        let n_elements = var_int::read(&mut decoder)
-            .map_err(|_| io::Error::new(io::ErrorKind::UnexpectedEof, "unexpected EOF1"))?;
-        let ref mut reader = decoder;
-        if n_elements == 0 {
-            return Ok(false)
-        }
+    /// Returns true if any query matches against this [`GcsFilterReader`].
+    pub fn match_any<I, R>(&self, reader: &mut R, query: I) -> Result<bool, io::Error>
+    where
+        I: Iterator,
+        I::Item: Borrow<[u8]>,
+        R: Read ,
+    {
+        let n_elements = var_int::read(reader).unwrap_or(0);
         // map hashes to [0, n_elements << grp]
-        let mut mapped = Vec::new();
-        mapped.reserve(self.query.len());
-        let nm = n_elements * M;
-        for h in &self.query {
-            mapped.push(map_to_range(*h, nm));
-        }
+        let nm = n_elements * self.m;
+        let mut mapped =
+            query.map(|e| map_to_range(self.filter.hash(e.borrow()), nm)).collect::<Vec<_>>();
         // sort
-        mapped.sort();
+        mapped.sort_unstable();
+        if mapped.is_empty() {
+            return Ok(true);
+        }
+        if n_elements == 0 {
+            return Ok(false);
+        }
 
         // find first match in two sorted arrays in one read pass
         let mut reader = BitStreamReader::new(reader);
-        let mut data = self.filter.golomb_rice_decode(&mut reader)?;
+        let mut data = self.filter.golomb_rice_decode(&mut reader).unwrap();
         let mut remaining = n_elements - 1;
         for p in mapped {
             loop {
-                if data == p {
-                    return Ok(true);
-                } else if data < p {
-                    if remaining > 0 {
-                        data += self.filter.golomb_rice_decode(&mut reader)?;
-                        remaining -= 1;
-                    } else {
-                        break;
-                    }
-                } else {
-                    break;
+                match data.cmp(&p) {
+                    Ordering::Equal => return Ok(true),
+                    Ordering::Less =>
+                        if remaining > 0 {
+                            data += self.filter.golomb_rice_decode(&mut reader).unwrap();
+                            remaining -= 1;
+                        } else {
+                            return Ok(false);
+                        },
+                    Ordering::Greater => break,
                 }
             }
         }
         Ok(false)
+    }
+
+    /// Returns true if all queries match against this [`GcsFilterReader`].
+    pub fn match_all<I, R>(&self, reader: &mut R, query: I) -> Result<bool, io::Error>
+    where
+        I: Iterator,
+        I::Item: Borrow<[u8]>,
+        R: Read,
+    {
+        let n_elements  = var_int::read(reader).unwrap_or(0);
+        // map hashes to [0, n_elements << grp]
+        let nm = n_elements * self.m;
+        let mut mapped =
+            query.map(|e| map_to_range(self.filter.hash(e.borrow()), nm)).collect::<Vec<_>>();
+        // sort
+        mapped.sort_unstable();
+        mapped.dedup();
+        if mapped.is_empty() {
+            return Ok(true);
+        }
+        if n_elements == 0 {
+            return Ok(false);
+        }
+
+        // figure if all mapped are there in one read pass
+        let mut reader = BitStreamReader::new(reader);
+        let mut data = self.filter.golomb_rice_decode(&mut reader).unwrap();
+        let mut remaining = n_elements - 1;
+        for p in mapped {
+            loop {
+                match data.cmp(&p) {
+                    Ordering::Equal => break,
+                    Ordering::Less =>
+                        if remaining > 0 {
+                            data += self.filter.golomb_rice_decode(&mut reader).unwrap();
+                            remaining -= 1;
+                        } else {
+                            return Ok(false);
+                        },
+                    Ordering::Greater => return Ok(false),
+                }
+            }
+        }
+        Ok(true)
     }
 }
 
@@ -129,13 +212,13 @@ impl GcsFilter {
     /// Golomb-Rice decodes a number from a bit stream (parameter 2^k).
     fn golomb_rice_decode<R>(&self, reader: &mut BitStreamReader<R>) -> Result<u64, io::Error>
     where
-        R: BufRead + ?Sized,
+        R: Read + ?Sized,
     {
         let mut q = 0u64;
-        while reader.read(1)? == 1 {
+        while reader.read(1).unwrap() == 1 {
             q += 1;
         }
-        let r = reader.read(self.p)?;
+        let r = reader.read(self.p).unwrap();
         Ok((q << self.p) + r)
     }
 
@@ -154,7 +237,7 @@ pub struct BitStreamReader<'a, R: ?Sized> {
     reader: &'a mut R,
 }
 
-impl<'a, R: BufRead + ?Sized> BitStreamReader<'a, R> {
+impl<'a, R: Read + ?Sized> BitStreamReader<'a, R> {
     /// Creates a new [`BitStreamReader`] that reads bitwise from a given `reader`.
     pub fn new(reader: &'a mut R) -> BitStreamReader<'a, R> {
         BitStreamReader { buffer: [0u8], reader, offset: 8 }
@@ -181,7 +264,7 @@ impl<'a, R: BufRead + ?Sized> BitStreamReader<'a, R> {
         let mut data = 0u64;
         while nbits > 0 {
             if self.offset == 8 {
-                self.reader.read_exact(&mut self.buffer)?;
+                self.reader.read_exact(&mut self.buffer).unwrap();
                 self.offset = 0;
             }
             let bits = cmp::min(8 - self.offset, nbits);
