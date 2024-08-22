@@ -183,9 +183,10 @@ impl P2P {
         return P2P{ socket: wasi_socket, peer: None};
     }
 
-    pub fn sync_peer(&mut self, last_known_blockhash: Hash256) {
+    pub fn sync_peer(&mut self, last_known_blockhash: Hash256)->  Vec<BlockHeader> {
         let headers = self.peer.as_mut().unwrap().sync_headers(last_known_blockhash);
-        println!("This is your headers {:?}", headers)
+        println!("This is your headers {:?}", headers);
+        return headers;
     }
     
     

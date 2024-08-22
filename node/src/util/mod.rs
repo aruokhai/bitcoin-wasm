@@ -12,6 +12,7 @@ mod hash256;
 mod latch;
 mod result;
 mod serdes;
+pub mod block_filter;
 pub(crate) mod var_int;
 
 pub(crate) use self::bits::{lshift, rshift, Bits};

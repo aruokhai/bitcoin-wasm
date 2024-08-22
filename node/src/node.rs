@@ -2,13 +2,14 @@ use wasi::sockets::{network::IpAddress, tcp::IpSocketAddress};
 use bitcoin::{
     consensus::{encode, serialize, Decodable, Encodable}, network as bitcoin_network, Network
 };
-use crate::{p2p::{P2PControl, P2P}, util::Hash256};
+use crate::{messages::BlockHeader, p2p::{P2PControl, P2P}, util::Hash256};
 
 
 
 
 pub struct Node {
     p2p: P2P,
+    headers: Vec<BlockHeader>
 
 }
 
@@ -56,9 +57,12 @@ impl Node {
         // }
         
         let last_known_blockhash  = Hash256::decode(hash).unwrap();
-       p2p.sync_peer(last_known_blockhash);
-        return  Node { p2p };
+       let block_headers = p2p.sync_peer(last_known_blockhash);
+
+        return  Node { p2p, headers: block_headers };
     }
+    
+
 
     
 }
