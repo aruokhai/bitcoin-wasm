@@ -19,6 +19,9 @@ use std::fmt;
 use std::io;
 use std::io::{Cursor, Read, Write};
 
+use super::compact_filter::CompactFilter;
+use super::filter_locator::FilterLocator;
+
 /// Checksum to use when there is an empty payload
 pub const NO_CHECKSUM: [u8; 4] = [0x5d, 0xf6, 0xe0, 0xe2];
 
@@ -107,6 +110,13 @@ pub mod commands {
 
     /// [Version acknowledgement command](https://en.bitcoin.it/wiki/Protocol_documentation#verack)
     pub const VERACK: [u8; 12] = *b"verack\0\0\0\0\0\0";
+
+    /// [GetCfilters command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#getcfilters)
+    pub const GETCFILTERS: [u8; 12] = *b"getcfilters\0";
+
+    /// [Cfilters command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#cfilters)
+    pub const CFILTERS: [u8; 12] = *b"cfilter\0\0\0\0\0";
+
 }
 
 /// Bitcoin peer-to-peer message with its payload
@@ -131,6 +141,8 @@ pub enum Message {
     Partial(MessageHeader),
     Ping(Ping),
     Pong(Ping),
+    GetCFilters(FilterLocator),
+    CFilters(CompactFilter),
     //Reject(Reject),
     SendHeaders,
     //SendCmpct(SendCmpct),
@@ -249,6 +261,13 @@ impl Message {
             return Ok(Message::Headers(headers));
         }
 
+        // CFilters
+        if header.command == commands::CFILTERS {
+            let payload = header.payload(reader)?;
+            let cfilters = CompactFilter::read(&mut Cursor::new(payload))?;
+            return Ok(Message::CFilters(cfilters));
+        }
+
         // Inv
         if header.command == commands::INV {
             let payload = header.payload(reader)?;
@@ -359,7 +378,9 @@ impl Message {
            // Message::GetBlocks(p) => write_with_payload(writer, GETBLOCKS, p, magic),
             Message::GetData(p) => write_with_payload(writer, GETDATA, p, magic),
             Message::GetHeaders(p) => write_with_payload(writer, GETHEADERS, p, magic),
+            Message::GetCFilters(p) => write_with_payload(writer, GETCFILTERS, p, magic),
             Message::Headers(p) => write_with_payload(writer, HEADERS, p, magic),
+            Message::CFilters(p) => write_with_payload(writer, CFILTERS, p, magic),
             Message::Mempool => write_without_payload(writer, MEMPOOL, magic),
           //  Message::MerkleBlock(p) => write_with_payload(writer, MERKLEBLOCK, p, magic),
             Message::NotFound(p) => write_with_payload(writer, NOTFOUND, p, magic),
@@ -404,7 +425,12 @@ impl fmt::Debug for Message {
                 .field("block_locator_hashes", &p.block_locator_hashes)
                 .field("hash_stop", &p.hash_stop)
                 .finish(),
+            Message::GetCFilters(p) => f
+                .debug_struct("GetFilters")
+                .field("block_locator_hashes", &p.hash_stop)
+                .finish(),
            Message::Headers(p) => f.write_str(&format!("{:#?}", p)),
+           Message::CFilters(p) => f.write_str(&format!("{:#?}", p)),
             Message::Inv(p) => f.write_str(&format!("{:#?}", p)),
             Message::Mempool => f.write_str("Mempool"),
           //  Message::MerkleBlock(p) => f.write_str(&format!("{:#?}", p)),

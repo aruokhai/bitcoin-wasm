@@ -50,16 +50,20 @@ impl Node {
         }
         let mut reversed_string = String::new();
 
-        let hash = "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206";
+        let hash = "515f65013dbd143cfc76951cd8dedb432d1f14ae309a7a2d6667532042234a30";
         // Iterate over the characters of the input string in reverse order
         // for c in hash.chars().rev() {
         //     reversed_string.push(c); // Append each character to the reversed string
         // }
         
-        let last_known_blockhash  = Hash256::decode(hash).unwrap();
-       let block_headers = p2p.sync_peer(last_known_blockhash);
+       let last_known_blockhash  = Hash256::decode(hash).unwrap();
+       //let block_headers = p2p.sync_peer(last_known_blockhash);
+       let block_filts = p2p.get_compact_filters(0,last_known_blockhash);
 
-        return  Node { p2p, headers: block_headers };
+       println!("{:?}", block_filts);
+
+
+        return  Node { p2p, headers: vec![] };
     }
     
 

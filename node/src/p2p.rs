@@ -4,7 +4,7 @@ use wasi::{cli::command, clocks::{monotonic_clock, wall_clock}, io::poll::Pollab
 use bitcoin::{
     block::Header, consensus::{encode, Decodable, Encodable}, network as bitcoin_network, Network
 };
-use crate::{messages::{self, block_locator::{self, BlockLocator, NO_HASH_STOP }, commands::{self, PING, PONG}, BlockHeader, Message, MessageHeader, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
+use crate::{messages::{self, block_locator::{self, BlockLocator, NO_HASH_STOP }, commands::{self, PING, PONG}, compact_filter::CompactFilter, filter_locator::FilterLocator, BlockHeader, Message, MessageHeader, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
 use crate::node::CustomIPV4SocketAddress;
 use crate::tcpsocket::WasiTcpSocket;
 use core::sync::atomic::Ordering;
@@ -103,7 +103,7 @@ impl Peer {
             println!("gptten here");
             loop {
                 if let Message::Headers(headers) =  self.receive(commands::HEADERS){
-                    println!("headers gooten");
+                    println!("headers gooten {:?}", headers);
                     block_headers.extend(headers.headers.clone());
                     if headers.headers.len() < 2000 {
                         return block_headers;
@@ -118,6 +118,24 @@ impl Peer {
             }
 
       }
+
+      pub fn get_compact_filters(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Vec<CompactFilter> {
+            let compact_locator = FilterLocator { filter_type: 0, start_height, hash_stop};
+            let mut block_filters = Vec::new();
+            self.send(Message::GetCFilters(compact_locator));
+            loop {
+                if let Message::CFilters(filters) =  self.receive(commands::CFILTERS){
+                    println!("filter gooten {:?}", filters);
+                    block_filters.push(filters.clone());
+                    if filters.block_hash == hash_stop {
+                        return block_filters;
+                    }
+                    continue;
+                }
+                panic!("wrong message gotten");
+            }
+            panic!("cant get filters");
+      }
     
         fn send(&mut self, message: Message) {
             message.write(&mut self.output_stream, [0xfa, 0xbf, 0xb5, 0xda]).unwrap();
@@ -127,7 +145,7 @@ impl Peer {
        
 
        fn receive(& mut self, message_type: [u8; 12]) -> Message{
-        let duration = monotonic_clock::now() + 10_000_000_000;
+        let duration = monotonic_clock::now() + 1_000_000_000;
         while monotonic_clock::now() < duration {
             
             println!("trying");
@@ -188,6 +206,12 @@ impl P2P {
         println!("This is your headers {:?}", headers);
         return headers;
     }
+
+    pub fn get_compact_filters(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Vec<CompactFilter> { 
+        let filters = self.peer.as_mut().unwrap().get_compact_filters(start_height, hash_stop);
+        println!("This is your filters {:?}", filters);
+        return filters;
+    }
     
     
 
@@ -220,5 +244,5 @@ impl P2PControl for P2P {
     fn disconnect_peer(&self) -> bool {
         todo!()
     }
-}
 
+}
