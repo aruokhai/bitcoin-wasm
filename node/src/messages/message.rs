@@ -1,5 +1,5 @@
 // use crate::messages::addr::Addr;
-// use crate::messages::block::Block;
+use crate::messages::block::Block;
 use crate::messages::block_locator::BlockLocator;
 // use crate::messages::fee_filter::FeeFilter;
 // use crate::messages::filter_add::FilterAdd;
@@ -123,13 +123,13 @@ pub mod commands {
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub enum Message {
     // Addr(Addr),
-    // Block(Block),
+    Block(Block),
     // FeeFilter(FeeFilter),
     // FilterAdd(FilterAdd),
     // FilterClear,
     // FilterLoad(FilterLoad),
     GetAddr,
-    //GetBlocks(BlockLocator),
+    GetBlocks(BlockLocator),
     GetData(Inv),
     GetHeaders(BlockLocator),
     Headers(Headers),
@@ -187,12 +187,12 @@ impl Message {
         //     return Ok(Message::Addr(addr));
         // }
 
-        // // Block
-        // if header.command == commands::BLOCK {
-        //     let payload = header.payload(reader)?;
-        //     let block = Block::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::Block(block));
-        // }
+        // Block
+        if header.command == commands::BLOCK {
+            let payload = header.payload(reader)?;
+            let block = Block::read(&mut Cursor::new(payload))?;
+            return Ok(Message::Block(block));
+        }
 
         // // Feefilter
         // if header.command == commands::FEEFILTER {
@@ -369,13 +369,13 @@ impl Message {
         use self::commands::*;
         match self {
             // Message::Addr(p) => write_with_payload(writer, ADDR, p, magic),
-            // Message::Block(p) => write_with_payload(writer, BLOCK, p, magic),
+            Message::Block(p) => write_with_payload(writer, BLOCK, p, magic),
             // Message::FeeFilter(p) => write_with_payload(writer, FEEFILTER, p, magic),
             // Message::FilterAdd(p) => write_with_payload(writer, FILTERADD, p, magic),
             //Message::FilterClear => write_without_payload(writer, FILTERCLEAR, magic),
             //Message::FilterLoad(p) => write_with_payload(writer, FILTERLOAD, p, magic),
             Message::GetAddr => write_without_payload(writer, GETADDR, magic),
-           // Message::GetBlocks(p) => write_with_payload(writer, GETBLOCKS, p, magic),
+            Message::GetBlocks(p) => write_with_payload(writer, GETBLOCKS, p, magic),
             Message::GetData(p) => write_with_payload(writer, GETDATA, p, magic),
             Message::GetHeaders(p) => write_with_payload(writer, GETHEADERS, p, magic),
             Message::GetCFilters(p) => write_with_payload(writer, GETCFILTERS, p, magic),
@@ -406,18 +406,18 @@ impl fmt::Debug for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             // Message::Addr(p) => f.write_str(&format!("{:#?}", p)),
-            // Message::Block(p) => f.write_str(&format!("{:#?}", p)),
+            Message::Block(p) => f.write_str(&format!("{:#?}", p)),
             // Message::FeeFilter(p) => f.write_str(&format!("{:#?}", p)),
             // Message::FilterAdd(p) => f.write_str(&format!("{:#?}", p)),
             // Message::FilterClear => f.write_str("FilterClear"),
             // Message::FilterLoad(p) => f.write_str(&format!("{:#?}", p)),
             Message::GetAddr => f.write_str("GetAddr"),
-            // Message::GetBlocks(p) => f
-            //     .debug_struct("GetBlocks")
-            //     .field("version", &p.version)
-            //     .field("block_locator_hashes", &p.block_locator_hashes)
-            //     .field("hash_stop", &p.hash_stop)
-            //     .finish(),
+            Message::GetBlocks(p) => f
+                .debug_struct("GetBlocks")
+                .field("version", &p.version)
+                .field("block_locator_hashes", &p.block_locator_hashes)
+                .field("hash_stop", &p.hash_stop)
+                .finish(),
             Message::GetData(p) => f.debug_struct("GetData").field("inv", &p).finish(),
             Message::GetHeaders(p) => f
                 .debug_struct("GetHeaders")

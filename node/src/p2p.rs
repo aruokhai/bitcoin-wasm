@@ -2,9 +2,9 @@ use std::{io::{Cursor, Read, Write}, net::{Ipv4Addr, SocketAddrV4}, sync::atomic
 
 use wasi::{cli::command, clocks::{monotonic_clock, wall_clock}, io::poll::Pollable, random::random, sockets::{instance_network, network::{self, Ipv4SocketAddress}, tcp::{InputStream, IpSocketAddress, OutputStream}, tcp_create_socket::create_tcp_socket}};
 use bitcoin::{
-    block::Header, consensus::{encode, Decodable, Encodable}, network as bitcoin_network, Network
+    block::{self, Header}, consensus::{encode, Decodable, Encodable}, network as bitcoin_network, Network
 };
-use crate::{messages::{self, block_locator::{self, BlockLocator, NO_HASH_STOP }, commands::{self, PING, PONG}, compact_filter::CompactFilter, filter_locator::FilterLocator, BlockHeader, Message, MessageHeader, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
+use crate::{messages::{self, block::Block, block_locator::{self, BlockLocator, NO_HASH_STOP }, commands::{self, PING, PONG}, compact_filter::CompactFilter, filter_locator::FilterLocator, BlockHeader, Inv, Message, MessageHeader, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
 use crate::node::CustomIPV4SocketAddress;
 use crate::tcpsocket::WasiTcpSocket;
 use core::sync::atomic::Ordering;
@@ -132,10 +132,53 @@ impl Peer {
                     }
                     continue;
                 }
-                panic!("wrong message gotten");
+                panic!("cant get filters");
             }
-            panic!("cant get filters");
       }
+
+
+      pub fn get_block(& mut self, inv: Inv) -> Vec<Block> {
+        // let block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![last_known_blockhash], hash_stop };
+        // let mut blocks = Vec::new();
+        // self.send(Message::GetBlocks(block_locator));
+        // if let Message::Inv(inv) =  self.receive(commands::INV) {
+        //     self.send(Message::GetData(inv.clone()));
+        //     let data_len = inv.objects.len();
+        //     println!("gptten here");
+        //     loop {
+        //         if let Message::Block(block) =  self.receive(commands::BLOCK){
+        //             println!("block gooten {:?}", block);
+        //             blocks.push(block.clone());
+        //             if blocks.len() == data_len {
+        //                 return blocks;
+        //             } 
+        //             if block.header.hash() == hash_stop {
+        //                 return blocks;
+        //             }
+        //             continue;
+        //         }
+        //         panic!("cant get block");
+        //     }
+        // }
+        // panic!("cant get block");
+        let mut blocks = Vec::new();
+        self.send(Message::GetData(inv.clone()));
+        let data_len = inv.objects.len();
+        println!("gptten here");
+        loop {
+            if let Message::Block(block) =  self.receive(commands::BLOCK){
+                println!("block gooten {:?}", block);
+                blocks.push(block.clone());
+                if blocks.len() == data_len {
+                    return blocks;
+                } 
+                continue;
+            }
+            panic!("cant get block");
+        }
+        
+
+    }
     
         fn send(&mut self, message: Message) {
             message.write(&mut self.output_stream, [0xfa, 0xbf, 0xb5, 0xda]).unwrap();
@@ -209,8 +252,14 @@ impl P2P {
 
     pub fn get_compact_filters(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Vec<CompactFilter> { 
         let filters = self.peer.as_mut().unwrap().get_compact_filters(start_height, hash_stop);
-        println!("This is your filters {:?}", filters);
+        // println!("This is your filters {:?}", filters);
         return filters;
+    }
+
+    pub fn get_block(& mut self, inv: Inv) -> Vec<Block> {
+        let blocks = self.peer.as_mut().unwrap().get_block(inv);
+        println!("This is your blocks {:?}", blocks);
+        return blocks;
     }
     
     

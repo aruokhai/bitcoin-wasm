@@ -2,7 +2,7 @@ use wasi::sockets::{network::IpAddress, tcp::IpSocketAddress};
 use bitcoin::{
     consensus::{encode, serialize, Decodable, Encodable}, network as bitcoin_network, Network
 };
-use crate::{messages::BlockHeader, p2p::{P2PControl, P2P}, util::Hash256};
+use crate::{messages::{block::Block, BlockHeader, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, Hash256}};
 
 
 
@@ -59,8 +59,35 @@ impl Node {
        let last_known_blockhash  = Hash256::decode(hash).unwrap();
        //let block_headers = p2p.sync_peer(last_known_blockhash);
        let block_filts = p2p.get_compact_filters(0,last_known_blockhash);
+       let blockhash_present: Vec<_> = block_filts.into_iter().filter_map(|filter| {
+            let filter_algo = util::block_filter::BlockFilter::new(&filter.filter_bytes);
+            let  query =vec![hex::decode("0014c251c8b2840c62e2ce6399885a8611a25158fb52").unwrap()].into_iter();
+            let result = filter_algo.match_any(&filter.block_hash, query).unwrap();
+            match result {
+                true => Some(filter.block_hash),
+                false => None,
+            }
+       }).collect();
 
-       println!("{:?}", block_filts);
+      
+       let inv_objects: Vec<_> = blockhash_present.into_iter().map(|hash| {
+            InvVect{ obj_type: 2, hash }
+       }).collect();
+       let mut blocks = p2p.get_block(Inv{ objects: inv_objects});
+      
+
+       let mut amount = 0;
+       for block in blocks {
+            for txn in block.txns {
+                for output in txn.outputs {
+                    if output.lock_script == hex::decode("0014c251c8b2840c62e2ce6399885a8611a25158fb52").unwrap() {
+                        amount += output.satoshis;
+                    }
+                }
+            }
+       }
+        
+       println!("{:?}", amount);
 
 
         return  Node { p2p, headers: vec![] };

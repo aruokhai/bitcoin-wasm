@@ -57,7 +57,7 @@
 //! ```
 
 //mod addr;
-//mod block;
+pub mod block;
 mod block_header;
 pub mod block_locator;
 //mod fee_filter;
@@ -66,20 +66,21 @@ pub mod block_locator;
 pub mod headers;
 pub mod filter_locator;
 pub mod compact_filter;
-mod inv;
-mod inv_vect;
+pub mod inv;
+pub mod inv_vect;
+mod witness;
 //mod merkle_block;
 mod message;
 mod message_header;
 mod node_addr;
 mod node_addr_ex;
-//mod out_point;
+mod out_point;
 pub mod ping;
 //mod reject;
 //mod send_cmpct;
-//mod tx;
-//mod tx_in;
-//mod tx_out;
+mod tx;
+pub mod tx_in;
+mod tx_out;
 mod version;
 
 
@@ -103,7 +104,7 @@ pub use self::message::{commands, Message, Payload, MAX_PAYLOAD_SIZE, NO_CHECKSU
 pub use self::message_header::MessageHeader;
 pub use self::node_addr::NodeAddr;
 pub use self::node_addr_ex::NodeAddrEx;
-// pub use self::out_point::{OutPoint, COINBASE_OUTPOINT_HASH, COINBASE_OUTPOINT_INDEX};
+pub use self::out_point::{OutPoint, COINBASE_OUTPOINT_HASH, COINBASE_OUTPOINT_INDEX};
 // pub use self::ping::Ping;
 // pub use self::reject::{
 //     Reject, REJECT_CHECKPOINT, REJECT_DUPLICATE, REJECT_DUST, REJECT_INSUFFICIENT_FEE,
