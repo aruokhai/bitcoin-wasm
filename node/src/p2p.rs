@@ -12,9 +12,8 @@ use crate::messages::Message::Ping;
 use crate::util::{Error, Result, Serializable};
 
 
-pub struct PeerId(u64);
 const MAX_PROTOCOL_VERSION: u32 = 70015;
-const USER_AGENT: &'static str = concat!("/Murmel:", env!("CARGO_PKG_VERSION"), '/');
+const USER_AGENT: &'static str = concat!("/BITCOINWASM:", env!("CARGO_PKG_VERSION"), '/');
 
 pub struct Peer {
     input_stream: InputStream,
@@ -22,13 +21,6 @@ pub struct Peer {
     peer_id: u64,
     remote_address: NodeAddr,
     bitcoin_config: BitcoinP2PConfig,
-}
-
-pub enum MessageType {
-    VERSION,
-    Verack
-
-
 }
 
 impl Peer {
@@ -68,150 +60,124 @@ impl Peer {
 
     }
 
-      fn handshake(&mut self) {
+      fn handshake(&mut self) -> Result<()> {
         let version_message = self.version();
         self.send(version_message);
-        let res = self.receive(commands::VERSION);
-        if let Message::Version(version) = res {
-            println!("{:?}", version);
-            println!("version recieved");
-            let res = self.receive(commands::VERACK);
+        let res = self.receive(commands::VERSION)?;
+        if let Message::Version(_) = res {
+            let res = self.receive(commands::VERACK)?;
             if let Message::Verack = res {
-                println!("version acknowledge");
                 let message = Message::Verack;
-                self.send(message);
+                self.send(message)?;
                 let nonce = random::get_random_u64();
                 // // Write a ping message because this seems to help with connection weirdness
                 // // https://bitcoin.stackexchange.com/questions/49487/getaddr-not-returning-connected-node-addresses
                 let ping_message = Ping(messages::ping::Ping { nonce: nonce });
-                self.send(ping_message);
-                self.receive(PONG);
-                println!("pinged");
-                
-                return;
+                self.send(ping_message)?;
+                self.receive(PONG)?;
+                return Ok(());
             }
-            // self.handshake();
-            panic!("cant get verack")
         }
-        panic!("cant get version")
+        Err(Error::WrongP2PMessage)
       }
 
-      pub fn sync_headers(& mut self, last_known_blockhash: Hash256) -> Vec<BlockHeader> {
+      pub fn fetch_headers(& mut self, last_known_blockhash: Hash256) -> Result<Vec<BlockHeader>> {
             let block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![last_known_blockhash], hash_stop: NO_HASH_STOP };
             let mut block_headers = Vec::new();
             self.send(Message::GetHeaders(block_locator));
-            println!("gptten here");
             loop {
-                if let Message::Headers(headers) =  self.receive(commands::HEADERS){
-                    println!("headers gooten {:?}", headers);
+                if let Message::Headers(headers) =  self.receive(commands::HEADERS)?{
                     block_headers.extend(headers.headers.clone());
                     if headers.headers.len() < 2000 {
-                        return block_headers;
+                        return Ok(block_headers);
                     } 
                     let new_block_hash = headers.headers.last().clone().unwrap().to_owned().hash();
-                    println!("{:?}", new_block_hash);
                     let new_block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![new_block_hash], hash_stop: NO_HASH_STOP };
-                    self.send(Message::GetHeaders(new_block_locator))
-
+                    self.send(Message::GetHeaders(new_block_locator))?;
+                    continue;
                 }
-                panic!("cant get headers");
+                return Err(Error::WrongP2PMessage);
             }
-
       }
 
-      pub fn get_compact_filters(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Vec<CompactFilter> {
+      pub fn fetch_compact_filters(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Result<Vec<CompactFilter>> {
             let compact_locator = FilterLocator { filter_type: 0, start_height, hash_stop};
             let mut block_filters = Vec::new();
             self.send(Message::GetCFilters(compact_locator));
             loop {
-                if let Message::CFilters(filters) =  self.receive(commands::CFILTERS){
+                if let Message::CFilters(filters) =  self.receive(commands::CFILTERS)?{
                     println!("filter gooten {:?}", filters);
                     block_filters.push(filters.clone());
                     if filters.block_hash == hash_stop {
-                        return block_filters;
+                        return Ok(block_filters);
                     }
                     continue;
                 }
-                panic!("cant get filters");
+                return Err(Error::WrongP2PMessage);
+            }
+      }
+
+      pub fn ping_or_reconnect(& mut self) -> Result<()> {
+            let nonce = random::get_random_u64();
+            let ping_message = Ping(messages::ping::Ping { nonce: nonce });
+            self.send(ping_message)?;
+            match self.receive(PONG) {
+                Ok(_) => {
+                    return  Ok(());
+                },
+                Err(_) => {
+                    return self.handshake();
+                },
             }
       }
 
 
-      pub fn get_block(& mut self, inv: Inv) -> Vec<Block> {
-        // let block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![last_known_blockhash], hash_stop };
-        // let mut blocks = Vec::new();
-        // self.send(Message::GetBlocks(block_locator));
-        // if let Message::Inv(inv) =  self.receive(commands::INV) {
-        //     self.send(Message::GetData(inv.clone()));
-        //     let data_len = inv.objects.len();
-        //     println!("gptten here");
-        //     loop {
-        //         if let Message::Block(block) =  self.receive(commands::BLOCK){
-        //             println!("block gooten {:?}", block);
-        //             blocks.push(block.clone());
-        //             if blocks.len() == data_len {
-        //                 return blocks;
-        //             } 
-        //             if block.header.hash() == hash_stop {
-        //                 return blocks;
-        //             }
-        //             continue;
-        //         }
-        //         panic!("cant get block");
-        //     }
-        // }
-        // panic!("cant get block");
+      pub fn fetch_blocks(& mut self, inv: Inv) -> Result<Vec<Block>> {
         let mut blocks = Vec::new();
-        self.send(Message::GetData(inv.clone()));
         let data_len = inv.objects.len();
-        println!("gptten here");
+        self.send(Message::GetData(inv));
         loop {
-            if let Message::Block(block) =  self.receive(commands::BLOCK){
-                println!("block gooten {:?}", block);
+            if let Message::Block(block) =  self.receive(commands::BLOCK)?{
                 blocks.push(block.clone());
                 if blocks.len() == data_len {
-                    return blocks;
+                    return Ok(blocks);
                 } 
                 continue;
             }
-            panic!("cant get block");
+            return Err(Error::WrongP2PMessage);
         }
-        
-
     }
     
-        fn send(&mut self, message: Message) {
+        fn send(&mut self, message: Message) -> Result<()> {
             message.write(&mut self.output_stream, [0xfa, 0xbf, 0xb5, 0xda]).unwrap();
-            self.output_stream.blocking_flush().unwrap();
+            self.output_stream.blocking_flush().map_err(|err| Error::StreamingError(err))?;
+            Ok(())
       }
 
        
 
-       fn receive(& mut self, message_type: [u8; 12]) -> Message{
-        let duration = monotonic_clock::now() + 1_000_000_000;
-        while monotonic_clock::now() < duration {
-            
-            println!("trying");
-            let decoded_message = Message::read(&mut self.input_stream);
-            match decoded_message{
-                Ok(message) => {
-                    if message.1.command == commands::VERACK {
-                        println!("Verack message gotten")
-                    }
-        
-                    if message.1.command == message_type {
-                        return message.0
-                    }
-                },
-                Err(Error::IOError(_)) => continue,
-                Err(_) => break
-            }
-            
-            
-            
-        }
-        panic!("cant get message");        
-  }
+    fn receive(& mut self, message_type: [u8; 12]) -> Result<Message>{
+         let duration = monotonic_clock::now() + 1_000_000_000;
+         while monotonic_clock::now() < duration {
+             let decoded_message = Message::read(&mut self.input_stream);
+             match decoded_message{
+                 Ok(message) => {
+                     if message.1.command == commands::VERACK {
+                         println!("Verack message gotten")
+                     }
+                 
+                     if message.1.command == message_type {
+                         return Ok(message.0)
+                     }
+                 },
+                 Err(Error::IOError(_)) => continue,
+                 Err(err) => {
+                     return Err(err)
+                 }
+             }   
+         }
+        Err(Error::Timeout)    
+    }
 
 }
 pub struct BitcoinP2PConfig {
@@ -231,8 +197,7 @@ pub struct P2P {
     socket: WasiTcpSocket, 
 }
 pub trait  P2PControl {
-    fn connect_peer(&mut self, address: CustomIPV4SocketAddress, network: bitcoin_network::Network) -> bool;
-    fn disconnect_peer(&self) -> bool;
+    fn connect_peer(&mut self, address: CustomIPV4SocketAddress, network: bitcoin_network::Network) -> Result<()>;
 }
 
 impl P2P {
@@ -244,22 +209,19 @@ impl P2P {
         return P2P{ socket: wasi_socket, peer: None};
     }
 
-    pub fn sync_peer(&mut self, last_known_blockhash: Hash256)->  Vec<BlockHeader> {
-        let headers = self.peer.as_mut().unwrap().sync_headers(last_known_blockhash);
-        println!("This is your headers {:?}", headers);
-        return headers;
+    pub fn fetch_headers(&mut self, last_known_blockhash: Hash256)->  Result<Vec<BlockHeader>> {
+        return self.peer.as_mut().unwrap().fetch_headers(last_known_blockhash);
     }
 
-    pub fn get_compact_filters(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Vec<CompactFilter> { 
-        let filters = self.peer.as_mut().unwrap().get_compact_filters(start_height, hash_stop);
-        // println!("This is your filters {:?}", filters);
-        return filters;
+    pub fn get_compact_filters(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Result<Vec<CompactFilter>> { 
+        return self.peer.as_mut().unwrap().fetch_compact_filters(start_height, hash_stop);
     }
 
-    pub fn get_block(& mut self, inv: Inv) -> Vec<Block> {
-        let blocks = self.peer.as_mut().unwrap().get_block(inv);
-        println!("This is your blocks {:?}", blocks);
-        return blocks;
+    pub fn get_block(& mut self, inv: Inv) -> Result<Vec<Block>> {
+        return self.peer.as_mut().unwrap().fetch_blocks(inv);
+    }
+    pub fn ping_or_reconnect(& mut self) -> Result<()> {
+        return  self.peer.as_mut().unwrap().ping_or_reconnect();
     }
     
     
@@ -270,7 +232,7 @@ impl P2P {
 
 
 impl P2PControl for P2P {
-    fn connect_peer(&mut self, remote_address: CustomIPV4SocketAddress, network: bitcoin_network::Network) -> bool {
+    fn connect_peer(&mut self, remote_address: CustomIPV4SocketAddress, network: bitcoin_network::Network) -> Result<()> {
         let wasi_socket_address = IpSocketAddress::Ipv4(Ipv4SocketAddress{ port: remote_address.port, address: remote_address.ip });
         let connect_res = self.socket.blocking_connect(wasi_socket_address);
         match connect_res {
@@ -280,18 +242,13 @@ impl P2PControl for P2P {
                 let remote_address = NodeAddr::new(socket_address, remote_address.port); 
                 let peer = Peer::new(network, input_stream, output_stream, remote_address);
                 self.peer = Some(peer);
-                return  true;
+                return  Ok(());
             },
-            Err(_) => {
-                return false;
+            Err(e) => {
+                return Err(Error::TCPError(e));
             },
         }
     }
     
-    
-
-    fn disconnect_peer(&self) -> bool {
-        todo!()
-    }
 
 }

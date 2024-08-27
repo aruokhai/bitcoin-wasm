@@ -2,6 +2,8 @@ use hex::FromHexError;
 use ring;
 use base58::FromBase58Error;
 use libsecp256k1;
+use wasi::io::streams::StreamError;
+use wasi::sockets::tcp::ErrorCode;
 use std;
 use std::io;
 use std::string::FromUtf8Error;
@@ -37,6 +39,12 @@ pub enum Error {
     UnspecifiedRingError,
     /// The data or functionality is not supported by this library
     Unsupported(String),
+    /// P2P Streaming error
+    StreamingError(StreamError),
+    /// Wrong P2P Message
+    WrongP2PMessage,
+    /// TCP Error,
+    TCPError(ErrorCode)
 }
 
 impl std::fmt::Display for Error {
@@ -54,8 +62,12 @@ impl std::fmt::Display for Error {
             Error::ScriptError(s) => f.write_str(&format!("Script error: {}", s)),
             Error::Secp256k1Error(e) => f.write_str(&format!("Secp256k1 error: {}", e)),
             Error::Timeout => f.write_str("Timeout"),
+            Error::WrongP2PMessage => f.write_str("Wrong P2P message gotten"),
             Error::UnspecifiedRingError => f.write_str("Unspecified ring error"),
+            Error::StreamingError(s) => f.write_str(&format!("Srreaming Error: {}", s)),
             Error::Unsupported(s) => f.write_str(&format!("Unsuppored: {}", s)),
+            Error::TCPError(c) => f.write_str(&format!("TCP socket Error: {}", c)),
+
         }
     }
 }
@@ -77,6 +89,9 @@ impl std::error::Error for Error {
             Error::Timeout => "Timeout",
             Error::UnspecifiedRingError => "Unspecified ring error",
             Error::Unsupported(_) => "Unsupported",
+            Error::StreamingError(_) => "P2P Streaming Error",
+            Error::WrongP2PMessage => "Wrong P2P message gotten Error",
+            Error::TCPError(_) => "TCP error",
         }
     }
 

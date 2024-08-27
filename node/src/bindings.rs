@@ -13,18 +13,553 @@ pub mod exports {
                 #[cfg(target_arch = "wasm32")]
                 static __FORCE_SECTION_REF: fn() =
                     super::super::super::super::__link_custom_section_describing_imports;
-                #[doc(hidden)]
+                use super::super::super::super::_rt;
+                #[repr(u8)]
+                #[derive(Clone, Copy, Eq, PartialEq)]
+                pub enum Error {
+                    NetworkError,
+                }
+                impl Error {
+                    pub fn name(&self) -> &'static str {
+                        match self {
+                            Error::NetworkError => "network-error",
+                        }
+                    }
+                    pub fn message(&self) -> &'static str {
+                        match self {
+                            Error::NetworkError => "",
+                        }
+                    }
+                }
+                impl ::core::fmt::Debug for Error {
+                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                        f.debug_struct("Error")
+                            .field("code", &(*self as i32))
+                            .field("name", &self.name())
+                            .field("message", &self.message())
+                            .finish()
+                    }
+                }
+                impl ::core::fmt::Display for Error {
+                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                        write!(f, "{} (error {})", self.name(), *self as i32)
+                    }
+                }
 
-                macro_rules! __export_component_node_types_0_1_0_cabi {
-                    ($ty:ident with_types_in $($path_to_types:tt)*) => {
-                        const _: () = {};
-                    };
+                impl std::error::Error for Error {}
+
+                impl Error {
+                    #[doc(hidden)]
+                    pub unsafe fn _lift(val: u8) -> Error {
+                        if !cfg!(debug_assertions) {
+                            return ::core::mem::transmute(val);
+                        }
+
+                        match val {
+                            0 => Error::NetworkError,
+
+                            _ => panic!("invalid enum discriminant"),
+                        }
+                    }
+                }
+
+                #[derive(Clone)]
+                pub struct SocketAddress {
+                    pub ip: _rt::String,
+                    pub port: u16,
+                }
+                impl ::core::fmt::Debug for SocketAddress {
+                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                        f.debug_struct("SocketAddress")
+                            .field("ip", &self.ip)
+                            .field("port", &self.port)
+                            .finish()
+                    }
+                }
+                #[repr(u8)]
+                #[derive(Clone, Copy, Eq, PartialEq)]
+                pub enum BitcoinNetwork {
+                    Mainnet,
+                    Testnet,
+                    Regtest,
+                }
+                impl ::core::fmt::Debug for BitcoinNetwork {
+                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                        match self {
+                            BitcoinNetwork::Mainnet => {
+                                f.debug_tuple("BitcoinNetwork::Mainnet").finish()
+                            }
+                            BitcoinNetwork::Testnet => {
+                                f.debug_tuple("BitcoinNetwork::Testnet").finish()
+                            }
+                            BitcoinNetwork::Regtest => {
+                                f.debug_tuple("BitcoinNetwork::Regtest").finish()
+                            }
+                        }
+                    }
+                }
+
+                impl BitcoinNetwork {
+                    #[doc(hidden)]
+                    pub unsafe fn _lift(val: u8) -> BitcoinNetwork {
+                        if !cfg!(debug_assertions) {
+                            return ::core::mem::transmute(val);
+                        }
+
+                        match val {
+                            0 => BitcoinNetwork::Mainnet,
+                            1 => BitcoinNetwork::Testnet,
+                            2 => BitcoinNetwork::Regtest,
+
+                            _ => panic!("invalid enum discriminant"),
+                        }
+                    }
+                }
+
+                #[derive(Clone)]
+                pub struct NodeConfig {
+                    pub wallet_address: _rt::String,
+                    pub wallet_filter: _rt::String,
+                    pub genesis_blockhash: _rt::String,
+                    pub network: BitcoinNetwork,
+                    pub socket_address: SocketAddress,
+                }
+                impl ::core::fmt::Debug for NodeConfig {
+                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                        f.debug_struct("NodeConfig")
+                            .field("wallet-address", &self.wallet_address)
+                            .field("wallet-filter", &self.wallet_filter)
+                            .field("genesis-blockhash", &self.genesis_blockhash)
+                            .field("network", &self.network)
+                            .field("socket-address", &self.socket_address)
+                            .finish()
+                    }
+                }
+
+                #[derive(Debug)]
+                #[repr(transparent)]
+                pub struct Node {
+                    handle: _rt::Resource<Node>,
+                }
+
+                type _NodeRep<T> = Option<T>;
+
+                impl Node {
+                    /// Creates a new resource from the specified representation.
+                    ///
+                    /// This function will create a new resource handle by moving `val` onto
+                    /// the heap and then passing that heap pointer to the component model to
+                    /// create a handle. The owned handle is then returned as `Node`.
+                    pub fn new<T: GuestNode>(val: T) -> Self {
+                        Self::type_guard::<T>();
+                        let val: _NodeRep<T> = Some(val);
+                        let ptr: *mut _NodeRep<T> = _rt::Box::into_raw(_rt::Box::new(val));
+                        unsafe { Self::from_handle(T::_resource_new(ptr.cast())) }
+                    }
+
+                    /// Gets access to the underlying `T` which represents this resource.
+                    pub fn get<T: GuestNode>(&self) -> &T {
+                        let ptr = unsafe { &*self.as_ptr::<T>() };
+                        ptr.as_ref().unwrap()
+                    }
+
+                    /// Gets mutable access to the underlying `T` which represents this
+                    /// resource.
+                    pub fn get_mut<T: GuestNode>(&mut self) -> &mut T {
+                        let ptr = unsafe { &mut *self.as_ptr::<T>() };
+                        ptr.as_mut().unwrap()
+                    }
+
+                    /// Consumes this resource and returns the underlying `T`.
+                    pub fn into_inner<T: GuestNode>(self) -> T {
+                        let ptr = unsafe { &mut *self.as_ptr::<T>() };
+                        ptr.take().unwrap()
+                    }
+
+                    #[doc(hidden)]
+                    pub unsafe fn from_handle(handle: u32) -> Self {
+                        Self {
+                            handle: _rt::Resource::from_handle(handle),
+                        }
+                    }
+
+                    #[doc(hidden)]
+                    pub fn take_handle(&self) -> u32 {
+                        _rt::Resource::take_handle(&self.handle)
+                    }
+
+                    #[doc(hidden)]
+                    pub fn handle(&self) -> u32 {
+                        _rt::Resource::handle(&self.handle)
+                    }
+
+                    // It's theoretically possible to implement the `GuestNode` trait twice
+                    // so guard against using it with two different types here.
+                    #[doc(hidden)]
+                    fn type_guard<T: 'static>() {
+                        use core::any::TypeId;
+                        static mut LAST_TYPE: Option<TypeId> = None;
+                        unsafe {
+                            assert!(!cfg!(target_feature = "threads"));
+                            let id = TypeId::of::<T>();
+                            match LAST_TYPE {
+                                Some(ty) => assert!(
+                                    ty == id,
+                                    "cannot use two types with this resource type"
+                                ),
+                                None => LAST_TYPE = Some(id),
+                            }
+                        }
+                    }
+
+                    #[doc(hidden)]
+                    pub unsafe fn dtor<T: 'static>(handle: *mut u8) {
+                        Self::type_guard::<T>();
+                        let _ = _rt::Box::from_raw(handle as *mut _NodeRep<T>);
+                    }
+
+                    fn as_ptr<T: GuestNode>(&self) -> *mut _NodeRep<T> {
+                        Node::type_guard::<T>();
+                        T::_resource_rep(self.handle()).cast()
+                    }
+                }
+
+                /// A borrowed version of [`Node`] which represents a borrowed value
+                /// with the lifetime `'a`.
+                #[derive(Debug)]
+                #[repr(transparent)]
+                pub struct NodeBorrow<'a> {
+                    rep: *mut u8,
+                    _marker: core::marker::PhantomData<&'a Node>,
+                }
+
+                impl<'a> NodeBorrow<'a> {
+                    #[doc(hidden)]
+                    pub unsafe fn lift(rep: usize) -> Self {
+                        Self {
+                            rep: rep as *mut u8,
+                            _marker: core::marker::PhantomData,
+                        }
+                    }
+
+                    /// Gets access to the underlying `T` in this resource.
+                    pub fn get<T: GuestNode>(&self) -> &T {
+                        let ptr = unsafe { &mut *self.as_ptr::<T>() };
+                        ptr.as_ref().unwrap()
+                    }
+
+                    // NB: mutable access is not allowed due to the component model allowing
+                    // multiple borrows of the same resource.
+
+                    fn as_ptr<T: 'static>(&self) -> *mut _NodeRep<T> {
+                        Node::type_guard::<T>();
+                        self.rep.cast()
+                    }
+                }
+
+                unsafe impl _rt::WasmResource for Node {
+                    #[inline]
+                    unsafe fn drop(_handle: u32) {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        unreachable!();
+
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            #[link(wasm_import_module = "[export]component:node/types@0.1.0")]
+                            extern "C" {
+                                #[link_name = "[resource-drop]node"]
+                                fn drop(_: u32);
+                            }
+
+                            drop(_handle);
+                        }
+                    }
+                }
+
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_constructor_node_cabi<T: GuestNode>(
+                    arg0: *mut u8,
+                    arg1: usize,
+                    arg2: *mut u8,
+                    arg3: usize,
+                    arg4: *mut u8,
+                    arg5: usize,
+                    arg6: i32,
+                    arg7: *mut u8,
+                    arg8: usize,
+                    arg9: i32,
+                ) -> i32 {
+                    #[cfg(target_arch = "wasm32")]
+                    _rt::run_ctors_once();
+                    let len0 = arg1;
+                    let bytes0 = _rt::Vec::from_raw_parts(arg0.cast(), len0, len0);
+                    let len1 = arg3;
+                    let bytes1 = _rt::Vec::from_raw_parts(arg2.cast(), len1, len1);
+                    let len2 = arg5;
+                    let bytes2 = _rt::Vec::from_raw_parts(arg4.cast(), len2, len2);
+                    let len3 = arg8;
+                    let bytes3 = _rt::Vec::from_raw_parts(arg7.cast(), len3, len3);
+                    let result4 = Node::new(T::new(NodeConfig {
+                        wallet_address: _rt::string_lift(bytes0),
+                        wallet_filter: _rt::string_lift(bytes1),
+                        genesis_blockhash: _rt::string_lift(bytes2),
+                        network: BitcoinNetwork::_lift(arg6 as u8),
+                        socket_address: SocketAddress {
+                            ip: _rt::string_lift(bytes3),
+                            port: arg9 as u16,
+                        },
+                    }));
+                    (result4).take_handle() as i32
                 }
                 #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_method_node_get_balance_cabi<T: GuestNode>(
+                    arg0: *mut u8,
+                ) -> *mut u8 {
+                    #[cfg(target_arch = "wasm32")]
+                    _rt::run_ctors_once();
+                    let result0 = T::get_balance(NodeBorrow::lift(arg0 as u32 as usize).get());
+                    let ptr1 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
+                    match result0 {
+                        Ok(e) => {
+                            *ptr1.add(0).cast::<u8>() = (0i32) as u8;
+                            *ptr1.add(8).cast::<i64>() = _rt::as_i64(e);
+                        }
+                        Err(e) => {
+                            *ptr1.add(0).cast::<u8>() = (1i32) as u8;
+                            *ptr1.add(8).cast::<u8>() = (e.clone() as i32) as u8;
+                        }
+                    };
+                    ptr1
+                }
+                pub trait Guest {
+                    type Node: GuestNode;
+                }
+                pub trait GuestNode: 'static {
+                    #[doc(hidden)]
+                    unsafe fn _resource_new(val: *mut u8) -> u32
+                    where
+                        Self: Sized,
+                    {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            let _ = val;
+                            unreachable!();
+                        }
+
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            #[link(wasm_import_module = "[export]component:node/types@0.1.0")]
+                            extern "C" {
+                                #[link_name = "[resource-new]node"]
+                                fn new(_: *mut u8) -> u32;
+                            }
+                            new(val)
+                        }
+                    }
+
+                    #[doc(hidden)]
+                    fn _resource_rep(handle: u32) -> *mut u8
+                    where
+                        Self: Sized,
+                    {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            let _ = handle;
+                            unreachable!();
+                        }
+
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            #[link(wasm_import_module = "[export]component:node/types@0.1.0")]
+                            extern "C" {
+                                #[link_name = "[resource-rep]node"]
+                                fn rep(_: u32) -> *mut u8;
+                            }
+                            unsafe { rep(handle) }
+                        }
+                    }
+
+                    fn new(config: NodeConfig) -> Self;
+                    fn get_balance(&self) -> Result<i64, Error>;
+                }
+                #[doc(hidden)]
+
+                macro_rules! __export_component_node_types_0_1_0_cabi{
+      ($ty:ident with_types_in $($path_to_types:tt)*) => (const _: () = {
+
+        #[export_name = "component:node/types@0.1.0#[constructor]node"]
+        unsafe extern "C" fn export_constructor_node(arg0: *mut u8,arg1: usize,arg2: *mut u8,arg3: usize,arg4: *mut u8,arg5: usize,arg6: i32,arg7: *mut u8,arg8: usize,arg9: i32,) -> i32 {
+          $($path_to_types)*::_export_constructor_node_cabi::<<$ty as $($path_to_types)*::Guest>::Node>(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
+        }
+        #[export_name = "component:node/types@0.1.0#[method]node.get-balance"]
+        unsafe extern "C" fn export_method_node_get_balance(arg0: *mut u8,) -> *mut u8 {
+          $($path_to_types)*::_export_method_node_get_balance_cabi::<<$ty as $($path_to_types)*::Guest>::Node>(arg0)
+        }
+
+        const _: () = {
+          #[doc(hidden)]
+          #[export_name = "component:node/types@0.1.0#[dtor]node"]
+          #[allow(non_snake_case)]
+          unsafe extern "C" fn dtor(rep: *mut u8) {
+            $($path_to_types)*::Node::dtor::<
+            <$ty as $($path_to_types)*::Guest>::Node
+            >(rep)
+          }
+        };
+
+      };);
+    }
+                #[doc(hidden)]
                 pub(crate) use __export_component_node_types_0_1_0_cabi;
+                #[repr(align(8))]
+                struct _RetArea([::core::mem::MaybeUninit<u8>; 16]);
+                static mut _RET_AREA: _RetArea = _RetArea([::core::mem::MaybeUninit::uninit(); 16]);
             }
         }
     }
+}
+mod _rt {
+    pub use alloc_crate::string::String;
+
+    use core::fmt;
+    use core::marker;
+    use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
+
+    /// A type which represents a component model resource, either imported or
+    /// exported into this component.
+    ///
+    /// This is a low-level wrapper which handles the lifetime of the resource
+    /// (namely this has a destructor). The `T` provided defines the component model
+    /// intrinsics that this wrapper uses.
+    ///
+    /// One of the chief purposes of this type is to provide `Deref` implementations
+    /// to access the underlying data when it is owned.
+    ///
+    /// This type is primarily used in generated code for exported and imported
+    /// resources.
+    #[repr(transparent)]
+    pub struct Resource<T: WasmResource> {
+        // NB: This would ideally be `u32` but it is not. The fact that this has
+        // interior mutability is not exposed in the API of this type except for the
+        // `take_handle` method which is supposed to in theory be private.
+        //
+        // This represents, almost all the time, a valid handle value. When it's
+        // invalid it's stored as `u32::MAX`.
+        handle: AtomicU32,
+        _marker: marker::PhantomData<T>,
+    }
+
+    /// A trait which all wasm resources implement, namely providing the ability to
+    /// drop a resource.
+    ///
+    /// This generally is implemented by generated code, not user-facing code.
+    #[allow(clippy::missing_safety_doc)]
+    pub unsafe trait WasmResource {
+        /// Invokes the `[resource-drop]...` intrinsic.
+        unsafe fn drop(handle: u32);
+    }
+
+    impl<T: WasmResource> Resource<T> {
+        #[doc(hidden)]
+        pub unsafe fn from_handle(handle: u32) -> Self {
+            debug_assert!(handle != u32::MAX);
+            Self {
+                handle: AtomicU32::new(handle),
+                _marker: marker::PhantomData,
+            }
+        }
+
+        /// Takes ownership of the handle owned by `resource`.
+        ///
+        /// Note that this ideally would be `into_handle` taking `Resource<T>` by
+        /// ownership. The code generator does not enable that in all situations,
+        /// unfortunately, so this is provided instead.
+        ///
+        /// Also note that `take_handle` is in theory only ever called on values
+        /// owned by a generated function. For example a generated function might
+        /// take `Resource<T>` as an argument but then call `take_handle` on a
+        /// reference to that argument. In that sense the dynamic nature of
+        /// `take_handle` should only be exposed internally to generated code, not
+        /// to user code.
+        #[doc(hidden)]
+        pub fn take_handle(resource: &Resource<T>) -> u32 {
+            resource.handle.swap(u32::MAX, Relaxed)
+        }
+
+        #[doc(hidden)]
+        pub fn handle(resource: &Resource<T>) -> u32 {
+            resource.handle.load(Relaxed)
+        }
+    }
+
+    impl<T: WasmResource> fmt::Debug for Resource<T> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_struct("Resource")
+                .field("handle", &self.handle)
+                .finish()
+        }
+    }
+
+    impl<T: WasmResource> Drop for Resource<T> {
+        fn drop(&mut self) {
+            unsafe {
+                match self.handle.load(Relaxed) {
+                    // If this handle was "taken" then don't do anything in the
+                    // destructor.
+                    u32::MAX => {}
+
+                    // ... but otherwise do actually destroy it with the imported
+                    // component model intrinsic as defined through `T`.
+                    other => T::drop(other),
+                }
+            }
+        }
+    }
+    pub use alloc_crate::boxed::Box;
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn run_ctors_once() {
+        wit_bindgen_rt::run_ctors_once();
+    }
+    pub use alloc_crate::vec::Vec;
+    pub unsafe fn string_lift(bytes: Vec<u8>) -> String {
+        if cfg!(debug_assertions) {
+            String::from_utf8(bytes).unwrap()
+        } else {
+            String::from_utf8_unchecked(bytes)
+        }
+    }
+
+    pub fn as_i64<T: AsI64>(t: T) -> i64 {
+        t.as_i64()
+    }
+
+    pub trait AsI64 {
+        fn as_i64(self) -> i64;
+    }
+
+    impl<'a, T: Copy + AsI64> AsI64 for &'a T {
+        fn as_i64(self) -> i64 {
+            (*self).as_i64()
+        }
+    }
+
+    impl AsI64 for i64 {
+        #[inline]
+        fn as_i64(self) -> i64 {
+            self as i64
+        }
+    }
+
+    impl AsI64 for u64 {
+        #[inline]
+        fn as_i64(self) -> i64 {
+            self as i64
+        }
+    }
+    extern crate alloc as alloc_crate;
 }
 
 /// Generates `#[no_mangle]` functions to export the specified type as the
@@ -58,11 +593,18 @@ pub(crate) use __export_store_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:store:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 194] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07G\x01A\x02\x01A\x02\x01\
-B\0\x04\x01\x1acomponent:node/types@0.1.0\x05\0\x04\x01\x1acomponent:node/store@\
-0.1.0\x04\0\x0b\x0b\x01\0\x05store\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\
-\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 530] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x96\x03\x01A\x02\x01\
+A\x02\x01B\x12\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01m\x01\
+\x0dnetwork-error\x04\0\x05error\x03\0\x02\x01r\x02\x02ips\x04port{\x04\0\x0esoc\
+ket-address\x03\0\x04\x01m\x03\x07mainnet\x07testnet\x07regtest\x04\0\x0fbitcoin\
+-network\x03\0\x06\x01r\x05\x0ewallet-addresss\x0dwallet-filters\x11genesis-bloc\
+khashs\x07network\x07\x0esocket-address\x05\x04\0\x0bnode-config\x03\0\x08\x04\0\
+\x04node\x03\x01\x01i\x0a\x01@\x01\x06config\x09\0\x0b\x04\0\x11[constructor]nod\
+e\x01\x0c\x01h\x0a\x01j\x01x\x01\x03\x01@\x01\x04self\x0d\0\x0e\x04\0\x18[method\
+]node.get-balance\x01\x0f\x04\x01\x1acomponent:node/types@0.1.0\x05\0\x04\x01\x1a\
+component:node/store@0.1.0\x04\0\x0b\x0b\x01\0\x05store\x03\0\0\0G\x09producers\x01\
+\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

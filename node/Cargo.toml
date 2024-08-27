@@ -20,8 +20,8 @@ siphasher = { version = "1.0.1", default-features = false, features = ["serde"] 
 [dev-dependencies]
 hex = "0.4.3"
 
-# [lib]
-# crate-type = ["cdylib"]
+[lib]
+crate-type = ["cdylib"]
 
 [profile.release]
 codegen-units = 1
