@@ -2,12 +2,13 @@
 // Options used:
 
 #[cfg(target_arch = "wasm32")]
-#[link_section = "component-type:wit-bindgen:0.25.0:web5:encoded world"]
+#[link_section = "component-type:wit-bindgen:0.25.0:tbdex:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 152] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x1e\x01A\x02\x01A\0\x04\
-\x01\x13component:web5/web5\x04\0\x0b\x0a\x01\0\x04web5\x03\0\0\0G\x09producers\x01\
-\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 155] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x20\x01A\x02\x01A\0\x04\
+\x01\x15component:tbdex/tbdex\x04\0\x0b\x0b\x01\0\x05tbdex\x03\0\0\0G\x09produce\
+rs\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.\
+25.0";
 
 #[inline(never)]
 #[doc(hidden)]

@@ -1,11 +1,25 @@
 use std::sync::Arc;
 
 use uuid::Uuid;
-use wasi::{clocks::wall_clock, random};
+use wasi::{clocks::{self, wall_clock}, random};
 use web5::{credentials::verifiable_credential_1_1::{CredentialSubject, Issuer, VerifiableCredential, BASE_CONTEXT, BASE_TYPE}, crypto::{self, jwk::Jwk, key_managers::in_memory_key_manager::InMemoryKeyManager}, dids::{bearer_did::BearerDid, methods::did_dht::DidDht}};
 
 mod bindings;
 mod web5;
+mod request;
+mod json_schemas;
+mod http;
+mod json;
+mod resources;
+mod messages;
+mod signature;
+
+const DEFAULT_PROTOCOL_VERSION: &str = "1.0";
+
+fn get_utc_now() -> String {
+    let utc_now = clocks::wall_clock::now();
+    return chrono::DateTime::from_timestamp(utc_now.seconds as i64, utc_now.nanoseconds).unwrap().to_rfc3339();
+}
 
 fn main() {
     println!("Hello, world!");

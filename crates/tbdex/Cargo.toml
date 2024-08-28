@@ -1,5 +1,5 @@
 [package]
-name = "web5"
+name = "tbdex"
 version = "0.1.0"
 edition = "2021"
 resolver = "2"
@@ -9,7 +9,7 @@ resolver = "2"
 wit-bindgen-rt = { version = "0.29.0", features = ["bitflags"] }
 base64 = "0.22.0"
 sha2 = { version = "0.10.8", features = ["force-soft"] }
-serde = { version = "1.0.193", features = ["derive"] }
+serde = { version = "1.0.193", features = ["derive", "rc"] }
 ed25519-dalek = { version = "2.1.1", features = ["alloc"] }
 thiserror = "1.0.63"
 wasi = "0.13.1+wasi-0.2.0"
@@ -21,12 +21,17 @@ anyhow = { version = "1.0.86" }
 serde-json-core = "0.5.1"
 serde_json = { version = "1.0.122", default-features = false, features = ["alloc"] }
 regex = "1.10.6"
+serde_jcs = "0.1.0"
 jwt-compact = { version = "0.8.0", default-features = false, features = ["ed25519-compact"] }
 chrono = { version = "0.4.38", default-features = false, features = ["serde", "alloc"] }
 ed25519-compact = { version = "2.1.1", default-features = false , features = ["ed25519"] }
 uuid = { version = "1.10.0", default-features = false }
 jsonpath-rust = "0.5.0"
 jsonschema = { version = "0.18.0", default-features = false }
+hex = { version = "0.4.3" ,default-features = false, features = ["alloc"] }
+type-safe-id = "0.3.0"
+
+
 
 [dev-dependencies]
 k256 = { version = "0.13.3", features = ["ecdsa", "jwk"] }
@@ -46,6 +51,6 @@ strip = true
 lto = true
 
 [package.metadata.component]
-package = "component:web5"
+package = "component:tbdex"
 
 [package.metadata.component.dependencies]
