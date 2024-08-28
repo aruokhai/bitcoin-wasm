@@ -1,4 +1,4 @@
-use std::{env, fs, path::{Path, PathBuf}, process::Command};
+use std::{env, fs::{read_to_string, write}, path::{Path, PathBuf}, process::Command};
 use wit_component::ComponentEncoder;
 
 // #[derive(Debug, Deserialize)]
@@ -34,14 +34,27 @@ fn compose_test_component() {
         .unwrap()
         .as_object(). unwrap();
         
-
+    let mut wit_world = Vec::new();
+    wit_world.push("wasmtime::component::bindgen!({\n".to_string());
+    wit_world.push("inline: \"".to_string());
     for (key, path) in targets.into_iter() {
-        let real_pathbuf = build_compose_component(&key);
-        println!("Did it {:?}", real_pathbuf)
-
+        let _ = build_compose_component(&key);
+        let wit_path = path.as_object().unwrap().get("path").unwrap().as_str().unwrap();
+        for line in read_to_string(wit_path).unwrap().lines() {
+            if line.contains("import") {
+                continue;
+            }
+            if line.contains("///") {
+                continue;
+            }
+            wit_world.push(line.to_string());
+            wit_world.push("\n".to_string());
+        }
     }
-
-    println!("{:?}", targets);
+    wit_world.push("\"});".to_string());
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("WIT.rs");
+    write(out_dir, wit_world.join(" ")).unwrap();
+    println!("done with generating build details");
        
 }
 

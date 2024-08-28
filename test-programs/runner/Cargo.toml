@@ -14,4 +14,4 @@ cargo_metadata = "0.18.1"
 
 
 [package.metadata.component]
-"artifacts" = {path = "../../crates/store/wit"}
+"artifacts" = {path = "../artifacts/wit/world.wit"}

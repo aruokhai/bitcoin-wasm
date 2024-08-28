@@ -4,11 +4,9 @@ use wasmtime::component::*;
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{ DirPerms, FilePerms, WasiCtx, WasiCtxBuilder, WasiView};
 
-wasmtime::component::bindgen!({
-    path: "wit/artifacts.wit",
-    world: "artifacts",
-    async: false
-});
+
+include!(concat!(env!("OUT_DIR"), "/WIT.rs"));
+
 
 fn main() {
     // run_test();
