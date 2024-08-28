@@ -21,4 +21,7 @@ lto = true
 [package.metadata.component]
 package = "component:store"
 
-[package.metadata.component.dependencies]
+[package.metadata.component.target]
+path = "wit"
+
+[package.metadata.component.target.dependencies]

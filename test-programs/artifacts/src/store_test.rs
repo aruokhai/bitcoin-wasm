@@ -15,7 +15,8 @@ pub fn test_insert() {
         new_store.insert(&KeyValuePair{ key: key.to_owned(), value: value.to_owned()}).unwrap();
     }
     for (key,value) in key_value.iter() {
-        assert_eq!(new_store.search(key).unwrap().value, value.to_owned())
+        assert_eq!(new_store.search(key).unwrap().value, value.to_owned());
+        println!("working motherfucker")
     }
 }
 

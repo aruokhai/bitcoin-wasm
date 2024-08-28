@@ -1,2 +1,0 @@
-dependencies:
-  store: ../../target/debug/wasm32-wasistore.wasm

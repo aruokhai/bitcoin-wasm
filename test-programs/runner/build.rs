@@ -1,4 +1,4 @@
-use std::{env, fs, path::{Path, PathBuf}, process::Command};
+use std::{env, fs::{read_to_string, write}, path::{Path, PathBuf}, process::Command};
 use wit_component::ComponentEncoder;
 
 // #[derive(Debug, Deserialize)]
@@ -15,127 +15,113 @@ use wit_component::ComponentEncoder;
 
 fn main() {
     println!("cargo:rerun-if-changed=../../");
-    build_and_generate_tests();
+    compose_test_component();
+    // build_and_generate_tests();
 }
 
-fn build_and_generate_tests() {
+
+fn compose_test_component() {
+    let meta = cargo_metadata::MetadataCommand::new().exec().unwrap();
+    let targets = meta
+        .packages
+        .iter()
+        .find(|p| p.name == "runner")
+        .unwrap()
+        .metadata
+        .as_object()
+        .unwrap()
+        .get("component")
+        .unwrap()
+        .as_object(). unwrap();
+        
+    let mut wit_world = Vec::new();
+    wit_world.push("wasmtime::component::bindgen!({\n".to_string());
+    wit_world.push("inline: \"".to_string());
+    for (key, path) in targets.into_iter() {
+        let _ = build_compose_component(&key);
+        let wit_path = path.as_object().unwrap().get("path").unwrap().as_str().unwrap();
+        for line in read_to_string(wit_path).unwrap().lines() {
+            if line.contains("import") {
+                continue;
+            }
+            if line.contains("///") {
+                continue;
+            }
+            wit_world.push(line.to_string());
+            wit_world.push("\n".to_string());
+        }
+    }
+    wit_world.push("\"});".to_string());
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("WIT.rs");
+    write(out_dir, wit_world.join(" ")).unwrap();
+    println!("done with generating build details");
+       
+}
+
+fn build_compose_component(package_name: &str) -> PathBuf {
+    println!("package name is {}", package_name);
+    let meta = cargo_metadata::MetadataCommand::new().exec().unwrap();
+    let targets = meta
+            .packages
+            .iter()
+            .find(|p| p.name == package_name)
+            .unwrap()
+            .metadata
+            .as_object()
+            .unwrap();
+    println!("target  is {:?}", targets.clone());
+    let real_targets = targets.get("component")
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .get("target")
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .get("dependencies").unwrap()
+        .as_object().unwrap();
+
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    println!("running: runner");
-    compose_dep(out_dir);
-
-
-}
-
-fn build_dep(out_dir: PathBuf){
     let mut cmd = Command::new("cargo-component");
     cmd.arg("build")
-    .arg("--package=artifacts")
-    .env("CARGO_TARGET_DIR", &out_dir)
-    .env("CARGO_PROFILE_DEV_DEBUG", "1");
-    println!("running: {cmd:?}");
-    let status = cmd.status().unwrap();
-    assert!(status.success());
-    let mut cmd = Command::new("cargo-component");
-    cmd.arg("build")
-        .arg("--package=store")
+        .arg(format!("--package={}",package_name))
         .env("CARGO_TARGET_DIR", &out_dir)
         .env("CARGO_PROFILE_DEV_DEBUG", "1");
-        
-    eprintln!("running: {cmd:?}");
-    let status = cmd.status().unwrap();
-    assert!(status.success());
-    
-}
-
-
-fn compose_dep(out_dir: PathBuf) {
-    build_dep(out_dir.clone());
-    let mut wac = Command::new("wac");
-    let binding = out_dir.clone()
-    .join("wasm32-wasi")
-    .join("debug")
-    .join(format!("store.wasm"));
-    let store_path = binding.to_str().unwrap();
-    println!("store path {store_path:?}");
-    let binding = out_dir
+        println!("running: {cmd:?}");
+        let status = cmd.status().unwrap();
+        assert!(status.success());
+    let built_path = out_dir
         .join("wasm32-wasi")
         .join("debug")
-        .join(format!("artifacts.wasm"));
-    let artifact_path = binding.to_str().unwrap();
-    let binding = out_dir
-        .join(format!("test.wasm"));
-    let output_path = binding.to_str().unwrap();
-    wac.arg("plug")
-        .arg(format!("{artifact_path}"))
-        .arg("--plug")
-        .arg(format!("{store_path}"))
-        .arg("-o")
-        .arg(format!("{output_path}"));
-    let status = wac.status().unwrap();
-        assert!(status.success());
-}
-
-// fn parse_yaml() {
-//     let f = std::fs::File::open("dependencies.yaml")?;
-//     let d: Dependencies = serde_yaml::from_reader(f)?;
-
-//     for dependency in d.dep.iter() {
-
-//     }
-// }
-
-// fn compile_dep(dep: &Dependency, mut checked_list: Vec<string> ) {
-//     if dep.deps.len() == 0 {
-//         let package_name = dep.name;
-//         cmd.arg("component")
-//         .arg("build")
-//         .arg(format!("--package={package_name}"));
-//         let status = cmd.status().unwrap();
-//         assert!(status.success());
-//         checked_list.push(dep.name.clone());
-//         return;
-//     } else {
-//         for  depend in dep.deps.iter() {
-//             if checked_list.binary_search(depend).is_err(){
-//                 compile_dep(depend, checked_list)
-//             }
-
-//         }
-        
-//     }
-
-
-//     return;
+        .join(format!("{}.wasm",package_name));
     
-
-// }
-
-// Compile a component, return the path of the binary:
-// fn compile_components(wasm: &Path, adapter: &[u8]) -> PathBuf {
-//     println!("creating a component from {wasm:?}");
-//     let module = fs::read(wasm).expect("read wasm module");
-//     let component = ComponentEncoder::default()
-//         .module(module.as_slice())
-//         .unwrap()
-//         .
-//         .validate(true)
-//         .encode()
-//         .expect("module can be translated to a component");
-//     let out_dir = wasm.parent().unwrap();
-//     let stem = wasm.file_stem().unwrap().to_str().unwrap();
-//     let component_path = out_dir.join(format!("{stem}.component.wasm"));
-//     fs::write(&component_path, component).expect("write component to disk");
-//     component_path
-// }
-
-
-fn cargo() -> Command {
-    // Miri configures its own sysroot which we don't want to use, so remove
-    // miri's own wrappers around rustc to ensure that we're using the real
-    // rustc to build these programs.
-    let mut cargo = Command::new("cargo-component");
-    if std::env::var("CARGO_CFG_MIRI").is_ok() {
-        cargo.env_remove("RUSTC").env_remove("RUSTC_WRAPPER");
+    if real_targets.is_empty() {
+        return  built_path;    
     }
-    cargo
+
+
+    let mut wac = Command::new("wac");
+    let artifact_path = built_path.to_str().unwrap();
+    wac.arg("plug")
+    .arg(format!("{artifact_path}"));
+
+
+    for (key, path) in real_targets.into_iter() {
+        let modified_key = key.split(":").collect::<Vec<&str>>()[1];
+        let real_path: &str = path.get("path").unwrap().as_str().unwrap();
+        let path  = build_compose_component(modified_key); 
+        wac.arg("--plug")
+        .arg(format!("{}",path.to_str().unwrap()));
+    }
+
+    let output_path = out_dir
+        .join(format!("{}{}.wasm",package_name, package_name));
+    wac.arg("-o")
+    .arg(format!("{}",output_path.to_str().unwrap()));
+    let status = wac.status().unwrap();
+    assert!(status.success());
+
+    return  output_path;
+
 }
+
