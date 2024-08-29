@@ -312,7 +312,6 @@ impl VerifiableCredential {
         let nbf = jwt_payload
             .not_before.unwrap();
         let exp = jwt_payload.expiration;
-        println!("this is my jwt {}, this is my id {:?}", jti.clone(), vc_payload.clone().id);
         if let Some(id) = &vc_payload.id {
             if id != jti {
                 return Err(CredentialError::ClaimMismatch("id".to_string()));

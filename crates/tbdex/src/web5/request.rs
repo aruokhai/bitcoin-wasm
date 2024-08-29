@@ -1,3 +1,4 @@
+use wasi::http::types::Scheme;
 use wasi::http::{outgoing_handler, types as http_types};
 use wasi::io::streams;
 use anyhow::{anyhow, Result};
@@ -176,4 +177,11 @@ pub fn request(
         headers,
         body,
     })
+}
+
+pub fn get_scheme(url: &str) -> Scheme {
+    match url {
+        "http" => return  Scheme::Http,
+        _ => return  Scheme::Https
+    }
 }

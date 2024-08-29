@@ -78,7 +78,8 @@ pub struct OfferingData {
     pub payout: PayoutDetails,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub required_claims: Option<PresentationDefinition>,
-    pub cancellation: CancellationDetails,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cancellation: Option<CancellationDetails>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Default)]

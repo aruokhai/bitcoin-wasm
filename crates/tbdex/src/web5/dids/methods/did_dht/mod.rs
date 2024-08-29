@@ -226,7 +226,6 @@ impl DidDht {
         let response = request(Method::Put, Scheme::Https, &DEFAULT_RELAY.trim_end_matches('/'), &path, Some(body.as_slice()), Some(&[("Content-Type".into(), "application/octet-stream".as_bytes().to_vec())]), None, None, None)
             .map_err(|err| MethodError::DidPublishingFailure(err.to_string()))?;
 
-        println!("{:?}",response);
         if response.status != 200 {
             return Err(MethodError::DidPublishingFailure(
                 "Failed to PUT DID to mainline".to_string(),

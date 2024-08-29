@@ -1,3 +1,4 @@
+use wasi::http::types::Scheme;
 use wasi::http::{outgoing_handler, types as http_types};
 use wasi::io::streams;
 use anyhow::{anyhow, Result};
@@ -176,4 +177,50 @@ pub fn request(
         headers,
         body,
     })
+}
+
+#[derive( Debug, Clone, )]
+
+pub struct SchemeProps {
+    pub url_scheme: Scheme,
+    pub url: String,
+    pub url_path: String,
+}
+
+pub fn get_scheme(url: &str) -> SchemeProps {
+    let partition_str: Vec<_> = url.split("://").collect();
+    let url_scheme = match partition_str[0] {
+        "http" =>   Scheme::Http,
+        "https" =>  Scheme::Https,
+        _ => Scheme::Other("none".to_string())
+    };
+    println!("url scheme is {:?}", url_scheme.clone() );
+    let paths = partition_str[1]
+        .to_string()
+        .split("/")
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>();
+    let spliited_values = paths
+        .split_first().unwrap();
+    let url = spliited_values.0.to_owned();
+    println!("url  is {:?}", url.clone() );
+    if spliited_values.1.len() == 0 {
+        return  SchemeProps{
+            url_scheme,
+            url,
+            url_path: String::new()
+        };
+    }
+    let url_path =  format!(
+        "/{}",
+        spliited_values.1.join("/")
+    );
+    println!("url path  is {:?}", url_path.clone() );
+
+    return  SchemeProps{
+        url_scheme,
+        url,
+        url_path
+    };
+    
 }

@@ -120,7 +120,8 @@ struct TokenizedField<'a> {
 fn get_value_at_json_path(json: &str, path: &str) -> Option<Value> {
     let finder = JsonPathFinder::from_str(json, path).ok()?;
     let json_path_matches = finder.find_slice();
-    let json_path_value = json_path_matches.first()?;
+    // TODO: Please Fix by using correct terms
+    let json_path_value = json_path_matches.last()?;
 
     let val = match json_path_value {
         Slice(val, _) => (*val).clone(),
@@ -191,6 +192,7 @@ impl InputDescriptor {
             // Extract a value from the vc_jwt for each tokenized field
             for tokenized_field in &tokenized_fields {
                 if selection_candidate.contains_key(&tokenized_field.token) {
+                    
                     continue;
                 }
 
@@ -201,9 +203,19 @@ impl InputDescriptor {
 
             let json_value = Value::from(selection_candidate);
             let validation_result = schema.validate(&json_value);
-            if validation_result.is_ok() {
-                selected_jwts.insert(vc_jwt.clone());
+
+
+            match validation_result {
+                Ok(_) => {
+                    selected_jwts.insert(vc_jwt.clone());
+
+                },
+                Err(e) => {
+                    let collected_error: Vec<_> = e.collect();
+                    // println!("er {:?}",collected_error)
+                },
             }
+           
         }
 
         Ok(selected_jwts.into_iter().collect())
