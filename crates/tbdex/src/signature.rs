@@ -1,9 +1,12 @@
 use base64::{engine::general_purpose, Engine};
-use ed25519_compact::Signature;
+use base64ct::{Base64UrlUnpadded, Encoding};
+use ed25519_compact::{SecretKey, Signature};
 use jwt_compact::alg::Ed25519;
-use jwt_compact::Algorithm;
+use jwt_compact::{Algorithm, AlgorithmExt, AlgorithmSignature, Header};
 use serde_json::Error as SerdeJsonError;
 use serde_json::{Map, Value};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -52,13 +55,49 @@ pub fn sign(bearer_did: &BearerDid, metadata: &Value, data: &Value) -> Result<St
 
     // default to first VM
     let key_id = bearer_did.document.verification_method[0].id.clone();
+    println!("kid is {}", key_id.clone());
     let web5_signer = bearer_did.get_signer(key_id.clone())?;
     let signing_key = web5_signer.get_signing_key()
         .map_err(|_| SignatureError::Jose("Cant get signing key".to_string()))?;
-    let signature = Ed25519.sign(&signing_key, &digest);
-    let encoded_signature = hex::encode(signature);
-    Ok(encoded_signature)
+    let signature = serialise_compact(key_id, digest, signing_key);        
+    Ok(signature)
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CompleteHeader {
+    #[serde(rename = "alg")]
+    pub algorithm: String ,
+    #[serde(rename = "kid")]
+    pub kid: String,
+
+
+}
+
+pub fn serialise_compact(kid: String, digest: Vec<u8>, signing_key: SecretKey) -> String {
+    let complete_header = CompleteHeader{ kid, algorithm: Ed25519.name().to_string()};
+    let header = serde_json::to_string(&complete_header).unwrap();
+    let mut buffer = Vec::new();
+    encode_base64_buf(&header, &mut buffer);
+    buffer.push(b'.');
+    encode_base64_buf(&digest, &mut buffer);
+    let signature =  Ed25519.sign(&signing_key, &buffer);
+    buffer.push(b'.');
+    encode_base64_buf(signature.as_bytes(), &mut buffer);
+    let compact_jws =  unsafe { String::from_utf8_unchecked(buffer) };
+    let parts: Vec<&str> = compact_jws.split('.').collect();
+    format!("{}..{}", parts[0], parts[2])
+
+}
+
+fn encode_base64_buf(source: impl AsRef<[u8]>, buffer: &mut Vec<u8>) {
+    let source = source.as_ref();
+    let previous_len = buffer.len();
+    let claims_len = Base64UrlUnpadded::encoded_len(source);
+    buffer.resize(previous_len + claims_len, 0);
+    Base64UrlUnpadded::encode(source, &mut buffer[previous_len..])
+        .expect("miscalculated base64-encoded length; this should never happen");
+}
+
 
 // pub fn verify(
 //     did_uri: &str,

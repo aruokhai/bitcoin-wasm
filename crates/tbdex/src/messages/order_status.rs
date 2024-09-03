@@ -77,7 +77,7 @@ impl OrderStatus {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderStatusData {
-    pub status: Status,
+    pub order_status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub details: Option<String>,
 }

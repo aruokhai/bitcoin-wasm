@@ -81,11 +81,13 @@ fn generate_access_token(pfi_did_uri: &str, bearer_did: &BearerDid) -> Result<St
         audience: pfi_did_uri.to_string()
         
     });
+    let key_id = bearer_did.document.verification_method[0].id.clone();
     payload.expiration = chrono::DateTime::from_timestamp(exp as i64, 0); 
     payload.issued_at = chrono::DateTime::from_timestamp(issud_at_date.seconds as i64, issud_at_date.nanoseconds);
     let web5_signer = bearer_did.get_signer(bearer_did.document.verification_method[0].id.clone())?;
     let  header = Header::empty()
-    .with_token_type("JWT");
+    .with_token_type("JWT")
+    .with_key_id(key_id);
     let access_token = Ed25519.token(&header, &payload, &web5_signer.get_signing_key().unwrap()).unwrap();
 
 
@@ -136,19 +138,22 @@ fn send_request<T: Serialize, U: DeserializeOwned>(
     let mut additional_headers = None;
     if let Some(token) = &access_token {
         let token = format!("Bearer {token}");
-        additional_headers = Some(vec![("authorization".to_string(),token.as_bytes().to_vec() )]);
+        additional_headers = Some(vec![("authorization".to_string(),token.as_bytes().to_vec() ),
+           ("content-type".to_string(),b"application/json".to_vec()) ]);
     }
 
     let request_body = if let Some(body) = &body {
         let parsed_body = serde_json::to_vec(body).unwrap();
+        println!("this is body {:?}", String::from_utf8(parsed_body.clone()).unwrap());
+
         Some(parsed_body)
     } else  {
         None
     };
     let response = request(method, url_scheme, &url, &url_path, request_body.as_deref(), additional_headers.as_deref(), None, None, None).unwrap();
-
     let response_status = response.status;
     let response_text = response.body;
+   // println!("response status {:?}", response_text);
 
     // crate::log_dbg!(|| {
     //     format!(
@@ -173,7 +178,10 @@ fn send_request<T: Serialize, U: DeserializeOwned>(
 
     if  !(300 > response_status && response_status >=  200) {
         if response_status >= 400 {
-            let error_response_body = serde_json::from_str::<ErrorResponseBody>(&"unsuccessful".to_string())?;
+            let error_string = String::from_utf8(response_text.clone()).unwrap();
+            println!("error body {:?}", error_string);
+            let error_response_body = serde_json::from_slice::<ErrorResponseBody>(&response_text)?;
+            
             return Err(HttpClientError::ErrorResponseBody(error_response_body));
         }
 
@@ -185,7 +193,8 @@ fn send_request<T: Serialize, U: DeserializeOwned>(
     if response_status == 202 {
         return Ok(None);
     }
-
+    let error_string = String::from_utf8(response_text.clone()).unwrap();
+    println!("result body {:?}", error_string);
     let response_body = serde_json::from_slice(&response_text)?;
     Ok(Some(response_body))
 }

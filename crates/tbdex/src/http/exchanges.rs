@@ -17,7 +17,7 @@ impl ToJson for GetExchangeResponseBody {}
 
 #[derive(Serialize, Deserialize)]
 pub struct GetExchangesResponseBody {
-    pub data: Vec<String>,
+    pub data: Vec<Vec<Message>>,
 }
 impl FromJson for GetExchangesResponseBody {}
 impl ToJson for GetExchangesResponseBody {}
@@ -25,7 +25,7 @@ impl ToJson for GetExchangesResponseBody {}
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateExchangeRequestBody {
-    pub message: Rfq,
+    pub rfq: Rfq,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reply_to: Option<String>,
 }

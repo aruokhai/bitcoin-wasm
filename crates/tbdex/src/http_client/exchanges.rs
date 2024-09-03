@@ -41,16 +41,15 @@ pub fn create_exchange(rfq: &Rfq, reply_to: Option<String>) -> Result<()> {
 
     // TODO Fix Verify
     rfq.verify()?;
-
     send_request::<CreateExchangeRequestBody, ()>(
         &create_exchange_endpoint,
         Method::Post,
         Some(&CreateExchangeRequestBody {
-            message: rfq.clone(),
+            rfq: rfq.clone(),
             reply_to,
         }),
         None,
-    )?;
+    ).unwrap();
 
     Ok(())
 }
@@ -64,12 +63,10 @@ pub fn submit_order(order: &Order) -> Result<()> {
 
     order.verify()?;
 
-    send_request::<UpdateExchangeRequestBody, ()>(
+    send_request::<Order, ()>(
         &submit_order_endpoint,
         Method::Put,
-        Some(&UpdateExchangeRequestBody {
-            message: WalletUpdateMessage::Order(Arc::new(order.clone())),
-        }),
+        Some(&order),
         None,
     )?;
 
@@ -152,7 +149,8 @@ pub fn get_exchange(
     Ok(exchange)
 }
 
-pub fn get_exchange_ids(pfi_did: &str, requestor_did: &BearerDid) -> Result<Vec<String>> {
+
+pub fn get_exchange_ids(pfi_did: &str, requestor_did: &BearerDid) -> Result<Vec<Vec<Message>>> {
     let service_endpoint = get_service_endpoint(pfi_did)?;
     let get_exchanges_endpoint = format!("{}/exchanges", service_endpoint);
 
@@ -167,6 +165,5 @@ pub fn get_exchange_ids(pfi_did: &str, requestor_did: &BearerDid) -> Result<Vec<
     .ok_or(HttpClientError::ReqwestError(
         "get exchanges response cannot be null".to_string(),
     ))?;
-
     Ok(response.data)
 }

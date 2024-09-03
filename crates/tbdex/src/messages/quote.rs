@@ -78,7 +78,9 @@ impl Quote {
 #[serde(rename_all = "camelCase")]
 pub struct QuoteData {
     pub expires_at: String,
-    pub payout_units_per_payin_unit: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+
+    pub payout_units_per_payin_unit: Option<String>,
     pub payin: QuoteDetails,
     pub payout: QuoteDetails,
 }
@@ -87,8 +89,13 @@ pub struct QuoteData {
 #[serde(rename_all = "camelCase")]
 pub struct QuoteDetails {
     pub currency_code: String,
-    pub subtotal: String,
-    pub total: String,
+    pub amount: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+
+    pub subtotal: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+
+    pub total: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fee: Option<String>,
 }
