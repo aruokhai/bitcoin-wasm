@@ -55,7 +55,6 @@ pub fn sign(bearer_did: &BearerDid, metadata: &Value, data: &Value) -> Result<St
 
     // default to first VM
     let key_id = bearer_did.document.verification_method[0].id.clone();
-    println!("kid is {}", key_id.clone());
     let web5_signer = bearer_did.get_signer(key_id.clone())?;
     let signing_key = web5_signer.get_signing_key()
         .map_err(|_| SignatureError::Jose("Cant get signing key".to_string()))?;

@@ -194,7 +194,6 @@ fn send_request<T: Serialize, U: DeserializeOwned>(
         return Ok(None);
     }
     let error_string = String::from_utf8(response_text.clone()).unwrap();
-    println!("result body {:?}", error_string);
     let response_body = serde_json::from_slice(&response_text)?;
     Ok(Some(response_body))
 }

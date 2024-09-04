@@ -194,7 +194,6 @@ pub fn get_scheme(url: &str) -> SchemeProps {
         "https" =>  Scheme::Https,
         _ => Scheme::Other("none".to_string())
     };
-    println!("url scheme is {:?}", url_scheme.clone() );
     let paths = partition_str[1]
         .to_string()
         .split("/")
@@ -203,7 +202,7 @@ pub fn get_scheme(url: &str) -> SchemeProps {
     let spliited_values = paths
         .split_first().unwrap();
     let url = spliited_values.0.to_owned();
-    println!("url  is {:?}", url.clone() );
+
     if spliited_values.1.len() == 0 {
         return  SchemeProps{
             url_scheme,
@@ -215,7 +214,6 @@ pub fn get_scheme(url: &str) -> SchemeProps {
         "/{}",
         spliited_values.1.join("/")
     );
-    println!("url path  is {:?}", url_path.clone() );
 
     return  SchemeProps{
         url_scheme,
