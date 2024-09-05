@@ -45,8 +45,8 @@ flowchart TD
 
 Node is a self-contained Bitcoin Light Client that provides essential functionalities for interacting with the Bitcoin network. Its key features include:
 
-* **Transaction Broadcasting:** Node enables the transmission of Bitcoin transactions to the network through peer-to-peer (P2P) communication.
-* **Receive Transaction:** Node effectively receives and processes incoming Bitcoin transactions from the network, utilizing efficient block filtering techniques to minimize data overhead.
+* **Send Transaction:** Node enables the transmission of Bitcoin transactions to the network through peer-to-peer (P2P) communication.
+* **Receive Transaction:** Node effectively receives and processes incoming Bitcoin transactions from the network, utilizing efficient peer-to-peer (P2P) block filtering techniques to minimize data overhead.
 * **Currency Conversion:** Node facilitates the seamless conversion of Bitcoin to and from local currencies by leveraging the capabilities of the tbDEX exchange platform. This feature provides users with the flexibility to exchange Bitcoin for their preferred fiat currencies.
 
 ### Signer
