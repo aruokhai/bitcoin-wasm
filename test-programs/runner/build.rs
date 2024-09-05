@@ -20,6 +20,7 @@ fn main() {
 }
 
 
+
 fn compose_test_component() {
     let meta = cargo_metadata::MetadataCommand::new().exec().unwrap();
     let targets = meta
@@ -30,7 +31,7 @@ fn compose_test_component() {
         .metadata
         .as_object()
         .unwrap()
-        .get("component")
+        .get("runnercomponent")
         .unwrap()
         .as_object(). unwrap();
         

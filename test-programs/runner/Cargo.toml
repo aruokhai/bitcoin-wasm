@@ -13,5 +13,5 @@ serde_yaml = "0.9.34+deprecated"
 cargo_metadata = "0.18.1"
 
 
-[package.metadata.component]
+[package.metadata.runnercomponent]
 "artifacts" = {path = "../artifacts/wit/world.wit"}
