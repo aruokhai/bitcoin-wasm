@@ -68,15 +68,29 @@ Signer is a powerful utility that handles the cryptographic aspects of Bitcoin t
   - [ ] PSBT support
    
 ## :zap: Usage
-The project is intended to be used in another project with the help of WASI SDK such as wasmtime. 
+This project is designed to be embedded within another project using WASI SDKs like wasmtime.
 
 ###  :electric_plug: Installation
-- Steps on how to install this project, to use it.
-- Be very detailed here, For example, if you have tools which run on different operating systems, write installation steps for all of them.
 
-```
-$ add installations steps if you have to.
-```
+1. Install WASM runtime (e.g., `wasmtime`):
+   ```bash
+   $ sudo apt install wasmtime
+   ```
+
+2. Clone the Bitcoin-Wasm repository:
+   ```bash
+   $ git clone https://github.com/aruokhai/bitcoin-wasm.git
+   ```
+
+3. Navigate to the project directory:
+   ```bash
+   $ cd bitcoin-wasm
+   ```
+
+4. Build the project (instructions specific to your build system will be added):
+   ```bash
+   $ cargo build --release
+   ```
 
 ###  :package: Commands
 - Commands to start the project.
@@ -85,18 +99,35 @@ $ add installations steps if you have to.
 If you want other people to contribute to this project, this is the section, make sure you always add this.
 
 ### :notebook: Pre-Requisites
-List all the pre-requisites the system needs to develop this project.
-- A tool
-- B tool
+* Rust compiler (v1.78 or later) - [Download](https://www.rust-lang.org/tools/install)
+* WASI runtime SDK (e.g., wasmtime) - Installation instructions will be provided.
 
 ###  :nut_and_bolt: Development Environment
-Write about setting up the working environment for your project.
-- How to download the project...
-- How to install dependencies...
+
+**Setting Up Your Development Environment**
+
+1. **Clone the Repository:**
+   ```bash
+   $ git clone https://github.com/aruokhai/bitcoin-wasm.git
+   ```
+
+2. **Install Rust and Dependencies:**
+   Ensure you have Rust installed (version 1.78 or later) with the necessary WASM and Bitcoin-related crates. You can use Rustup to manage your Rust installations:
+
+   ```bash
+   $ rustup install stable
+   $ cargo install wasmtime
+   ```
+
+3. **Build the Project:**
+   Navigate to the project directory and build the project:
+   ```bash
+   $ cd bitcoin-wasm
+   $ cargo build
+   ```
 
 
 ###  :file_folder: Folder Structure
-
 
 ```
 bitcoin-wasm
