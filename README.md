@@ -212,7 +212,7 @@ There are two ways to build the Bitcoin-Wasm project:
    You can build a specific component, like the `web5` package, using the following command:
 
    ```bash
-   $ cargo -component build –package=web5
+   $ cargo-component build –package=web5
    ```
 
    Replace `web5` with the actual name of the package you want to build.
