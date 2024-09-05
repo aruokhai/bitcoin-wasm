@@ -1,7 +1,11 @@
 [![Safety Dance](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 
 # Bitcoin-Wasm
-Bitcon-Wasm Is A [WASM-WASI](https://wasi.dev/) Compliant embedded Bitcoin Payment Node. It is developed to be embedded in native applications with WASI compliant runtime sdk uch as [wasmtime](https://wasmtime.dev/) and [JCO](https://bytecodealliance.github.io/jco/). This node provides all the necessary functionalites to send, receive and convert bitcoin in a non custodial way using open standards.  The releases are .wasm files which can be utilised with WASI compliant SDK s
+
+**Bitcoin Wasm** is a **WASM-WASI compliant** embedded Bitcoin payment node. It's designed to be embedded in native applications using WASI-compliant runtime SDKs like **wasmtime** and **JCO**. This node provides all the necessary functionalities to send, receive, and convert Bitcoin in a non-custodial way using open standards. 
+
+![image]()
+
 
 ## :ledger: Index
 
@@ -27,7 +31,10 @@ Bitcon-Wasm Is A [WASM-WASI](https://wasi.dev/) Compliant embedded Bitcoin Payme
 - [License](#lock-license)
 
 ##  :beginner: About
-Add a detailed introduction about the project here, everything you want the reader to know.
+Bitcoin Wasm  contains two sub projects, the  embeddable self contained Bitcoin Light Client called Node and the Bitcoin Transaction Signing Utility Software called Signer. 
+
+![image]()
+
 
 ## :station: Features
 - [ ] Light Client (Compact Block Filtering)
