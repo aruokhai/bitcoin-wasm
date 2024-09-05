@@ -135,18 +135,24 @@ A. **Setting Up Your Development Environment**
    $ cargo build
    ```
 
-B. **Run Tests:**
-1. Install test suite:
+B. **Running Tests**
+
+To run the project's integration tests, follow these steps:
+
+1. Install the `cargo-component` and `wac-cli` tools:
+
    ```bash
-   $ cargo install cargo-component      
+   $ cargo install cargo-component
    $ cargo install wac-cli
    ```
 
-2. Run the integration tests:
+2. Navigate to the project directory.
+
+3. Run the integration tests:
+
    ```bash
    $ cargo run --package runner --bin runner
    ```
-
 
 ###  :file_folder: Folder Structure
 
@@ -199,10 +205,18 @@ Here's a breakdown of the key folders:
     * **runner:** The main entry point for the end-to-end(e2e) testing. It holds code for running and managing the test programs.
 
 ###  :hammer: Build
-Write the build Instruction here.
 
-### :rocket: Deployment
-Write the deployment instruction here.
+There are two ways to build the Bitcoin-Wasm project:
+
+1. **Building a specific component:**
+   You can build a specific component, like the `web5` package, using the following command:
+
+   ```bash
+   $ cargo -component build –package=web5
+   ```
+
+   Replace `web5` with the actual name of the package you want to build.
+
 
 ## :cherry_blossom: Community
 
