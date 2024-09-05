@@ -31,9 +31,10 @@
 - [License](#lock-license)
 
 ##  :beginner: About
-Bitcoin Wasm  contains two sub projects, the  embeddable self contained Bitcoin Light Client called Node and the Bitcoin Transaction Signing Utility Software called Signer. 
 
-<!-- ![image]() -->
+Bitcoin Wasm contains two sub-projects: the embeddable, self-contained Bitcoin Light Client called **Node** and the Bitcoin Transaction Signing Utility Software called **Signer**.
+
+
 ``` mermaid
 flowchart TD
     A[Bitcoin Wasm] --> B(Node)
@@ -44,16 +45,16 @@ flowchart TD
 
 Node is a self-contained Bitcoin Light Client that provides essential functionalities for interacting with the Bitcoin network. Its key features include:
 
-* **P2P Network Integration:** Node enables peer-to-peer communication with the Bitcoin network, allowing it to send and receive transactions.
-* **Compact Block Filtering:** To optimize performance and reduce data load, Node employs compact block filtering, efficiently filtering incoming blocks for relevant transactions.
-* **Currency Conversion:** Node facilitates the conversion of Bitcoin to and from local currencies, leveraging the tbDEX exchange platform.
+* **Transaction Broadcasting:** Node enables the transmission of Bitcoin transactions to the network through peer-to-peer (P2P) communication.
+* **Receive Transaction:** Node effectively receives and processes incoming Bitcoin transactions from the network, utilizing efficient block filtering techniques to minimize data overhead.
+* **Currency Conversion:** Node facilitates the seamless conversion of Bitcoin to and from local currencies by leveraging the capabilities of the tbDEX exchange platform. This feature provides users with the flexibility to exchange Bitcoin for their preferred fiat currencies.
 
 ### Signer
 
 Signer is a powerful utility that handles the cryptographic aspects of Bitcoin transactions. Its key functionalities include:
 
-* **Transaction Signing:** Signer utilizes the PSBT (Partially Signed Bitcoin Transaction) format to securely sign Bitcoin transactions.
-* **Key Management:** It stores and manages private keys, ensuring the safekeeping of Bitcoin signing primitives.
+* **Bitcoin Transaction Signing:** Signer utilizes the PSBT (Partially Signed Bitcoin Transaction) format to securely sign Bitcoin transactions.
+* **Bitcoin Key Management:** It stores and manages private keys, ensuring the safekeeping of Bitcoin signing primitives.
 * **tbDEX Message Signing:** Signer supports the signing of tbDEX messages using the JSON format.
 * **tbDEX Key Management:** It stores and manages JWKs (JSON Web Keys), which are essential for signing and verifying tbDEX messages.
 
