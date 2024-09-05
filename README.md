@@ -35,11 +35,9 @@ Bitcoin Wasm  contains two sub projects, the  embeddable self contained Bitcoin 
 
 <!-- ![image]() -->
 ``` mermaid
-flowchart LR
-    subgraph 
-        A(Bitcoin Wasm) --> B(Node)
-        A --> C(Signer)
-    end
+flowchart TD
+    A[Bitcoin Wasm] --> B(Node)
+    A --> C(Signer)
 ```
 
 ### Node
