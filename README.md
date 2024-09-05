@@ -82,21 +82,12 @@ This project is designed to be embedded within another project using WASI SDKs l
    $ cd bitcoin-wasm
    ```
 
-3. Navigate to the project directory:
-   ```bash
-   $ cd bitcoin-wasm
-   ```
-
-4. Run the integration tests:
-   ```bash
-   $ cargo run package runner 
-   ```
 
 ###  :package: Commands
 - Commands to start the project.
 
 ##  :wrench: Development
-If you want other people to contribute to this project, this is the section, make sure you always add this.
+We warmly welcome your contributions to Bitcoin Wasm! Whether you're a seasoned developer or just starting out, your help can make a significant impact.
 
 ### :notebook: Pre-Requisites
 * Rust compiler (v1.78 or later) - [Install](https://www.rust-lang.org/tools/install)
@@ -201,21 +192,20 @@ Here's a breakdown of the key folders:
 * **node:** This subfolder contains the source code for the Node component, responsible for interacting with the Bitcoin network. 
 * **test-programs:** This folder holds test programs used to verify the functionality of the project. It contains subfolders like:
     * **artifacts:** This stores generated test data or artifacts.
-    * **cli:** This contains code for command-line interface (CLI) test programs used to interact with the project.
     * **runner:** The main entry point for the end-to-end(e2e) testing. It holds code for running and managing the test programs.
 
 ###  :hammer: Build
 
-There are two ways to build the Bitcoin-Wasm project:
+There is currently one way to build the Bitcoin-Wasm project:
 
 1. **Building a specific component:**
    You can build a specific component, like the `web5` package, using the following command:
 
    ```bash
-   $ cargo-component build --package=web5
+   $ cargo-component build --package=<package-name>
    ```
 
-   Replace `web5` with the actual name of the package you want to build.
+   Replace `package-name` with the actual name of the package you want to build (e.g `web5`).
 
 
 ## :cherry_blossom: Community
@@ -263,14 +253,25 @@ After this, changes will be merged.
 
 
 ### :exclamation: Guideline
-coding guidelines or other things you want people to follow should follow.
-
+* Follow Rust's style guidelines and best practices.
+* Write clear and concise commit messages.
+* Ensure your code passes all tests.
+* Review and provide feedback on other contributors' pull requests.
 
 ## :question: FAQ
-You can optionally add a FAQ section about the project.
 
-##  :page_facing_up: Resources
-Add important resources here
+**Common Questions and Answers**
+
+* **Can I use Bitcoin Wasm with other programming languages?** Yes, Bitcoin Wasm can be used with any language that can interact with WASM modules.
+* **Is Bitcoin Wasm secure?** Bitcoin Wasm is designed to be secure, but it's important to follow best practices for handling private keys and protecting your application from vulnerabilities.
+* **How can I contribute to the project?** See the "Contribution" section for more information.
+
+## :page_facing_up: Resources
+
+* **WASM Specification:** [https://webassembly.org/](https://webassembly.org/)
+* **WASI Specification:** [https://github.com/WebAssembly/wasi-io](https://github.com/WebAssembly/wasi-io)
+* **Bitcoin Documentation:** [https://bitcoin.org/](https://bitcoin.org/)
+
 
 ##  :camera: Gallery
 Pictures of your project.
