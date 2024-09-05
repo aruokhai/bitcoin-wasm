@@ -95,13 +95,18 @@ Write about setting up the working environment for your project.
 - How to install dependencies...
 
 
-###  :file_folder: File Structure
-Add a file structure here with the basic details about files, below is an example.
+###  :file_folder: Folder Structure
+
 
 ```
-.
+bitcoin-wasm
 ├── crates
 │   ├── store
+│   │   ├── src
+│   │   └── wit
+|   |   |  └──world.wit
+|   |   ├── Cargo.toml
+│   ├── tbdex
 │   │   ├── src
 │   │   └── wit
 |   |   |  └──world.wit
@@ -110,6 +115,8 @@ Add a file structure here with the basic details about files, below is an exampl
 │   ├── src
 │   │   ├── lib.rs
 │   │   └── binding.rs
+│   └── wit
+|   |   └──world.wit
 │   └── cargo.toml
 ├──test-programs 
 │   ├── artifacts
@@ -117,6 +124,7 @@ Add a file structure here with the basic details about files, below is an exampl
 │   │   └── wit
 |   |   |  └──world.wit
 |   |   └── Cargo.toml
+│   ├── cli
 |   ├── runner
 │   |   ├── src
 │   │   └── wit
@@ -126,9 +134,16 @@ Add a file structure here with the basic details about files, below is an exampl
 
 ```
 
-| No | File Name | Details 
-|----|------------|-------|
-| 1  | index | Entry point
+Here's a breakdown of the key folders:
+
+* **crates:** This folder holds crates (Rust libraries) used by the project. It contains subfolders like:
+    * **store:** A WASI-compliant generic key-value store.
+    * **tbdex:** For interacting with the tbDEX platform.
+* **node:** This subfolder contains the source code for the Node component, responsible for interacting with the Bitcoin network. 
+* **test-programs:** This folder holds test programs used to verify the functionality of the project. It contains subfolders like:
+    * **artifacts:** This stores generated test data or artifacts.
+    * **cli:** This contains code for command-line interface (CLI) test programs used to interact with the project.
+    * **runner:** The main entry point for the end-to-end(e2e) testing. It holds code for running and managing the test programs.
 
 ###  :hammer: Build
 Write the build Instruction here.
