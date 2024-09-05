@@ -33,17 +33,40 @@
 ##  :beginner: About
 Bitcoin Wasm  contains two sub projects, the  embeddable self contained Bitcoin Light Client called Node and the Bitcoin Transaction Signing Utility Software called Signer. 
 
-![image]()
+<!-- ![image]() -->
+``` mermaid
+flowchart LR
+    subgraph 
+        A(Bitcoin Wasm) --> B(Node)
+        A --> C(Signer)
+    end
+```
+
+### Node
+
+Node is a self-contained Bitcoin Light Client that provides essential functionalities for interacting with the Bitcoin network. Its key features include:
+
+* **P2P Network Integration:** Node enables peer-to-peer communication with the Bitcoin network, allowing it to send and receive transactions.
+* **Compact Block Filtering:** To optimize performance and reduce data load, Node employs compact block filtering, efficiently filtering incoming blocks for relevant transactions.
+* **Currency Conversion:** Node facilitates the conversion of Bitcoin to and from local currencies, leveraging the TBDEX exchange platform.
+
+### Signer
+
+Signer is a powerful utility that handles the cryptographic aspects of Bitcoin transactions. Its key functionalities include:
+
+* **Transaction Signing:** Signer utilizes the PSBT (Partially Signed Bitcoin Transaction) format to securely sign Bitcoin transactions.
+* **Key Management:** It stores and manages private keys, ensuring the safekeeping of Bitcoin signing primitives.
+* **tbDEX Message Signing:** Signer supports the signing of TBDEX messages using the JSON format.
+* **tbDEX Key Management:** It stores and manages JWKs (JSON Web Keys), which are essential for signing and verifying TBDEX messages.
 
 
 ## :station: Features
 - [ ] Light Client (Compact Block Filtering)
 - [ ] Descriptor Wallet 
 - [ ] Silent Payment Support
-     - [ ] Nostr Identity Support
-- [ ] TBDx exchange feature
-- [ ] PSBT support for External Signer
-- [ ] Wasm External Signer
+- [ ] tbDex exchange feature
+- [ ] Wasm Signer
+  - [ ] PSBT support
    
 ## :zap: Usage
 The project is intended to be used in another project with the help of WASI SDK such as wasmtime. 
