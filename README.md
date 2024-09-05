@@ -46,7 +46,7 @@ Node is a self-contained Bitcoin Light Client that provides essential functional
 
 * **P2P Network Integration:** Node enables peer-to-peer communication with the Bitcoin network, allowing it to send and receive transactions.
 * **Compact Block Filtering:** To optimize performance and reduce data load, Node employs compact block filtering, efficiently filtering incoming blocks for relevant transactions.
-* **Currency Conversion:** Node facilitates the conversion of Bitcoin to and from local currencies, leveraging the TBDEX exchange platform.
+* **Currency Conversion:** Node facilitates the conversion of Bitcoin to and from local currencies, leveraging the tbDEX exchange platform.
 
 ### Signer
 
@@ -54,15 +54,15 @@ Signer is a powerful utility that handles the cryptographic aspects of Bitcoin t
 
 * **Transaction Signing:** Signer utilizes the PSBT (Partially Signed Bitcoin Transaction) format to securely sign Bitcoin transactions.
 * **Key Management:** It stores and manages private keys, ensuring the safekeeping of Bitcoin signing primitives.
-* **tbDEX Message Signing:** Signer supports the signing of TBDEX messages using the JSON format.
-* **tbDEX Key Management:** It stores and manages JWKs (JSON Web Keys), which are essential for signing and verifying TBDEX messages.
+* **tbDEX Message Signing:** Signer supports the signing of tbDEX messages using the JSON format.
+* **tbDEX Key Management:** It stores and manages JWKs (JSON Web Keys), which are essential for signing and verifying tbDEX messages.
 
 
 ## :station: Features
 - [ ] Light Client (Compact Block Filtering)
 - [ ] Descriptor Wallet 
 - [ ] Silent Payment Support
-- [ ] tbDex exchange feature
+- [ ] tbDEX exchange feature
 - [ ] Wasm Signer
   - [ ] PSBT support
    
