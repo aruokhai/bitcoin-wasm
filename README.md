@@ -72,14 +72,14 @@ This project is designed to be embedded within another project using WASI SDKs l
 
 ###  :electric_plug: Installation
 
-1. Install WASM runtime (e.g., `wasmtime`):
-   ```bash
-   $ sudo apt install wasmtime
-   ```
-
-2. Clone the Bitcoin-Wasm repository:
+1. Clone the Bitcoin-Wasm repository:
    ```bash
    $ git clone https://github.com/aruokhai/bitcoin-wasm.git
+   ```
+
+2. Navigate to the project directory:
+   ```bash
+   $ cd bitcoin-wasm
    ```
 
 3. Navigate to the project directory:
@@ -87,9 +87,9 @@ This project is designed to be embedded within another project using WASI SDKs l
    $ cd bitcoin-wasm
    ```
 
-4. Build the project (instructions specific to your build system will be added):
+4. Run the integration tests:
    ```bash
-   $ cargo build --release
+   $ cargo run package runner 
    ```
 
 ###  :package: Commands
@@ -99,31 +99,52 @@ This project is designed to be embedded within another project using WASI SDKs l
 If you want other people to contribute to this project, this is the section, make sure you always add this.
 
 ### :notebook: Pre-Requisites
-* Rust compiler (v1.78 or later) - [Download](https://www.rust-lang.org/tools/install)
-* WASI runtime SDK (e.g., wasmtime) - Installation instructions will be provided.
+* Rust compiler (v1.78 or later) - [Install](https://www.rust-lang.org/tools/install)
+* WASI runtime SDK (e.g., wasmtime) - [Install](https://docs.wasmtime.dev/cli-install.html)
 
 ###  :nut_and_bolt: Development Environment
 
-**Setting Up Your Development Environment**
+A. **Setting Up Your Development Environment**
 
-1. **Clone the Repository:**
+1. Install WASM runtime (e.g., `wasmtime`):
+   ```bash
+   $ curl https://wasmtime.dev/install.sh -sSf | bash
+   ```
+
+2. **Clone the Repository:**
    ```bash
    $ git clone https://github.com/aruokhai/bitcoin-wasm.git
    ```
 
-2. **Install Rust and Dependencies:**
+3. Navigate to the project directory:
+   ```bash
+   $ cd bitcoin-wasm
+   ```
+
+4. **Install Rust and Dependencies:**
    Ensure you have Rust installed (version 1.78 or later) with the necessary WASM and Bitcoin-related crates. You can use Rustup to manage your Rust installations:
 
    ```bash
    $ rustup install stable
-   $ cargo install wasmtime
    ```
 
-3. **Build the Project:**
+5. **Build the Project:**
    Navigate to the project directory and build the project:
    ```bash
    $ cd bitcoin-wasm
    $ cargo build
+   ```
+
+B. **Run Tests:**
+1. Install test suite:
+   ```bash
+   $ cargo install cargo-component      
+   $ cargo install wac-cli
+   ```
+
+2. Run the integration tests:
+   ```bash
+   $ cargo run --package runner --bin runner
    ```
 
 
@@ -164,6 +185,7 @@ bitcoin-wasm
 └── Cargo.toml
 
 ```
+
 
 Here's a breakdown of the key folders:
 
