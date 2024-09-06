@@ -2,6 +2,7 @@ package component:artifacts@0.1.0;
 
 /// An example world for the component to target.
 world artifacts {
+   import component:node/types@0.1.0;
    import component:store/types@0.1.0;
-    export test-store: func();
+   export test: func();
 }

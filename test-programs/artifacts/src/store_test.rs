@@ -3,7 +3,13 @@ use bindings::component::store::types::{KeyValuePair, Store, Error};
 
 use crate::bindings;
 
-pub fn test_insert() {
+pub fn test_store(){
+    test_insert();
+    test_delete();
+} 
+
+
+ fn test_insert() {
     let mut key_value:  Vec<(String,String)> = vec![];
     for i in 1..20 {
         let k = i * 3;
@@ -20,7 +26,7 @@ pub fn test_insert() {
     }
 }
 
-pub fn test_delete() {
+ fn test_delete() {
     let mut key_value:  Vec<(String,String)> = vec![];
     for i in 1..20 {
         let k = i * 3;

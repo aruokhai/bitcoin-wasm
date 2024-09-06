@@ -3,7 +3,8 @@ mod bindings;
 use std::{cell::RefCell};
 
 use node::Node;
-use bindings::exports::component::node::types::{Guest,Error, GuestNode, NodeConfig};
+use bindings::exports::component::node::types::{Guest,Error, GuestNode, NodeConfig, TbdexConfig};
+use bindings::component::tbdex::types::{Client, Error as TBdexError, OfferingBargain};
 
 
 
@@ -19,6 +20,7 @@ struct Component;
 
 struct BitcoinNode {
     inner: RefCell<Node>,
+    tbdex: Option<RefCell<Client>>,
 }
 
 impl GuestNode for BitcoinNode {
@@ -26,9 +28,39 @@ impl GuestNode for BitcoinNode {
         return  self.inner.borrow_mut().get_balance().map_err(|_| Error::NetworkError);
     }
 
-    
-    fn new(config: NodeConfig) -> Self {
-        return Self{ inner:  Node::new(config.into()).into()};
+    fn get_conversion_offer(&self) -> Result<OfferingBargain, Error> {
+        match &self.tbdex {
+            Some(client) =>{
+                let offer =client.borrow().get_offer().map_err(|_| Error::TbdexError)?;
+                return  Ok(offer)
+            },
+            None => {
+                return Err(Error::NoTbdx)
+            },
+        };
+    }
+
+    fn convert_amount(&self, amount: String, offer_id: String) -> Result<String, Error> {
+        match &self.tbdex {
+            Some(client) =>{
+                let address = self.inner.borrow().wallet.address.clone();
+                let res = client.borrow().convert(&offer_id, &amount, &address).map_err(|_| Error::TbdexError)?;
+                return  Ok(res)
+            },
+            None => {
+                return Err(Error::NoTbdx)
+            },
+        };
+    }
+
+    fn new(config: NodeConfig, tbdx_config: Option<TbdexConfig>) -> Self {
+        let tbdex = if let Some(config) = tbdx_config {
+            let new_tbdex_client = Client::new(&config.pfi_uri, &config.vc_url, &config.acct_number);
+            Some(RefCell::new(new_tbdex_client))
+        } else {
+            None
+        };
+        return Self{ inner:  Node::new(config.into()).into(), tbdex: tbdex.into()};
     }
 }
 

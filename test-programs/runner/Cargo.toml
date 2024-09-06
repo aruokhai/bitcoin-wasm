@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-wasmtime = "22.0.0"
-wasmtime-wasi = "22.0.0"
+wasmtime = "24.0.0"
+wasmtime-wasi = "24.0.0"
+wasmtime-wasi-http = "24.0.0"
 
 [build-dependencies]
 wit-component = "0.212.0"

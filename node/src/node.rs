@@ -14,7 +14,7 @@ pub struct Node {
     headers: Vec<BlockHeader>,
     last_block_hash: Hash256,
     last_block_num: u64,
-    wallet: Wallet
+    pub wallet: Wallet,
 }
 
 
@@ -50,7 +50,6 @@ impl Into<NodeConfig> for WasiNodeConfig {
                 ,u8::from_str_radix(ip_s[3],10).unwrap()),
             port: socket_address.port
         };
-        let wallet_address = hex::decode(wallet_address).unwrap();
         let wallet_filter = hex::decode(wallet_filter).unwrap();
         let genesis_blockhash = Hash256::decode(&genesis_blockhash).unwrap();
 
@@ -61,7 +60,7 @@ impl Into<NodeConfig> for WasiNodeConfig {
 pub struct NodeConfig {
     pub socket_address: CustomIPV4SocketAddress,
     pub network: bitcoin_network::Network,
-    pub wallet_address: Vec<u8>,
+    pub wallet_address: String,
     pub wallet_filter: Vec<u8>,
     pub genesis_blockhash: Hash256,
 }
@@ -111,7 +110,7 @@ impl Node {
                  }
              }
         }
-        let wallet = Wallet { address: hex::decode(node_config.wallet_address).unwrap(), p2wkh_script: node_config.wallet_filter ,
+        let wallet = Wallet { address: node_config.wallet_address.clone(), p2wkh_script: node_config.wallet_filter ,
             amount_sats };
         return  Node { p2p, headers: block_headers, last_block_hash, last_block_num : last_block_num as u64, wallet };   
     }

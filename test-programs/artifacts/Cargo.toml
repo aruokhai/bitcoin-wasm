@@ -26,4 +26,6 @@ package = "component:artifacts"
 path = "wit"
 
 [package.metadata.component.target.dependencies]
+"component:node" = {path = "../../node/wit"}
+"component:tbdex" = {path = "../../crates/tbdex/wit"}
 "component:store" = {path = "../../crates/store/wit"}

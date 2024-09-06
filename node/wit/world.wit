@@ -2,5 +2,6 @@ package component:node@0.1.0;
 
 /// An example world for the component to target.
 world store {
+    import component:tbdex/types@0.1.0;
     export types;
 }
