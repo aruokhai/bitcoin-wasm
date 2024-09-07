@@ -354,8 +354,6 @@ pub mod exports {
                 static __FORCE_SECTION_REF: fn() =
                     super::super::super::super::__link_custom_section_describing_imports;
                 use super::super::super::super::_rt;
-                pub type OfferingBargain =
-                    super::super::super::super::component::tbdex::types::OfferingBargain;
                 #[repr(u8)]
                 #[derive(Clone, Copy, Eq, PartialEq)]
                 pub enum Error {
@@ -467,6 +465,23 @@ pub mod exports {
                 }
 
                 #[derive(Clone)]
+                pub struct OfferingBargain {
+                    pub fee: Option<_rt::String>,
+                    pub estimated_settlement_time: u64,
+                    pub id: _rt::String,
+                    pub rate: _rt::String,
+                }
+                impl ::core::fmt::Debug for OfferingBargain {
+                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                        f.debug_struct("OfferingBargain")
+                            .field("fee", &self.fee)
+                            .field("estimated-settlement-time", &self.estimated_settlement_time)
+                            .field("id", &self.id)
+                            .field("rate", &self.rate)
+                            .finish()
+                    }
+                }
+                #[derive(Clone)]
                 pub struct NodeConfig {
                     pub wallet_address: _rt::String,
                     pub wallet_filter: _rt::String,
@@ -503,40 +518,40 @@ pub mod exports {
 
                 #[derive(Debug)]
                 #[repr(transparent)]
-                pub struct Node {
-                    handle: _rt::Resource<Node>,
+                pub struct ClientNode {
+                    handle: _rt::Resource<ClientNode>,
                 }
 
-                type _NodeRep<T> = Option<T>;
+                type _ClientNodeRep<T> = Option<T>;
 
-                impl Node {
+                impl ClientNode {
                     /// Creates a new resource from the specified representation.
                     ///
                     /// This function will create a new resource handle by moving `val` onto
                     /// the heap and then passing that heap pointer to the component model to
-                    /// create a handle. The owned handle is then returned as `Node`.
-                    pub fn new<T: GuestNode>(val: T) -> Self {
+                    /// create a handle. The owned handle is then returned as `ClientNode`.
+                    pub fn new<T: GuestClientNode>(val: T) -> Self {
                         Self::type_guard::<T>();
-                        let val: _NodeRep<T> = Some(val);
-                        let ptr: *mut _NodeRep<T> = _rt::Box::into_raw(_rt::Box::new(val));
+                        let val: _ClientNodeRep<T> = Some(val);
+                        let ptr: *mut _ClientNodeRep<T> = _rt::Box::into_raw(_rt::Box::new(val));
                         unsafe { Self::from_handle(T::_resource_new(ptr.cast())) }
                     }
 
                     /// Gets access to the underlying `T` which represents this resource.
-                    pub fn get<T: GuestNode>(&self) -> &T {
+                    pub fn get<T: GuestClientNode>(&self) -> &T {
                         let ptr = unsafe { &*self.as_ptr::<T>() };
                         ptr.as_ref().unwrap()
                     }
 
                     /// Gets mutable access to the underlying `T` which represents this
                     /// resource.
-                    pub fn get_mut<T: GuestNode>(&mut self) -> &mut T {
+                    pub fn get_mut<T: GuestClientNode>(&mut self) -> &mut T {
                         let ptr = unsafe { &mut *self.as_ptr::<T>() };
                         ptr.as_mut().unwrap()
                     }
 
                     /// Consumes this resource and returns the underlying `T`.
-                    pub fn into_inner<T: GuestNode>(self) -> T {
+                    pub fn into_inner<T: GuestClientNode>(self) -> T {
                         let ptr = unsafe { &mut *self.as_ptr::<T>() };
                         ptr.take().unwrap()
                     }
@@ -558,7 +573,7 @@ pub mod exports {
                         _rt::Resource::handle(&self.handle)
                     }
 
-                    // It's theoretically possible to implement the `GuestNode` trait twice
+                    // It's theoretically possible to implement the `GuestClientNode` trait twice
                     // so guard against using it with two different types here.
                     #[doc(hidden)]
                     fn type_guard<T: 'static>() {
@@ -580,25 +595,25 @@ pub mod exports {
                     #[doc(hidden)]
                     pub unsafe fn dtor<T: 'static>(handle: *mut u8) {
                         Self::type_guard::<T>();
-                        let _ = _rt::Box::from_raw(handle as *mut _NodeRep<T>);
+                        let _ = _rt::Box::from_raw(handle as *mut _ClientNodeRep<T>);
                     }
 
-                    fn as_ptr<T: GuestNode>(&self) -> *mut _NodeRep<T> {
-                        Node::type_guard::<T>();
+                    fn as_ptr<T: GuestClientNode>(&self) -> *mut _ClientNodeRep<T> {
+                        ClientNode::type_guard::<T>();
                         T::_resource_rep(self.handle()).cast()
                     }
                 }
 
-                /// A borrowed version of [`Node`] which represents a borrowed value
+                /// A borrowed version of [`ClientNode`] which represents a borrowed value
                 /// with the lifetime `'a`.
                 #[derive(Debug)]
                 #[repr(transparent)]
-                pub struct NodeBorrow<'a> {
+                pub struct ClientNodeBorrow<'a> {
                     rep: *mut u8,
-                    _marker: core::marker::PhantomData<&'a Node>,
+                    _marker: core::marker::PhantomData<&'a ClientNode>,
                 }
 
-                impl<'a> NodeBorrow<'a> {
+                impl<'a> ClientNodeBorrow<'a> {
                     #[doc(hidden)]
                     pub unsafe fn lift(rep: usize) -> Self {
                         Self {
@@ -608,7 +623,7 @@ pub mod exports {
                     }
 
                     /// Gets access to the underlying `T` in this resource.
-                    pub fn get<T: GuestNode>(&self) -> &T {
+                    pub fn get<T: GuestClientNode>(&self) -> &T {
                         let ptr = unsafe { &mut *self.as_ptr::<T>() };
                         ptr.as_ref().unwrap()
                     }
@@ -616,13 +631,13 @@ pub mod exports {
                     // NB: mutable access is not allowed due to the component model allowing
                     // multiple borrows of the same resource.
 
-                    fn as_ptr<T: 'static>(&self) -> *mut _NodeRep<T> {
-                        Node::type_guard::<T>();
+                    fn as_ptr<T: 'static>(&self) -> *mut _ClientNodeRep<T> {
+                        ClientNode::type_guard::<T>();
                         self.rep.cast()
                     }
                 }
 
-                unsafe impl _rt::WasmResource for Node {
+                unsafe impl _rt::WasmResource for ClientNode {
                     #[inline]
                     unsafe fn drop(_handle: u32) {
                         #[cfg(not(target_arch = "wasm32"))]
@@ -632,7 +647,7 @@ pub mod exports {
                         {
                             #[link(wasm_import_module = "[export]component:node/types@0.1.0")]
                             extern "C" {
-                                #[link_name = "[resource-drop]node"]
+                                #[link_name = "[resource-drop]client-node"]
                                 fn drop(_: u32);
                             }
 
@@ -643,7 +658,9 @@ pub mod exports {
 
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn _export_constructor_node_cabi<T: GuestNode>(arg0: *mut u8) -> i32 {
+                pub unsafe fn _export_constructor_client_node_cabi<T: GuestClientNode>(
+                    arg0: *mut u8,
+                ) -> i32 {
                     #[cfg(target_arch = "wasm32")]
                     _rt::run_ctors_once();
                     let l0 = *arg0.add(0).cast::<*mut u8>();
@@ -665,7 +682,7 @@ pub mod exports {
                     let bytes12 = _rt::Vec::from_raw_parts(l10.cast(), len12, len12);
                     let l13 = i32::from(*arg0.add(36).cast::<u16>());
                     let l14 = i32::from(*arg0.add(40).cast::<u8>());
-                    let result24 = Node::new(T::new(
+                    let result24 = ClientNode::new(T::new(
                         NodeConfig {
                             wallet_address: _rt::string_lift(bytes2),
                             wallet_filter: _rt::string_lift(bytes5),
@@ -712,12 +729,13 @@ pub mod exports {
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn _export_method_node_get_balance_cabi<T: GuestNode>(
+                pub unsafe fn _export_method_client_node_get_balance_cabi<T: GuestClientNode>(
                     arg0: *mut u8,
                 ) -> *mut u8 {
                     #[cfg(target_arch = "wasm32")]
                     _rt::run_ctors_once();
-                    let result0 = T::get_balance(NodeBorrow::lift(arg0 as u32 as usize).get());
+                    let result0 =
+                        T::get_balance(ClientNodeBorrow::lift(arg0 as u32 as usize).get());
                     let ptr1 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
                     match result0 {
                         Ok(e) => {
@@ -733,18 +751,25 @@ pub mod exports {
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn _export_method_node_get_conversion_offer_cabi<T: GuestNode>(
+                pub unsafe fn _export_method_client_node_get_conversion_offer_cabi<
+                    T: GuestClientNode,
+                >(
                     arg0: *mut u8,
                 ) -> *mut u8 {
                     #[cfg(target_arch = "wasm32")]
                     _rt::run_ctors_once();
                     let result0 =
-                        T::get_conversion_offer(NodeBorrow::lift(arg0 as u32 as usize).get());
+                        T::get_conversion_offer(ClientNodeBorrow::lift(arg0 as u32 as usize).get());
                     let ptr1 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
                     match result0 {
                         Ok(e) => {
                             *ptr1.add(0).cast::<u8>() = (0i32) as u8;
-                            let super::super::super::super::component::tbdex::types::OfferingBargain{ fee:fee2, estimated_settlement_time:estimated_settlement_time2, id:id2, rate:rate2, } = e;
+                            let OfferingBargain {
+                                fee: fee2,
+                                estimated_settlement_time: estimated_settlement_time2,
+                                id: id2,
+                                rate: rate2,
+                            } = e;
                             match fee2 {
                                 Some(e) => {
                                     *ptr1.add(8).cast::<u8>() = (1i32) as u8;
@@ -782,7 +807,9 @@ pub mod exports {
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn __post_return_method_node_get_conversion_offer<T: GuestNode>(
+                pub unsafe fn __post_return_method_client_node_get_conversion_offer<
+                    T: GuestClientNode,
+                >(
                     arg0: *mut u8,
                 ) {
                     let l0 = i32::from(*arg0.add(0).cast::<u8>());
@@ -809,7 +836,7 @@ pub mod exports {
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn _export_method_node_convert_amount_cabi<T: GuestNode>(
+                pub unsafe fn _export_method_client_node_convert_amount_cabi<T: GuestClientNode>(
                     arg0: *mut u8,
                     arg1: *mut u8,
                     arg2: usize,
@@ -823,7 +850,7 @@ pub mod exports {
                     let len1 = arg4;
                     let bytes1 = _rt::Vec::from_raw_parts(arg3.cast(), len1, len1);
                     let result2 = T::convert_amount(
-                        NodeBorrow::lift(arg0 as u32 as usize).get(),
+                        ClientNodeBorrow::lift(arg0 as u32 as usize).get(),
                         _rt::string_lift(bytes0),
                         _rt::string_lift(bytes1),
                     );
@@ -847,7 +874,9 @@ pub mod exports {
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn __post_return_method_node_convert_amount<T: GuestNode>(
+                pub unsafe fn __post_return_method_client_node_convert_amount<
+                    T: GuestClientNode,
+                >(
                     arg0: *mut u8,
                 ) {
                     let l0 = i32::from(*arg0.add(0).cast::<u8>());
@@ -861,9 +890,9 @@ pub mod exports {
                     }
                 }
                 pub trait Guest {
-                    type Node: GuestNode;
+                    type ClientNode: GuestClientNode;
                 }
-                pub trait GuestNode: 'static {
+                pub trait GuestClientNode: 'static {
                     #[doc(hidden)]
                     unsafe fn _resource_new(val: *mut u8) -> u32
                     where
@@ -879,7 +908,7 @@ pub mod exports {
                         {
                             #[link(wasm_import_module = "[export]component:node/types@0.1.0")]
                             extern "C" {
-                                #[link_name = "[resource-new]node"]
+                                #[link_name = "[resource-new]client-node"]
                                 fn new(_: *mut u8) -> u32;
                             }
                             new(val)
@@ -901,7 +930,7 @@ pub mod exports {
                         {
                             #[link(wasm_import_module = "[export]component:node/types@0.1.0")]
                             extern "C" {
-                                #[link_name = "[resource-rep]node"]
+                                #[link_name = "[resource-rep]client-node"]
                                 fn rep(_: u32) -> *mut u8;
                             }
                             unsafe { rep(handle) }
@@ -922,38 +951,38 @@ pub mod exports {
                 macro_rules! __export_component_node_types_0_1_0_cabi{
   ($ty:ident with_types_in $($path_to_types:tt)*) => (const _: () = {
 
-    #[export_name = "component:node/types@0.1.0#[constructor]node"]
-    unsafe extern "C" fn export_constructor_node(arg0: *mut u8,) -> i32 {
-      $($path_to_types)*::_export_constructor_node_cabi::<<$ty as $($path_to_types)*::Guest>::Node>(arg0)
+    #[export_name = "component:node/types@0.1.0#[constructor]client-node"]
+    unsafe extern "C" fn export_constructor_client_node(arg0: *mut u8,) -> i32 {
+      $($path_to_types)*::_export_constructor_client_node_cabi::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0)
     }
-    #[export_name = "component:node/types@0.1.0#[method]node.get-balance"]
-    unsafe extern "C" fn export_method_node_get_balance(arg0: *mut u8,) -> *mut u8 {
-      $($path_to_types)*::_export_method_node_get_balance_cabi::<<$ty as $($path_to_types)*::Guest>::Node>(arg0)
+    #[export_name = "component:node/types@0.1.0#[method]client-node.get-balance"]
+    unsafe extern "C" fn export_method_client_node_get_balance(arg0: *mut u8,) -> *mut u8 {
+      $($path_to_types)*::_export_method_client_node_get_balance_cabi::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0)
     }
-    #[export_name = "component:node/types@0.1.0#[method]node.get-conversion-offer"]
-    unsafe extern "C" fn export_method_node_get_conversion_offer(arg0: *mut u8,) -> *mut u8 {
-      $($path_to_types)*::_export_method_node_get_conversion_offer_cabi::<<$ty as $($path_to_types)*::Guest>::Node>(arg0)
+    #[export_name = "component:node/types@0.1.0#[method]client-node.get-conversion-offer"]
+    unsafe extern "C" fn export_method_client_node_get_conversion_offer(arg0: *mut u8,) -> *mut u8 {
+      $($path_to_types)*::_export_method_client_node_get_conversion_offer_cabi::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0)
     }
-    #[export_name = "cabi_post_component:node/types@0.1.0#[method]node.get-conversion-offer"]
-    unsafe extern "C" fn _post_return_method_node_get_conversion_offer(arg0: *mut u8,) {
-      $($path_to_types)*::__post_return_method_node_get_conversion_offer::<<$ty as $($path_to_types)*::Guest>::Node>(arg0)
+    #[export_name = "cabi_post_component:node/types@0.1.0#[method]client-node.get-conversion-offer"]
+    unsafe extern "C" fn _post_return_method_client_node_get_conversion_offer(arg0: *mut u8,) {
+      $($path_to_types)*::__post_return_method_client_node_get_conversion_offer::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0)
     }
-    #[export_name = "component:node/types@0.1.0#[method]node.convert-amount"]
-    unsafe extern "C" fn export_method_node_convert_amount(arg0: *mut u8,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,) -> *mut u8 {
-      $($path_to_types)*::_export_method_node_convert_amount_cabi::<<$ty as $($path_to_types)*::Guest>::Node>(arg0, arg1, arg2, arg3, arg4)
+    #[export_name = "component:node/types@0.1.0#[method]client-node.convert-amount"]
+    unsafe extern "C" fn export_method_client_node_convert_amount(arg0: *mut u8,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,) -> *mut u8 {
+      $($path_to_types)*::_export_method_client_node_convert_amount_cabi::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0, arg1, arg2, arg3, arg4)
     }
-    #[export_name = "cabi_post_component:node/types@0.1.0#[method]node.convert-amount"]
-    unsafe extern "C" fn _post_return_method_node_convert_amount(arg0: *mut u8,) {
-      $($path_to_types)*::__post_return_method_node_convert_amount::<<$ty as $($path_to_types)*::Guest>::Node>(arg0)
+    #[export_name = "cabi_post_component:node/types@0.1.0#[method]client-node.convert-amount"]
+    unsafe extern "C" fn _post_return_method_client_node_convert_amount(arg0: *mut u8,) {
+      $($path_to_types)*::__post_return_method_client_node_convert_amount::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0)
     }
 
     const _: () = {
       #[doc(hidden)]
-      #[export_name = "component:node/types@0.1.0#[dtor]node"]
+      #[export_name = "component:node/types@0.1.0#[dtor]client-node"]
       #[allow(non_snake_case)]
       unsafe extern "C" fn dtor(rep: *mut u8) {
-        $($path_to_types)*::Node::dtor::<
-        <$ty as $($path_to_types)*::Guest>::Node
+        $($path_to_types)*::ClientNode::dtor::<
+        <$ty as $($path_to_types)*::Guest>::ClientNode
         >(rep)
       }
     };
@@ -1145,43 +1174,44 @@ mod _rt {
 #[allow(unused_macros)]
 #[doc(hidden)]
 
-macro_rules! __export_store_impl {
+macro_rules! __export_nodeworld_impl {
   ($ty:ident) => (self::export!($ty with_types_in self););
   ($ty:ident with_types_in $($path_to_types_root:tt)*) => (
   $($path_to_types_root)*::exports::component::node::types::__export_component_node_types_0_1_0_cabi!($ty with_types_in $($path_to_types_root)*::exports::component::node::types);
   )
 }
 #[doc(inline)]
-pub(crate) use __export_store_impl as export;
+pub(crate) use __export_nodeworld_impl as export;
 
 #[cfg(target_arch = "wasm32")]
-#[link_section = "component-type:wit-bindgen:0.25.0:store:encoded world"]
+#[link_section = "component-type:wit-bindgen:0.25.0:nodeworld:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1151] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x83\x08\x01A\x02\x01\
-A\x05\x01B\x12\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01m\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1216] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc0\x08\x01A\x02\x01\
+A\x04\x01B\x12\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01m\x01\
 \x0foffer-not-found\x04\0\x05error\x03\0\x02\x01ks\x01r\x04\x03fee\x04\x19estima\
 ted-settlement-timew\x02ids\x04rates\x04\0\x10offering-bargain\x03\0\x05\x04\0\x06\
 client\x03\x01\x01i\x07\x01@\x03\x07pfi-uris\x06vc-urls\x0bacct-numbers\0\x08\x04\
 \0\x13[constructor]client\x01\x09\x01h\x07\x01j\x01\x06\x01\x03\x01@\x01\x04self\
 \x0a\0\x0b\x04\0\x18[method]client.get-offer\x01\x0c\x01j\x01s\x01\x03\x01@\x04\x04\
 self\x0a\x08offer-ids\x06amounts\x07addresss\0\x0d\x04\0\x16[method]client.conve\
-rt\x01\x0e\x03\x01\x1bcomponent:tbdex/types@0.1.0\x05\0\x02\x03\0\0\x10offering-\
-bargain\x01B\x1d\x02\x03\x02\x01\x01\x04\0\x10offering-bargain\x03\0\0\x01r\x02\x03\
-keys\x05values\x04\0\x0ekey-value-pair\x03\0\x02\x01m\x03\x0dnetwork-error\x0btb\
-dex-error\x07no-tbdx\x04\0\x05error\x03\0\x04\x01r\x02\x02ips\x04port{\x04\0\x0e\
-socket-address\x03\0\x06\x01m\x03\x07mainnet\x07testnet\x07regtest\x04\0\x0fbitc\
-oin-network\x03\0\x08\x01r\x05\x0ewallet-addresss\x0dwallet-filters\x11genesis-b\
-lockhashs\x07network\x09\x0esocket-address\x07\x04\0\x0bnode-config\x03\0\x0a\x01\
-r\x03\x07pfi-uris\x06vc-urls\x0bacct-numbers\x04\0\x0ctbdex-config\x03\0\x0c\x04\
-\0\x04node\x03\x01\x01k\x0d\x01i\x0e\x01@\x02\x06config\x0b\x0ctbdex-config\x0f\0\
-\x10\x04\0\x11[constructor]node\x01\x11\x01h\x0e\x01j\x01x\x01\x05\x01@\x01\x04s\
-elf\x12\0\x13\x04\0\x18[method]node.get-balance\x01\x14\x01j\x01\x01\x01\x05\x01\
-@\x01\x04self\x12\0\x15\x04\0![method]node.get-conversion-offer\x01\x16\x01j\x01\
-s\x01\x05\x01@\x03\x04self\x12\x06amounts\x08offer-ids\0\x17\x04\0\x1b[method]no\
-de.convert-amount\x01\x18\x04\x01\x1acomponent:node/types@0.1.0\x05\x02\x04\x01\x1a\
-component:node/store@0.1.0\x04\0\x0b\x0b\x01\0\x05store\x03\0\0\0G\x09producers\x01\
-\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+rt\x01\x0e\x03\x01\x1bcomponent:tbdex/types@0.1.0\x05\0\x01B\x1e\x01r\x02\x03key\
+s\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01m\x03\x0dnetwork-error\x0btbdex-e\
+rror\x07no-tbdx\x04\0\x05error\x03\0\x02\x01r\x02\x02ips\x04port{\x04\0\x0esocke\
+t-address\x03\0\x04\x01m\x03\x07mainnet\x07testnet\x07regtest\x04\0\x0fbitcoin-n\
+etwork\x03\0\x06\x01ks\x01r\x04\x03fee\x08\x19estimated-settlement-timew\x02ids\x04\
+rates\x04\0\x10offering-bargain\x03\0\x09\x01r\x05\x0ewallet-addresss\x0dwallet-\
+filters\x11genesis-blockhashs\x07network\x07\x0esocket-address\x05\x04\0\x0bnode\
+-config\x03\0\x0b\x01r\x03\x07pfi-uris\x06vc-urls\x0bacct-numbers\x04\0\x0ctbdex\
+-config\x03\0\x0d\x04\0\x0bclient-node\x03\x01\x01k\x0e\x01i\x0f\x01@\x02\x06con\
+fig\x0c\x0ctbdex-config\x10\0\x11\x04\0\x18[constructor]client-node\x01\x12\x01h\
+\x0f\x01j\x01x\x01\x03\x01@\x01\x04self\x13\0\x14\x04\0\x1f[method]client-node.g\
+et-balance\x01\x15\x01j\x01\x0a\x01\x03\x01@\x01\x04self\x13\0\x16\x04\0([method\
+]client-node.get-conversion-offer\x01\x17\x01j\x01s\x01\x03\x01@\x03\x04self\x13\
+\x06amounts\x08offer-ids\0\x18\x04\0\"[method]client-node.convert-amount\x01\x19\
+\x04\x01\x1acomponent:node/types@0.1.0\x05\x01\x04\x01\x1ecomponent:node/nodewor\
+ld@0.1.0\x04\0\x0b\x0f\x01\0\x09nodeworld\x03\0\0\0G\x09producers\x01\x0cprocess\
+ed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

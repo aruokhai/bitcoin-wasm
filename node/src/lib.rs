@@ -3,8 +3,8 @@ mod bindings;
 use std::{cell::RefCell};
 
 use node::Node;
-use bindings::exports::component::node::types::{Guest,Error, GuestNode, NodeConfig, TbdexConfig};
-use bindings::component::tbdex::types::{Client, Error as TBdexError, OfferingBargain};
+use bindings::exports::component::node::types::{Guest,Error, GuestClientNode, NodeConfig, TbdexConfig, OfferingBargain};
+use bindings::component::tbdex::types::{Client, Error as TBdexError, };
 
 
 
@@ -23,7 +23,7 @@ struct BitcoinNode {
     tbdex: Option<RefCell<Client>>,
 }
 
-impl GuestNode for BitcoinNode {
+impl GuestClientNode for BitcoinNode {
     fn get_balance(&self) -> Result<i64, Error> {
         return  self.inner.borrow_mut().get_balance().map_err(|_| Error::NetworkError);
     }
@@ -32,7 +32,7 @@ impl GuestNode for BitcoinNode {
         match &self.tbdex {
             Some(client) =>{
                 let offer =client.borrow().get_offer().map_err(|_| Error::TbdexError)?;
-                return  Ok(offer)
+                return  Ok( OfferingBargain { rate: offer.rate, fee: offer.fee, id: offer.id, estimated_settlement_time: offer.estimated_settlement_time})
             },
             None => {
                 return Err(Error::NoTbdx)
@@ -66,7 +66,8 @@ impl GuestNode for BitcoinNode {
 
 impl Guest for Component {
     
-    type Node  = BitcoinNode;
+    type ClientNode  = BitcoinNode;
+   
 }
 
 bindings::export!(Component with_types_in bindings);
