@@ -220,7 +220,6 @@ impl DidDht {
             "/{}",
             self.did.id.trim_start_matches('/')
         );
-        println!("my did {:?}", DEFAULT_RELAY.trim_end_matches('/'));
 
         // Make Post Request
         let response = request(Method::Put, Scheme::Https, &DEFAULT_RELAY.trim_end_matches('/'), &path, Some(body.as_slice()), Some(&[("Content-Type".into(), "application/octet-stream".as_bytes().to_vec())]), None, None, None)

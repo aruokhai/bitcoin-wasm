@@ -831,6 +831,343 @@ pub mod component {
             }
         }
     }
+    #[allow(dead_code)]
+    pub mod tbdex {
+        #[allow(dead_code, clippy::all)]
+        pub mod types {
+            #[used]
+            #[doc(hidden)]
+            #[cfg(target_arch = "wasm32")]
+            static __FORCE_SECTION_REF: fn() =
+                super::super::super::__link_custom_section_describing_imports;
+            use super::super::super::_rt;
+            #[repr(u8)]
+            #[derive(Clone, Copy, Eq, PartialEq)]
+            pub enum Error {
+                OfferNotFound,
+            }
+            impl Error {
+                pub fn name(&self) -> &'static str {
+                    match self {
+                        Error::OfferNotFound => "offer-not-found",
+                    }
+                }
+                pub fn message(&self) -> &'static str {
+                    match self {
+                        Error::OfferNotFound => "",
+                    }
+                }
+            }
+            impl ::core::fmt::Debug for Error {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    f.debug_struct("Error")
+                        .field("code", &(*self as i32))
+                        .field("name", &self.name())
+                        .field("message", &self.message())
+                        .finish()
+                }
+            }
+            impl ::core::fmt::Display for Error {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    write!(f, "{} (error {})", self.name(), *self as i32)
+                }
+            }
+
+            impl std::error::Error for Error {}
+
+            impl Error {
+                #[doc(hidden)]
+                pub unsafe fn _lift(val: u8) -> Error {
+                    if !cfg!(debug_assertions) {
+                        return ::core::mem::transmute(val);
+                    }
+
+                    match val {
+                        0 => Error::OfferNotFound,
+
+                        _ => panic!("invalid enum discriminant"),
+                    }
+                }
+            }
+
+            #[derive(Clone)]
+            pub struct OfferingBargain {
+                pub fee: Option<_rt::String>,
+                pub estimated_settlement_time: u64,
+                pub id: _rt::String,
+                pub rate: _rt::String,
+            }
+            impl ::core::fmt::Debug for OfferingBargain {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    f.debug_struct("OfferingBargain")
+                        .field("fee", &self.fee)
+                        .field("estimated-settlement-time", &self.estimated_settlement_time)
+                        .field("id", &self.id)
+                        .field("rate", &self.rate)
+                        .finish()
+                }
+            }
+
+            #[derive(Debug)]
+            #[repr(transparent)]
+            pub struct Client {
+                handle: _rt::Resource<Client>,
+            }
+
+            impl Client {
+                #[doc(hidden)]
+                pub unsafe fn from_handle(handle: u32) -> Self {
+                    Self {
+                        handle: _rt::Resource::from_handle(handle),
+                    }
+                }
+
+                #[doc(hidden)]
+                pub fn take_handle(&self) -> u32 {
+                    _rt::Resource::take_handle(&self.handle)
+                }
+
+                #[doc(hidden)]
+                pub fn handle(&self) -> u32 {
+                    _rt::Resource::handle(&self.handle)
+                }
+            }
+
+            unsafe impl _rt::WasmResource for Client {
+                #[inline]
+                unsafe fn drop(_handle: u32) {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    unreachable!();
+
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        #[link(wasm_import_module = "component:tbdex/types@0.1.0")]
+                        extern "C" {
+                            #[link_name = "[resource-drop]client"]
+                            fn drop(_: u32);
+                        }
+
+                        drop(_handle);
+                    }
+                }
+            }
+
+            impl Client {
+                #[allow(unused_unsafe, clippy::all)]
+                pub fn new(pfi_uri: &str, vc_url: &str, acct_number: &str) -> Self {
+                    unsafe {
+                        let vec0 = pfi_uri;
+                        let ptr0 = vec0.as_ptr().cast::<u8>();
+                        let len0 = vec0.len();
+                        let vec1 = vc_url;
+                        let ptr1 = vec1.as_ptr().cast::<u8>();
+                        let len1 = vec1.len();
+                        let vec2 = acct_number;
+                        let ptr2 = vec2.as_ptr().cast::<u8>();
+                        let len2 = vec2.len();
+
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "component:tbdex/types@0.1.0")]
+                        extern "C" {
+                            #[link_name = "[constructor]client"]
+                            fn wit_import(
+                                _: *mut u8,
+                                _: usize,
+                                _: *mut u8,
+                                _: usize,
+                                _: *mut u8,
+                                _: usize,
+                            ) -> i32;
+                        }
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        fn wit_import(
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                            _: usize,
+                        ) -> i32 {
+                            unreachable!()
+                        }
+                        let ret = wit_import(
+                            ptr0.cast_mut(),
+                            len0,
+                            ptr1.cast_mut(),
+                            len1,
+                            ptr2.cast_mut(),
+                            len2,
+                        );
+                        Client::from_handle(ret as u32)
+                    }
+                }
+            }
+            impl Client {
+                #[allow(unused_unsafe, clippy::all)]
+                pub fn get_offer(&self) -> Result<OfferingBargain, Error> {
+                    unsafe {
+                        #[repr(align(8))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 48]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 48]);
+                        let ptr0 = ret_area.0.as_mut_ptr().cast::<u8>();
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "component:tbdex/types@0.1.0")]
+                        extern "C" {
+                            #[link_name = "[method]client.get-offer"]
+                            fn wit_import(_: i32, _: *mut u8);
+                        }
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        fn wit_import(_: i32, _: *mut u8) {
+                            unreachable!()
+                        }
+                        wit_import((self).handle() as i32, ptr0);
+                        let l1 = i32::from(*ptr0.add(0).cast::<u8>());
+                        match l1 {
+                            0 => {
+                                let e = {
+                                    let l2 = i32::from(*ptr0.add(8).cast::<u8>());
+                                    let l6 = *ptr0.add(24).cast::<i64>();
+                                    let l7 = *ptr0.add(32).cast::<*mut u8>();
+                                    let l8 = *ptr0.add(36).cast::<usize>();
+                                    let len9 = l8;
+                                    let bytes9 = _rt::Vec::from_raw_parts(l7.cast(), len9, len9);
+                                    let l10 = *ptr0.add(40).cast::<*mut u8>();
+                                    let l11 = *ptr0.add(44).cast::<usize>();
+                                    let len12 = l11;
+                                    let bytes12 =
+                                        _rt::Vec::from_raw_parts(l10.cast(), len12, len12);
+
+                                    OfferingBargain {
+                                        fee: match l2 {
+                                            0 => None,
+                                            1 => {
+                                                let e = {
+                                                    let l3 = *ptr0.add(12).cast::<*mut u8>();
+                                                    let l4 = *ptr0.add(16).cast::<usize>();
+                                                    let len5 = l4;
+                                                    let bytes5 = _rt::Vec::from_raw_parts(
+                                                        l3.cast(),
+                                                        len5,
+                                                        len5,
+                                                    );
+
+                                                    _rt::string_lift(bytes5)
+                                                };
+                                                Some(e)
+                                            }
+                                            _ => _rt::invalid_enum_discriminant(),
+                                        },
+                                        estimated_settlement_time: l6 as u64,
+                                        id: _rt::string_lift(bytes9),
+                                        rate: _rt::string_lift(bytes12),
+                                    }
+                                };
+                                Ok(e)
+                            }
+                            1 => {
+                                let e = {
+                                    let l13 = i32::from(*ptr0.add(8).cast::<u8>());
+
+                                    Error::_lift(l13 as u8)
+                                };
+                                Err(e)
+                            }
+                            _ => _rt::invalid_enum_discriminant(),
+                        }
+                    }
+                }
+            }
+            impl Client {
+                #[allow(unused_unsafe, clippy::all)]
+                pub fn convert(
+                    &self,
+                    offer_id: &str,
+                    amount: &str,
+                    address: &str,
+                ) -> Result<_rt::String, Error> {
+                    unsafe {
+                        #[repr(align(4))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 12]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 12]);
+                        let vec0 = offer_id;
+                        let ptr0 = vec0.as_ptr().cast::<u8>();
+                        let len0 = vec0.len();
+                        let vec1 = amount;
+                        let ptr1 = vec1.as_ptr().cast::<u8>();
+                        let len1 = vec1.len();
+                        let vec2 = address;
+                        let ptr2 = vec2.as_ptr().cast::<u8>();
+                        let len2 = vec2.len();
+                        let ptr3 = ret_area.0.as_mut_ptr().cast::<u8>();
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "component:tbdex/types@0.1.0")]
+                        extern "C" {
+                            #[link_name = "[method]client.convert"]
+                            fn wit_import(
+                                _: i32,
+                                _: *mut u8,
+                                _: usize,
+                                _: *mut u8,
+                                _: usize,
+                                _: *mut u8,
+                                _: usize,
+                                _: *mut u8,
+                            );
+                        }
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        fn wit_import(
+                            _: i32,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                        ) {
+                            unreachable!()
+                        }
+                        wit_import(
+                            (self).handle() as i32,
+                            ptr0.cast_mut(),
+                            len0,
+                            ptr1.cast_mut(),
+                            len1,
+                            ptr2.cast_mut(),
+                            len2,
+                            ptr3,
+                        );
+                        let l4 = i32::from(*ptr3.add(0).cast::<u8>());
+                        match l4 {
+                            0 => {
+                                let e = {
+                                    let l5 = *ptr3.add(4).cast::<*mut u8>();
+                                    let l6 = *ptr3.add(8).cast::<usize>();
+                                    let len7 = l6;
+                                    let bytes7 = _rt::Vec::from_raw_parts(l5.cast(), len7, len7);
+
+                                    _rt::string_lift(bytes7)
+                                };
+                                Ok(e)
+                            }
+                            1 => {
+                                let e = {
+                                    let l8 = i32::from(*ptr3.add(4).cast::<u8>());
+
+                                    Error::_lift(l8 as u8)
+                                };
+                                Err(e)
+                            }
+                            _ => _rt::invalid_enum_discriminant(),
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 mod _rt {
     pub use alloc_crate::string::String;
@@ -1053,9 +1390,9 @@ pub(crate) use __export_artifacts_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:artifacts:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1148] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xfc\x07\x01A\x02\x01\
-A\x06\x01B\x1e\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01m\x03\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1511] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xe7\x0a\x01A\x02\x01\
+A\x08\x01B\x1e\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01m\x03\
 \x0dnetwork-error\x0btbdex-error\x07no-tbdx\x04\0\x05error\x03\0\x02\x01r\x02\x02\
 ips\x04port{\x04\0\x0esocket-address\x03\0\x04\x01m\x03\x07mainnet\x07testnet\x07\
 regtest\x04\0\x0fbitcoin-network\x03\0\x06\x01ks\x01r\x04\x03fee\x08\x19estimate\
@@ -1068,17 +1405,24 @@ cct-numbers\x04\0\x0ctbdex-config\x03\0\x0d\x04\0\x0bclient-node\x03\x01\x01k\x0
 \x1f[method]client-node.get-balance\x01\x15\x01j\x01\x0a\x01\x03\x01@\x01\x04sel\
 f\x13\0\x16\x04\0([method]client-node.get-conversion-offer\x01\x17\x01j\x01s\x01\
 \x03\x01@\x03\x04self\x13\x06amounts\x08offer-ids\0\x18\x04\0\"[method]client-no\
-de.convert-amount\x01\x19\x03\x01\x1acomponent:node/types@0.1.0\x05\0\x01B\x13\x01\
-r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01s\x04\0\x03key\x03\0\x02\
-\x01m\x01\x03nae\x04\0\x05error\x03\0\x04\x04\0\x05store\x03\x01\x01i\x06\x01@\0\
-\0\x07\x04\0\x12[constructor]store\x01\x08\x01h\x06\x01j\0\x01\x05\x01@\x02\x04s\
-elf\x09\x02kv\x01\0\x0a\x04\0\x14[method]store.insert\x01\x0b\x01j\x01\x01\x01\x05\
-\x01@\x02\x04self\x09\x03key\x03\0\x0c\x04\0\x14[method]store.search\x01\x0d\x01\
-@\x02\x04self\x09\x03key\x03\0\x0a\x04\0\x14[method]store.delete\x01\x0e\x03\x01\
-\x1bcomponent:store/types@0.1.0\x05\x01\x01@\0\x01\0\x04\0\x04test\x01\x02\x04\x01\
-#component:artifacts/artifacts@0.1.0\x04\0\x0b\x0f\x01\0\x09artifacts\x03\0\0\0G\
-\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen\
--rust\x060.25.0";
+de.convert-amount\x01\x19\x03\x01\x1acomponent:node/types@0.1.0\x05\0\x01B\x12\x01\
+r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01m\x01\x0foffer-not-fo\
+und\x04\0\x05error\x03\0\x02\x01ks\x01r\x04\x03fee\x04\x19estimated-settlement-t\
+imew\x02ids\x04rates\x04\0\x10offering-bargain\x03\0\x05\x04\0\x06client\x03\x01\
+\x01i\x07\x01@\x03\x07pfi-uris\x06vc-urls\x0bacct-numbers\0\x08\x04\0\x13[constr\
+uctor]client\x01\x09\x01h\x07\x01j\x01\x06\x01\x03\x01@\x01\x04self\x0a\0\x0b\x04\
+\0\x18[method]client.get-offer\x01\x0c\x01j\x01s\x01\x03\x01@\x04\x04self\x0a\x08\
+offer-ids\x06amounts\x07addresss\0\x0d\x04\0\x16[method]client.convert\x01\x0e\x03\
+\x01\x1bcomponent:tbdex/types@0.1.0\x05\x01\x01B\x13\x01r\x02\x03keys\x05values\x04\
+\0\x0ekey-value-pair\x03\0\0\x01s\x04\0\x03key\x03\0\x02\x01m\x01\x03nae\x04\0\x05\
+error\x03\0\x04\x04\0\x05store\x03\x01\x01i\x06\x01@\0\0\x07\x04\0\x12[construct\
+or]store\x01\x08\x01h\x06\x01j\0\x01\x05\x01@\x02\x04self\x09\x02kv\x01\0\x0a\x04\
+\0\x14[method]store.insert\x01\x0b\x01j\x01\x01\x01\x05\x01@\x02\x04self\x09\x03\
+key\x03\0\x0c\x04\0\x14[method]store.search\x01\x0d\x01@\x02\x04self\x09\x03key\x03\
+\0\x0a\x04\0\x14[method]store.delete\x01\x0e\x03\x01\x1bcomponent:store/types@0.\
+1.0\x05\x02\x01@\0\x01\0\x04\0\x04test\x01\x03\x04\x01#component:artifacts/artif\
+acts@0.1.0\x04\0\x0b\x0f\x01\0\x09artifacts\x03\0\0\0G\x09producers\x01\x0cproce\
+ssed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

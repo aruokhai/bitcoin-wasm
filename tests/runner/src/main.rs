@@ -14,7 +14,8 @@ fn main() {
 }
 
 
-pub fn run_test() -> wasmtime::Result<()> {
+pub fn 
+run_test() -> wasmtime::Result<()> {
     let mut config = Config::default();
     config.wasm_component_model(true);
     config.async_support(false);
