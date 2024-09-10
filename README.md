@@ -2,7 +2,7 @@
 
 # Bitcoin-Wasm
 
-**Bitcoin Wasm** is a **WASM-WASI compliant** embedded Bitcoin payment node. It's designed to be embedded in native applications using WASI-compliant runtime SDKs like **wasmtime** and **JCO**. This node provides all the necessary functionalities to send, receive, and convert Bitcoin in a non-custodial way using open standards.
+**Bitcoin Wasm** is a **WASM-WASI compliant** universally pluggable Bitcoin Light Client. It's designed to be embedded in native applications using WASI-compliant runtime SDKs like **wasmtime** and **JCO**. This client provides all the necessary functionalities to send, receive, and convert Bitcoin in a non-custodial way using open standards.
 
 ![image]()
 
@@ -21,6 +21,7 @@
     - [:nut\_and\_bolt: Development Environment](#nut_and_bolt-development-environment)
     - [:file\_folder: Folder Structure](#file_folder-folder-structure)
     - [:hammer: Build](#hammer-build)
+    - [:office: Examples](#-examples)
   - [:cherry\_blossom: Community](#cherry_blossom-community)
     - [:fire: Contribution](#fire-contribution)
     - [:cactus: Branches](#cactus-branches)
@@ -31,6 +32,10 @@
   - [:star2: Credit/Acknowledgment](#star2-creditacknowledgment)
   - [:lock: License](#lock-license)
 
+## Why WASM ?
+
+WebAssembly (Wasm) is a low-level binary format for executable code that can be run in web browsers and other environments which provides sandboxed execution, memory safety, limited access to system resources, validation and verification . These features makes it appealing for the development of plugin. The further Development of `WASI` (WebAssembly System Interface), a standard that defines a set of system calls that WebAssembly modules can use to interact with the underlying operating system, made it quite possible to develop a fully fledged bitcoin light client as plugin.
+
 ## :beginner: About
 
 Bitcoin Wasm contains two sub-projects: the embeddable, self-contained Bitcoin Light Client called **Node** and the Bitcoin Transaction Signing Utility Software called **Signer**.
@@ -40,6 +45,7 @@ flowchart TD
     A[Bitcoin Wasm] --> B(Node)
     A --> C(Signer)
 ```
+
 
 ### Node
 
@@ -60,10 +66,10 @@ Signer is a powerful utility that handles the cryptographic aspects of Bitcoin t
 
 ## :station: Features
 
-- [ ] Light Client (Compact Block Filtering)
+- [x] Light Client (Compact Block Filtering)
 - [ ] Descriptor Wallet
 - [ ] Silent Payment Support
-- [ ] tbDEX exchange feature
+- [x] tbDEX exchange feature
 - [ ] Wasm Signer
   - [ ] PSBT support
 
@@ -145,7 +151,8 @@ To run the project's integration tests, follow these steps:
 3. Run the integration tests:
 
    ```bash
-   $ cargo run --package runner --bin runner
+   $ cd tests
+   $ ./test-runner.sh
    ```
 
 ### :file_folder: Folder Structure
@@ -209,6 +216,14 @@ There is currently one way to build the Bitcoin-Wasm project:
 
    Replace `package-name` with the actual name of the package you want to build (e.g `web5`).
 
+### :office: Usage
+
+An example of the usage of the `Node` plugin can be found in the examples folder. Which includes a  dummy mobile money CLI application created for the TBDX 2024 Hackathon
+
+Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+
+_For more examples, please refer to the [Documentation](https://example.com)_
+
 ## :cherry_blossom: Community
 
 If it's open-source, talk about the community here, ask social media links and other links.
@@ -269,7 +284,7 @@ After this, changes will be merged.
 ## :page_facing_up: Resources
 
 - **WASM Specification:** [https://webassembly.org/](https://webassembly.org/)
-- **WASI Specification:** [https://github.com/WebAssembly/wasi-io](https://github.com/WebAssembly/wasi-io)
+- **WASI Specification:** [https://wasi.dev/](https://wasi.dev/)
 - **Bitcoin Documentation:** [https://bitcoin.org/](https://bitcoin.org/)
 
 ## :camera: Gallery
