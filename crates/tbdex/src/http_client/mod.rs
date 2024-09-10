@@ -144,8 +144,6 @@ fn send_request<T: Serialize, U: DeserializeOwned>(
 
     let request_body = if let Some(body) = &body {
         let parsed_body = serde_json::to_vec(body).unwrap();
-        println!("this is body {:?}", String::from_utf8(parsed_body.clone()).unwrap());
-
         Some(parsed_body)
     } else  {
         None

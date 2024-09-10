@@ -5,6 +5,7 @@
         "check",
         "--workspace",
         "--exclude=runner",
+        "--exclude=mobile-money",
         "--all-targets",
         "--message-format=json"
     ],
@@ -12,6 +13,7 @@
         "cargo",
         "check",
         "--package=runner",
+        "--package=mobile-money",
         "--all-targets",
         "--message-format=json"
     ],

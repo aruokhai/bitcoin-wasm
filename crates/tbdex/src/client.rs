@@ -13,10 +13,10 @@ pub struct Client {
     acct_number: String
 }
 
-enum ClientError {
+pub enum ClientError {
     OfferNotFound
 }
-struct OfferingBargain {
+pub struct OfferingBargain {
     pub fee: Option<String>,
     pub estimated_settlement_time: u64,
     pub id: String,
@@ -34,8 +34,9 @@ impl Client {
         let inmemory_manager = InMemoryKeyManager::new();
         inmemory_manager.import_private_jwk(jwk.clone()).unwrap();
         let uri: String = did.clone().did.uri;
+        println!("Did: {}\n", uri.clone());
         let bearer_did = BearerDid::new(uri.as_str(),Arc::new(inmemory_manager)).unwrap();
-        let credential_path =  format!("/vc?name=arrow&country=ZAR&did=${}",uri );
+        let credential_path =  format!("/kcc?name=arrow&country=ZAR&did=${}",uri );
         let credential_request = request(Method::Get, Scheme::Https, &vc_url, &credential_path, None, None, None, None, None).unwrap();
        let credential = String::from_utf8(credential_request.body).unwrap();
        return Self {bearer_did, pfi_uri, credential, offerings: HashMap::new() ,acct_number }
@@ -47,6 +48,7 @@ impl Client {
             offering.data.payin.currency_code == "USD".to_string()  && offering.data.payout.currency_code == "BTC".to_string()
         }).ok_or(ClientError::OfferNotFound)?;
         self.offerings.insert(btc_offering.metadata.id.clone(), btc_offering.clone());
+        
         return  Ok(OfferingBargain {   rate: btc_offering.data.payout_units_per_payin_unit.clone() ,fee: btc_offering.data.payout.methods[0].fee.clone(),  id: btc_offering.metadata.id.clone(), estimated_settlement_time: btc_offering.data.payout.methods[0].estimated_settlement_time as u64 });
     }
 
@@ -67,12 +69,12 @@ impl Client {
          claims: vec![self.credential.clone()]
         };
 
-        let mut rfq =  Rfq::create(&offering.metadata.from, &self.bearer_did.did.id, &offer_data, Some("1.0".to_owned()), None).unwrap();
+        let mut rfq =  Rfq::create(&offering.metadata.from, &self.bearer_did.did.uri, &offer_data, Some("1.0".to_owned()), None).unwrap();
         rfq.sign(&self.bearer_did).unwrap();
         create_exchange(&rfq, None).unwrap();
 
         let exchange_id: String = rfq.metadata.exchange_id;
-        let mut new_order = Order::create(&self.pfi_uri, &self.bearer_did.did.id, &exchange_id, Some("1.0".to_owned()), None).unwrap();
+        let mut new_order = Order::create(&self.pfi_uri, &self.bearer_did.did.uri, &exchange_id, Some("1.0".to_owned()), None).unwrap();
         new_order.sign(&self.bearer_did).unwrap();
         submit_order(&new_order).unwrap();
 

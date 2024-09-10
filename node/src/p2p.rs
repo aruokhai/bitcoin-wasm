@@ -106,7 +106,6 @@ impl Peer {
             self.send(Message::GetCFilters(compact_locator));
             loop {
                 if let Message::CFilters(filters) =  self.receive(commands::CFILTERS)?{
-                    println!("filter gooten {:?}", filters);
                     block_filters.push(filters.clone());
                     if filters.block_hash == hash_stop {
                         return Ok(block_filters);
@@ -162,10 +161,6 @@ impl Peer {
              let decoded_message = Message::read(&mut self.input_stream);
              match decoded_message{
                  Ok(message) => {
-                     if message.1.command == commands::VERACK {
-                         println!("Verack message gotten")
-                     }
-                 
                      if message.1.command == message_type {
                          return Ok(message.0)
                      }

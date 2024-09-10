@@ -1,6 +1,68 @@
 package component:node@0.1.0;
 
 /// An example world for the component to target.
-world store {
+world nodeworld {
+    import component:tbdex/types@0.1.0;
     export types;
+}
+
+
+interface types { 
+
+    record key-value-pair {
+        key: string,
+        value: string,
+    }
+
+
+    enum error{
+        network-error,
+        tbdex-error,
+        no-tbdx,
+    }
+
+    record socket-address {
+        ip: string, 
+        port: u16
+    }
+
+    enum bitcoin-network {
+        mainnet,
+        testnet,
+        regtest,
+    }
+
+    record offering-bargain {
+        fee: option<string>,
+        estimated-settlement-time: u64,
+        id: string,
+        rate: string,
+    }
+
+    record node-config {
+        wallet-address: string,
+        wallet-filter: string,
+        genesis-blockhash: string,
+        network: bitcoin-network,
+        socket-address: socket-address
+    }
+
+    record tbdex-config {
+        pfi-uri: string,
+        vc-url: string,
+        acct-number: string
+    }
+    
+
+    resource client-node {
+
+        constructor(config: node-config, tbdex-config: option<tbdex-config>);
+
+        get-balance: func() -> result<s64, error>;
+
+        get-conversion-offer: func() -> result<offering-bargain, error>;
+
+        convert-amount: func(amount: string, offer-id: string) -> result<string, error>;
+
+    }
 }

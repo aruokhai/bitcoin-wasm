@@ -29,7 +29,7 @@ fn get_utc_now() -> String {
     return chrono::DateTime::from_timestamp(utc_now.seconds as i64, utc_now.nanoseconds).unwrap().to_rfc3339();
 }
 
-use bindings::exports::component::tbdex::{self, types::{Guest, GuestClient}};
+use bindings::exports::component::tbdex::{self, types::{Guest, OfferingBargain, Error, GuestClient}};
 struct Component;
 
 struct TbdexClient {
@@ -37,11 +37,11 @@ struct TbdexClient {
 }
 
 impl GuestClient for TbdexClient {
-    fn get_offer(&self) -> Result<tbdex::types::OfferingBargain, tbdex::types::Error> {
-        let bargain = self.get_offer().map_err(|_| {
-            tbdex::types::Error::OfferNotFound
+    fn get_offer(&self) -> Result<OfferingBargain, Error> {
+        let bargain = self.inner.borrow_mut().get_offer().map_err(|_| {
+            Error::OfferNotFound
         })?;
-        let mapped_bargain = tbdex::types::OfferingBargain {
+        let mapped_bargain = OfferingBargain {
             fee: bargain.fee,
             estimated_settlement_time: bargain.estimated_settlement_time,
             id: bargain.id,
@@ -51,7 +51,7 @@ impl GuestClient for TbdexClient {
     }
 
     fn convert(&self, offer_id: String, amount: String, address: String) -> Result<String, tbdex::types::Error> {
-        let converted_details = self.convert(offer_id, amount, address).map_err(|_| {
+        let converted_details = self.inner.borrow_mut().convert(offer_id, amount, address).map_err(|_| {
             tbdex::types::Error::OfferNotFound
         })?;
         return Ok(converted_details);
