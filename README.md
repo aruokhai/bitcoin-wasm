@@ -2,7 +2,9 @@
 
 # Bitcoin-Wasm
 
-**Bitcoin Wasm** is a **WASM-WASI compliant** universally pluggable Bitcoin Light Client. It's designed to be embedded in native applications using WASI-compliant runtime SDKs like **wasmtime** and **JCO**. This client provides all the necessary functionalities to send, receive, and convert Bitcoin in a non-custodial way using open standards.
+**Bitcoin Wasm** is a **universally pluggable Bitcoin light client** that can be easily integrated into various applications. It's built using the **WASM-WASI** standard, a technology that allows for seamless interaction between web assembly (WASM) code and the underlying operating system.
+
+This design enables **Bitcoin Wasm** to be embedded into **native applications** using **WASI-compliant runtime SDKs** like **wasmtime** and **JCO**. This means you can add Bitcoin functionality to your existing apps, no matter what programming language they're written in.
 
 ![image]()
 
