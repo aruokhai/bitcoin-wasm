@@ -2,78 +2,63 @@
 
 # Bitcoin-Wasm
 
-
-## :ledger: Index
-
-- [Bitcoin-Wasm](#bitcoin-wasm)
-  - [:ledger: Index](#ledger-index)
-  - [:beginner: Why Bitcoin Wasm](#beginner-why-bitcoin-wasm-?)
-    - [Node](#node)
-    - [Signer](#signer)
-  - [:station: Features](#station-features)
-  - [:zap: Usage](#zap-usage)
-    - [:electric\_plug: Installation](#electric_plug-installation)
-  - [:wrench: Development](#wrench-development)
-    - [:notebook: Pre-Requisites](#notebook-pre-requisites)
-    - [:nut\_and\_bolt: Development Environment](#nut_and_bolt-development-environment)
-    - [:file\_folder: Folder Structure](#file_folder-folder-structure)
-    - [:hammer: Build](#hammer-build)
-    - [:office: Examples](#examples)
-  - [:cherry\_blossom: Community](#cherry_blossom-community)
-    - [:fire: Contribution](#fire-contribution)
-    - [:cactus: Branches](#cactus-branches)
-    - [:exclamation: Guideline](#exclamation-guideline)
-  - [:question: FAQ](#question-faq)
-  - [:page\_facing\_up: Resources](#page_facing_up-resources)
-
-
 ## :beginner: Why Bitcoin-WASM ?
 
-**Bitcoin Wasm** consists of a  universally pluggable Bitcoin Payment Node  which  is designed to be embedded in a variety of applications using WASI-compliant runtime SDKs like **wasmtime** and **JCO**. This client provides all the necessary functionalities to send, receive, and convert Bitcoin in a non-custodial way using open standards.
+**Bitcoin Wasm** consists of a  universally embeddable and composable _Bitcoin Payment Node_  which  is designed to be embedded in a variety of applications using WASI-compliant runtime SDKs like **wasmtime** and **JCO**. At the Centre Of Bitcoin-WASM is a Neutrino Bitcoin Light Client , which is a form of Simple Payment Verification Mechanism and serves as a base that can be extended upon with a diverse range of functionalities which we call __adapters__ which can be open-source or proprietary examples are tbDEX protocol, Silent Payments .
 
 ```mermaid
 flowchart TD
-    A[Bitcoin Wasm] --> B(Node)
-    A --> C(Signer)
+    A[Core - Neutrino Light Client] <--> B(Public Adapter 1)
+    A --> C(Private Adapter 2)
 ```
 
-### Node
 
-A pluggable Bitcoin Payment Node is  a type of Bitcoin Light Client that is designed to be integrated into other applications while providing such functionalities: 
+### Design Decision
+To be pluggable, bitcoin-WASM must adhere to a few concrete design constraints; these constraints are required due to the host system's zero knowledge approach, which would embed bitcoin-WASM. 
 
-- **Send Transaction:** Node enables the transmission of Bitcoin transactions to the network through peer-to-peer (P2P) communication.
-- **Receive Transaction:** Node effectively receives and processes incoming Bitcoin transactions from the network, utilizing efficient peer-to-peer (P2P) block filtering techniques to minimize data overhead.
-- **Currency Conversion:** Node facilitates the seamless conversion of Bitcoin to and from local currencies by leveraging the capabilities of the tbDEX exchange platform. This feature provides users with the flexibility to exchange Bitcoin for their preferred fiat currencies.
+- Minimal Software Resource Consumption.
 
-Few restrictions need to be in place in order to ensure usability, which are :
+- Usage of Only decentralized Protocols and Systems.
 
-- Run In A Sandboxed environemnt .
-- Low requirements for compute, memory, and storage..
-- Lack of signing procedures.
-- Usage of open standards and decentralized protocols.
+- The absence of private information storage.
+
+### Core -Neutrino Light Client
+
+A Bitcoin Neutrino Light Client is a simplified version of a full Bitcoin node that allows users to interact with the Bitcoin network without downloading and verifying the entire blockchain.
+
+Here's a breakdown of its key features:
+
+- Lightweight: Neutrino clients only download and store a small portion of the blockchain, making them suitable for devices with limited storage and processing power.
+
+- Fast Synchronization: Neutrino clients can synchronize with the Bitcoin network much faster than full nodes, allowing users to start interacting with the network quickly.
+
+- Limited Functionality: While Neutrino clients can verify transactions and block headers, they do not provide full node functionality like mining or running a full archive node.
+
+- Dependency on Full Nodes: Neutrino clients rely on a network of full nodes to verify the validity of transactions and blocks.
 
 
-### Signer
+## :station: Open Source Adapters
 
-Signer is a powerful utility Application that handles the storing of private details and the provision of signing operations cryptographic aspects of Bitcoin transactions. Its key functionalities include:
-
-- **Bitcoin Transaction Signing:** Signer utilizes the PSBT (Partially Signed Bitcoin Transaction) format to securely sign Bitcoin transactions.
-- **Bitcoin Key Management:** It stores and manages private keys, ensuring the safekeeping of Bitcoin signing primitives.
-- **tbDEX Message Signing:** Signer supports the signing of tbDEX messages using the JSON format.
-- **tbDEX Key Management:** It stores and manages JWKs (JSON Web Keys), which are essential for signing and verifying tbDEX messages.
+- [x] Key Value Store (Implemented)
+- [-] Silent Payment Support (in progress)
+- [x] tbDEX exchange feature (protocol v1)
 
 
 ##  Why Webassembly ?
-WebAssembly (Wasm) is a low-level binary format for executable code that can be run in web browsers and other environments which provides sandboxed execution, memory safety, limited access to system resources, validation and verification . These features makes it appealing for the development of plugin. The further Development of `WASI` (WebAssembly System Interface), a standard that defines a set of system calls that WebAssembly modules can use to interact with the underlying operating system, made it quite possible to develop a fully fledged bitcoin light client as plugin.
+Using WebAssembly (Wasm) to create Bitspend core has several advantages, especially in contexts where performance, security, and portability are key concerns. Here’s why Wasm is a great fit for building Bitspend core:
 
-## :station: Features
+Efficient resource usage: Wasm is designed to be compact and fast, meaning plugins written in Wasm can load and execute more quickly, enhancing the user experience.
 
-- [x] Light Client (Compact Block Filtering)
-- [ ] Descriptor Wallet
-- [ ] Silent Payment Support
-- [x] tbDEX exchange feature
-- [ ] Wasm Signer
-  - [ ] PSBT support
+Sandboxed execution: One of the biggest advantages of WebAssembly for plugins is its secure sandboxing model. Plugins written in Wasm run in an isolated environment with limited access to the host system, reducing the risk of malicious plugins or vulnerabilities.
+
+Memory safety: Wasm offers built-in protections against common security issues like buffer overflows, which are common in low-level languages like C/C++. This memory safety makes it a more secure choice for plugin development.
+
+Plugins as lightweight modules: Wasm allows you to create small, efficient modules that can easily be plugged into larger systems, whether web apps, desktop software, or server applications. These modules can be loaded and executed on-demand, reducing overall application size and improving performance.
+
+Fine-grained control: Plugins developed in WebAssembly can be tightly controlled by the host environment. This includes managing memory, enforcing strict execution limits, and restricting access to system resources. This level of control helps in developing secure, stable plugins that don’t interfere with the host.
+
+
+
 
 ## :zap: Usage
 
@@ -171,10 +156,12 @@ bitcoin-wasm
 
 Here's a breakdown of the key folders:
 
-- **crates:** This folder holds common WASI-compliant components used by the project. It contains components like:
+- **crates:** This folder holds open source adapters that are free to use, such as:
    - **store:** A generic key-value store.
    - **tbdex:** The tbDex protocol.
-   - **node:** This subfolder contains the source code for the Node plugin, responsible for interacting with the Bitcoin network.
+
+- **node:** This is the core that contains the neutrino light client which uses Compact  Block Filtering.
+
 - **test:** This folder holds integration tests used to verify the functionality of the project. It contains two subfolders:
   - **artifacts:** This contains various components test logic.
   - **runner:** The main entry point for the integration test.
