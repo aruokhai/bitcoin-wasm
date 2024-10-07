@@ -1,10 +1,8 @@
 use crate::error::Error;
 use crate::node_type::Offset;
 use crate::page_layout::PTR_SIZE;
-use core::slice;
 use std::convert::TryFrom;
-use wasi::filesystem::{self, types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags}};
-use std::io::{Read, Seek, SeekFrom, Write};
+use wasi::filesystem::{types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags}};
 
 
 pub struct Wal {
@@ -46,7 +44,7 @@ impl Wal {
     pub fn set_root(&mut self, offset: Offset) -> Result<(), Error> {
         let file_len = self.file.stat()
             .map_err(|err| Error::FilesystemError(err.name().to_string()))?.size;
-        let stream = self.file.write_via_stream(file_len as u64)
+        let stream = self.file.write_via_stream(file_len)
             .map_err(|err| Error::FilesystemError(err.name().to_string()))?;
         stream.blocking_write_and_flush(&offset.0.to_be_bytes())
             .map_err(|err| Error::FilesystemError(err.to_string()))?;

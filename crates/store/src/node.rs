@@ -160,7 +160,7 @@ mod tests {
         Node, Page, INTERNAL_NODE_HEADER_SIZE, KEY_SIZE, LEAF_NODE_HEADER_SIZE, PTR_SIZE,
         VALUE_SIZE,
     };
-    use crate::node_type::{Key, NodeType};
+    use crate::node_type::{NodeType};
     use crate::page_layout::PAGE_SIZE;
     use std::convert::TryFrom;
 
@@ -183,13 +183,13 @@ mod tests {
 
         let node = Node::try_from(Page::new(page))?;
 
-        assert_eq!(node.is_root, true);
+        assert!(node.is_root);
         Ok(())
     }
 
     #[test]
     fn page_to_node_works_for_internal_node() -> Result<(), Error> {
-        use crate::node_type::Key;
+        
         const DATA_LEN: usize = INTERNAL_NODE_HEADER_SIZE + 3 * PTR_SIZE + 2 * KEY_SIZE;
         let page_data: [u8; DATA_LEN] = [
             0x01, // Is-Root byte.
@@ -215,7 +215,7 @@ mod tests {
         if let NodeType::Internal(_, keys) = node.node_type {
             assert_eq!(keys.len(), 2);
 
-            let first_key = match keys.get(0) {
+            let first_key = match keys.first() {
                 Some(key) => key,
                 None => return Err(Error::UnexpectedError),
             };
@@ -275,7 +275,7 @@ mod tests {
     fn split_internal_works() -> Result<(), Error> {
         use crate::node::Node;
         use crate::node_type::NodeType;
-        use crate::node_type::{Key, Offset};
+        use crate::node_type::{Offset};
         use crate::page_layout::PAGE_SIZE;
         let mut node = Node::new(
             NodeType::Internal(

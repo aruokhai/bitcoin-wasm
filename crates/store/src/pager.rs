@@ -2,10 +2,7 @@ use crate::error::Error;
 use crate::node_type::Offset;
 use crate::page::Page;
 use crate::page_layout::PAGE_SIZE;
-use std::io::Write;
-use std::io::{Read, Seek, SeekFrom};
-use std::path::Path;
-use wasi::filesystem::{self, types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags}};
+use wasi::filesystem::{types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags}};
 
 
 pub struct Pager {

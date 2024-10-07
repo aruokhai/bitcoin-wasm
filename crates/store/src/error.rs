@@ -20,9 +20,9 @@ impl std::convert::From<std::io::Error> for Error {
     }
 }
 
-impl Into<GuestError> for Error {
+impl From<Error> for GuestError {
     
-    fn into(self) -> GuestError {
-        return GuestError::Nae;
+    fn from(val: Error) -> Self {
+        GuestError::Nae
     }
 }

@@ -122,7 +122,7 @@ pub mod commands {
     pub const CFILTERS: [u8; 12] = *b"cfilter\0\0\0\0\0";
 
     /// [Cfheaders command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#cfilters)
-    pub const CFHEADERS: [u8; 12] = *b"cfheaders\0\0\0\0";
+    pub const CFHEADERS: [u8; 12] = *b"cfheaders\0\0\0";
 
 
 

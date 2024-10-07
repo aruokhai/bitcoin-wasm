@@ -43,7 +43,8 @@ impl GuestClientNode for BitcoinNode {
     fn convert_amount(&self, amount: String, offer_id: String) -> Result<String, Error> {
         match &self.tbdex {
             Some(client) =>{
-                let address = self.inner.borrow().wallet.address.clone();
+                // let address = self.inner.borrow().wallet.address.clone();
+                let address = String::new();
                 let res = client.borrow().convert(&offer_id, &amount, &address).map_err(|_| Error::TbdexError)?;
                 return  Ok(res)
             },

@@ -7,9 +7,7 @@ use crate::pager::Pager;
 use crate::wal::Wal;
 use std::cmp;
 use std::convert::TryFrom;
-use std::path::Path;
 use wasi::filesystem::{self, types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags}};
-use wasi::http::outgoing_handler::ErrorCode;
 
 /// B+Tree properties.
 pub const MAX_BRANCHING_FACTOR: usize = 200;
@@ -172,7 +170,7 @@ impl BTree {
                 // write_page appends the given page to the db file thus creating a new node.
                 let new_child_offset = self.pager.write_page(Page::try_from(&child)?)?;
                 // Assign copied child at the proper place.
-                children[idx] = new_child_offset.to_owned();
+                new_child_offset.clone_into(&mut children[idx]);
                 if self.is_node_full(&child)? {
                     // split will split the child at b leaving the [0, b-1] keys
                     // while moving the set of [b, 2b-1] keys to the sibling.
@@ -287,7 +285,7 @@ impl BTree {
                 let new_child_page = Page::try_from(&child_node)?;
                 let new_child_offset = self.pager.write_page(new_child_page)?;
                 // Assign the new pointer in the parent and continue reccoursively.
-                children[node_idx] = new_child_offset.to_owned();
+                new_child_offset.clone_into(&mut children[node_idx]);
                 self.pager
                     .write_page_at_offset(Page::try_from(&*node)?, node_offset)?;
                 return self.delete_key_from_subtree(key, &mut child_node, &new_child_offset);
@@ -362,7 +360,7 @@ impl BTree {
                 if let NodeType::Leaf(second_pairs) = second.node_type {
                     let merged_pairs: Vec<KeyValuePair> = first_pairs
                         .into_iter()
-                        .chain(second_pairs.into_iter())
+                        .chain(second_pairs)
                         .collect();
                     let node_type = NodeType::Leaf(merged_pairs);
                     Ok(Node::new(node_type, first.is_root, first.parent_offset))
@@ -374,11 +372,11 @@ impl BTree {
                 if let NodeType::Internal(second_offsets, second_keys) = second.node_type {
                     let merged_keys: Vec<Key> = first_keys
                         .into_iter()
-                        .chain(second_keys.into_iter())
+                        .chain(second_keys)
                         .collect();
                     let merged_offsets: Vec<Offset> = first_offsets
                         .into_iter()
-                        .chain(second_offsets.into_iter())
+                        .chain(second_offsets)
                         .collect();
                     let node_type = NodeType::Internal(merged_offsets, merged_keys);
                     Ok(Node::new(node_type, first.is_root, first.parent_offset))
@@ -430,7 +428,7 @@ mod tests {
     fn search_works() -> Result<(), Error> {
         use crate::btree::BTreeBuilder;
         use crate::node_type::KeyValuePair;
-        use std::path::Path;
+        
 
         let mut btree = BTreeBuilder::new()
             .b_parameter(2)
@@ -454,7 +452,7 @@ mod tests {
     fn insert_works() -> Result<(), Error> {
         use crate::btree::BTreeBuilder;
         use crate::node_type::KeyValuePair;
-        use std::path::Path;
+        
 
         let mut btree = BTreeBuilder::new()
             .b_parameter(2)
@@ -511,8 +509,8 @@ mod tests {
     fn delete_works() -> Result<(), Error> {
         use crate::btree::BTreeBuilder;
         use crate::error::Error;
-        use crate::node_type::{Key, KeyValuePair};
-        use std::path::Path;
+        use crate::node_type::{KeyValuePair};
+        
 
         let mut btree = BTreeBuilder::new()
             .b_parameter(2)

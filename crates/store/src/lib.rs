@@ -4,7 +4,6 @@ mod bindings;
 use std::{borrow::BorrowMut, cell::RefCell};
 
 use btree::BTree;
-use error::Error;
 use bindings::exports::component::store::types::{Guest, GuestStore, KeyValuePair as KV};
 use node_type::KeyValuePair;
 
@@ -30,7 +29,7 @@ impl GuestStore for KVStore {
     }
 
     fn search(&self, key: bindings::exports::component::store::types::Key) -> Result<bindings::exports::component::store::types::KeyValuePair, bindings::exports::component::store::types::Error> {
-        return self.inner.borrow_mut().search(key).map_err(|err| err.into()).map(|key_pair| KeyValuePair::into(key_pair));
+        return self.inner.borrow_mut().search(key).map_err(|err| err.into()).map(KeyValuePair::into);
     }
 
     fn delete(&self, key: bindings::exports::component::store::types::Key) -> Result<(), bindings::exports::component::store::types::Error> {
@@ -39,7 +38,7 @@ impl GuestStore for KVStore {
     
     fn new() -> Self {
         let btree = btree::BTreeBuilder::new().build().unwrap();
-        return Self{ inner:  RefCell::new(btree)};
+        Self{ inner:  RefCell::new(btree)}
     }
 }
 

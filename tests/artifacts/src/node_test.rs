@@ -1,4 +1,4 @@
-use bindings::component::node::types::{ClientNode, Error, NodeConfig, SocketAddress,  BitcoinNetwork};
+use bindings::component::node::types::{ClientNode, NodeConfig, SocketAddress,  BitcoinNetwork};
 
 use crate::bindings;
 

@@ -93,7 +93,7 @@ impl Peer {
                         return Ok(block_headers);
                     }
 
-                    let new_block_hash: Hash256 = headers.inner.last().map(|header| header.hash()).ok_or_else(|| Error::SliceError(String::from_str("Cant Read Last Value")))?;
+                    let new_block_hash: Hash256 = headers.inner.last().map(|header| header.hash()).ok_or_else(|| Error::SliceError(String::from_str("Cant Read Last Value").unwrap()))?;
                     let new_block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![new_block_hash], hash_stop: NO_HASH_STOP };
                     self.send(Message::GetHeaders(new_block_locator))?;
                     continue;

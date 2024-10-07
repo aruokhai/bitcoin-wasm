@@ -63,7 +63,7 @@ pub enum NodeError {
 
 pub struct Node {
     p2p: P2P,
-    last_filter_header: FilterHeader,
+    last_filter_header: Hash256,
     filter_scripts: Vec<Vec<u8>>,
     last_block_hash: Hash256,
     last_block_num: u64,

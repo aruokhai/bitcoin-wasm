@@ -1,4 +1,4 @@
-use bindings::component::tbdex::types::{Client, Error as TBdexError, };
+use bindings::component::tbdex::types::{Client, };
 use crate::bindings;
 
 

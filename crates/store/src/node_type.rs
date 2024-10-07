@@ -32,9 +32,9 @@ impl From<KV> for KeyValuePair {
     }
 }
 
-impl Into<KV> for KeyValuePair {
-    fn into(self) -> KV {
-        KV{ key: self.key, value: self.value}
+impl From<KeyValuePair> for KV {
+    fn from(val: KeyValuePair) -> Self {
+        KV{ key: val.key, value: val.value}
     }
 }
 

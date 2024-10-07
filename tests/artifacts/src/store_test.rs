@@ -1,5 +1,5 @@
 
-use bindings::component::store::types::{KeyValuePair, Store, Error};
+use bindings::component::store::types::{KeyValuePair, Store};
 
 use crate::bindings;
 
@@ -39,7 +39,7 @@ pub fn test_store(){
     }
     for (key,value) in key_value.iter() {
         new_store.delete(key).unwrap();
-        assert!(matches!(new_store.search(key), Err(_)))
+        assert!(new_store.search(key).is_err())
     }
 }
 

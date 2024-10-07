@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::node::Node;
-use crate::node_type::{Key, NodeType, Offset};
+use crate::node_type::{NodeType, Offset};
 use crate::page_layout::{
     ToByte, INTERNAL_NODE_HEADER_SIZE, INTERNAL_NODE_NUM_CHILDREN_OFFSET,
     INTERNAL_NODE_NUM_CHILDREN_SIZE, IS_ROOT_OFFSET, KEY_SIZE, LEAF_NODE_HEADER_SIZE,
@@ -197,7 +197,7 @@ impl TryFrom<&[u8]> for Value {
 }
 
 mod tests {
-    use crate::error::Error;
+    
 
     #[test]
     fn node_to_page_works_for_leaf_node() -> Result<(), Error> {
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn node_to_page_works_for_internal_node() -> Result<(), Error> {
         use crate::node::Node;
-        use crate::node_type::{Key, NodeType, Offset};
+        use crate::node_type::{NodeType, Offset};
         use crate::page::Page;
         use crate::page_layout::PAGE_SIZE;
         use std::convert::TryFrom;

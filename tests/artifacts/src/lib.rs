@@ -3,8 +3,6 @@ mod bindings;
 
 use bindings::Guest;
 
-use node_test::test_node;
-use store_test::test_store;
 use tbdx_test::test_tbdex;
 mod store_test;
 mod node_test;
