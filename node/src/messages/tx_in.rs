@@ -1,8 +1,7 @@
 use crate::messages::OutPoint;
 use crate::util::{var_int, Result, Serializable};
-use bitcoin::Witness;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use std::{io, vec};
+use std::{io};
 use std::io::{Read, Write};
 
 /// Transaction input

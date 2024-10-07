@@ -6,7 +6,7 @@ use std::io::{Read, Write};
 
 /// Returns the number of bytes required
 pub fn size(n: u64) -> usize {
-    return if n <= 252 {
+    if n <= 252 {
         1
     } else if n <= 0xffff {
         3
@@ -14,7 +14,7 @@ pub fn size(n: u64) -> usize {
         5
     } else {
         9
-    };
+    }
 }
 
 /// Writes the var int to bytes

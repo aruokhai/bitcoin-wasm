@@ -1,12 +1,11 @@
 use std::vec;
 
-use wasi::sockets::{network::IpAddress, tcp::IpSocketAddress};
 use bitcoin::{
-    consensus::{encode, serialize, Decodable, Encodable}, network as bitcoin_network, FilterHeader, Network
+    network as bitcoin_network
 };
 use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork, NodeConfig as WasiNodeConfig};
 
-use crate::{bindings, messages::{block::Block, compact_filter::CompactFilter, filter_locator::NO_HASH_STOP, BlockHeader, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, Hash256}, wallet::Wallet};
+use crate::{bindings, messages::{compact_filter::CompactFilter, filter_locator::NO_HASH_STOP, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, Hash256}};
 
 
 
@@ -17,9 +16,9 @@ pub struct CustomIPV4SocketAddress {
 
 
 
-impl Into<bitcoin_network::Network> for WasiBitcoinNetwork {
-    fn into(self) -> bitcoin_network::Network {
-        match self {
+impl From<WasiBitcoinNetwork> for bitcoin_network::Network {
+    fn from(val: WasiBitcoinNetwork) -> Self {
+        match val {
             WasiBitcoinNetwork::Mainnet => bitcoin_network::Network::Bitcoin,
             WasiBitcoinNetwork::Testnet => bitcoin_network::Network::Testnet,
             WasiBitcoinNetwork::Regtest => bitcoin_network::Network::Regtest,
@@ -27,13 +26,13 @@ impl Into<bitcoin_network::Network> for WasiBitcoinNetwork {
     }
 } 
 
-impl Into<NodeConfig> for WasiNodeConfig {
-    fn into(self) -> NodeConfig {
-        let WasiNodeConfig { network, socket_address, genesis_blockhash, wallet_filter, wallet_address  } = self;
+impl From<WasiNodeConfig> for NodeConfig {
+    fn from(val: WasiNodeConfig) -> Self {
+        let WasiNodeConfig { network, socket_address, genesis_blockhash, wallet_filter, wallet_address  } = val;
         let network: bitcoin_network::Network = network.into();
         
         let binding = socket_address.ip.clone();
-        let ip_s: Vec<_> = binding.split(".").collect();
+        let ip_s: Vec<_> = binding.split('.').collect();
         let socket_address = CustomIPV4SocketAddress{ 
             ip: (u8::from_str_radix(ip_s[0], 10).unwrap()
                 ,u8::from_str_radix(ip_s[1],10).unwrap()
@@ -44,7 +43,7 @@ impl Into<NodeConfig> for WasiNodeConfig {
         let wallet_filter = hex::decode(wallet_filter).unwrap();
         let genesis_blockhash = Hash256::decode(&genesis_blockhash).unwrap();
 
-        return NodeConfig { wallet_address, network,  socket_address, wallet_filter, genesis_blockhash };
+        NodeConfig { wallet_address, network,  socket_address, wallet_filter, genesis_blockhash }
     }
 }
 
@@ -75,9 +74,9 @@ impl Node {
 
     pub fn new(node_config: NodeConfig) -> Self {
         let mut p2p = P2P::new();
-        p2p.connect_peer(node_config.socket_address, node_config.network.into()).unwrap();
+        p2p.connect_peer(node_config.socket_address, node_config.network).unwrap();
 
-        return Self { p2p, last_filter_header: NO_HASH_STOP, filter_scripts: vec![], last_block_hash: node_config.genesis_blockhash, last_block_num: 0, balance_sats: 0};
+        Self { p2p, last_filter_header: NO_HASH_STOP, filter_scripts: vec![], last_block_hash: node_config.genesis_blockhash, last_block_num: 0, balance_sats: 0}
 
     }
 
@@ -112,7 +111,7 @@ impl Node {
 
         self.last_block_num = latest_block_num;
         self.last_block_hash = last_block_hash;
-        return filters
+        filters
     }
     
     pub fn get_balance(& mut self) -> std::result::Result<i64, NodeError> {
@@ -148,7 +147,7 @@ impl Node {
         }
 
         self.balance_sats = amount_sats;
-        return Ok(amount_sats);
+        Ok(amount_sats)
     }
  
 }

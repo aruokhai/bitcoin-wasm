@@ -91,7 +91,7 @@ impl Serializable<Version> for Version {
         self.tx_addr.write(writer)?;
         writer.write_u64::<LittleEndian>(self.nonce)?;
         var_int::write(self.user_agent.as_bytes().len() as u64, writer)?;
-        writer.write(&self.user_agent.as_bytes())?;
+        writer.write(self.user_agent.as_bytes())?;
         writer.write_i32::<LittleEndian>(self.start_height)?;
         writer.write_u8(if self.relay { 0x01 } else { 0x00 })?;
         Ok(())
@@ -110,7 +110,7 @@ impl Payload<Version> for Version {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hex;
+    
     use std::io::Cursor;
 
     #[test]
@@ -131,7 +131,7 @@ mod tests {
         assert!(v.nonce == 16977786322265395341);
         assert!(v.user_agent == "/Bitcoin ABC:0.16.0(EB8.0; bitcore)/");
         assert!(v.start_height == 525926);
-        assert!(v.relay == true);
+        assert!(v.relay);
     }
 
     #[test]

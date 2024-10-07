@@ -22,7 +22,7 @@ pub struct BlockLocator {
 impl BlockLocator {
     /// Checks if the message is valid
     pub fn validate(&self) -> Result<()> {
-        if self.version < MIN_SUPPORTED_PROTOCOL_VERSION as u32 {
+        if self.version < MIN_SUPPORTED_PROTOCOL_VERSION {
             let msg = format!("Unsupported protocol version: {}", self.version);
             return Err(Error::BadData(msg));
         }

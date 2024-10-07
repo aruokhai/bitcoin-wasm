@@ -1,10 +1,7 @@
 use hex::FromHexError;
-use ring;
 use base58::FromBase58Error;
-use libsecp256k1;
 use wasi::io::streams::StreamError;
 use wasi::sockets::tcp::ErrorCode;
-use std;
 use std::io;
 use std::string::FromUtf8Error;
 
@@ -72,7 +69,7 @@ impl std::fmt::Display for Error {
             Error::Unsupported(s) => f.write_str(&format!("Unsuppored: {}", s)),
             Error::TCPError(c) => f.write_str(&format!("TCP socket Error: {}", c)),
             Error::SliceError(c) => f.write_str(&format!("Slice Error: {}", c)),
-            Error::PeerNotFound => f.write_str(&format!("P2P peer not found")),
+            Error::PeerNotFound => f.write_str("P2P peer not found"),
 
         }
     }

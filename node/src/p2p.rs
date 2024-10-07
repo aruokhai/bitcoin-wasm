@@ -1,10 +1,10 @@
-use std::{io::{Cursor, Read, Write}, net::{Ipv4Addr, SocketAddrV4}, str::FromStr, sync::atomic::AtomicUsize};
+use std::{io::{Read, Write}, net::{Ipv4Addr}, str::FromStr, sync::atomic::AtomicUsize};
 
-use wasi::{cli::command, clocks::{monotonic_clock, wall_clock}, io::poll::Pollable, random::random, sockets::{instance_network, network::{self, Ipv4SocketAddress}, tcp::{InputStream, IpSocketAddress, OutputStream}, tcp_create_socket::create_tcp_socket}};
+use wasi::{clocks::{monotonic_clock, wall_clock}, random::random, sockets::{instance_network, network::{self, Ipv4SocketAddress}, tcp::{InputStream, IpSocketAddress, OutputStream}, tcp_create_socket::create_tcp_socket}};
 use bitcoin::{
-    block::{self, Header}, consensus::{encode, Decodable, Encodable}, network as bitcoin_network, Network
+    network as bitcoin_network, Network
 };
-use crate::{messages::{self, block::Block, block_locator::{self, BlockLocator, NO_HASH_STOP }, commands::{self, PING, PONG}, compact_filter::CompactFilter, compact_filter_header::CompactFilterHeader,  filter_locator::FilterLocator, BlockHeader, Inv, Message, MessageHeader, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
+use crate::{messages::{self, block::Block, block_locator::{BlockLocator, NO_HASH_STOP }, commands::{self, PONG}, compact_filter::CompactFilter, compact_filter_header::CompactFilterHeader,  filter_locator::FilterLocator, BlockHeader, Inv, Message, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
 use crate::node::CustomIPV4SocketAddress;
 use crate::tcpsocket::WasiTcpSocket;
 use core::sync::atomic::Ordering;
@@ -12,7 +12,7 @@ use crate::messages::Message::Ping;
 use crate::util::{Error, Result, Serializable};
 
 const MAX_PROTOCOL_VERSION: u32 = 70015;
-const USER_AGENT: &'static str = concat!("/BITCOINWASM:", env!("CARGO_PKG_VERSION"), '/');
+const USER_AGENT: &str = concat!("/BITCOINWASM:", env!("CARGO_PKG_VERSION"), '/');
 
 pub struct Peer {
     input_stream: InputStream,
@@ -35,7 +35,7 @@ impl Peer {
       };
       let mut peer =  Self { peer_id, input_stream, output_stream, remote_address, bitcoin_config};
       peer.handshake();
-      return peer;
+      peer
     }
 
     fn version (&self) -> Message {
@@ -71,7 +71,7 @@ impl Peer {
                 self.send(message)?;
                 let nonce = random::get_random_u64();
                 
-                let ping_message = Ping(messages::ping::Ping { nonce: nonce });
+                let ping_message = Ping(messages::ping::Ping { nonce });
                 self.send(ping_message)?;
                 self.receive(PONG)?;
                 return Ok(());
@@ -126,20 +126,20 @@ impl Peer {
         if let Message::CFHeaders(filters) =  self.receive(commands::CFHEADERS)? {
             return Ok(filters);
         }
-        return Err(Error::WrongP2PMessage);
+        Err(Error::WrongP2PMessage)
   }
 
       pub fn keep_alive(& mut self) -> Result<()> {
             let nonce = random::get_random_u64();
-            let ping_message = Ping(messages::ping::Ping { nonce: nonce });
+            let ping_message = Ping(messages::ping::Ping { nonce });
             self.send(ping_message)?;
 
             match self.receive(PONG) {
                 Ok(_) => {
-                    return  Ok(());
+                    Ok(())
                 },
                 Err(_) => {
-                    return self.handshake();
+                    self.handshake()
                 },
             }
       }
@@ -221,10 +221,10 @@ impl P2PControl for P2P {
                 let remote_address = NodeAddr::new(socket_address, remote_address.port); 
                 let peer = Peer::new(network, input_stream, output_stream, remote_address);
                 self.peer = Some(peer);
-                return  Ok(());
+                Ok(())
             },
             Err(e) => {
-                return Err(Error::TCPError(e));
+                Err(Error::TCPError(e))
             },
         }
     }
@@ -238,7 +238,7 @@ impl P2PControl for P2P {
             let raw_socket = create_tcp_socket(network::IpAddressFamily::Ipv4).expect("cant create socket");
             let network =  instance_network::instance_network();
             let wasi_socket = WasiTcpSocket::new(raw_socket, network);
-            return P2P{ socket: wasi_socket, peer: None};
+            P2P{ socket: wasi_socket, peer: None}
         }
 
         pub fn fetch_headers(&mut self, last_known_blockhash: Hash256) -> Result<Vec<BlockHeader>> {

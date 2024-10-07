@@ -1,6 +1,5 @@
 use crate::messages::message::Payload;
-use crate::messages::version::MIN_SUPPORTED_PROTOCOL_VERSION;
-use crate::util::{var_int, Error, Hash256, Result, Serializable};
+use crate::util::{Hash256, Result, Serializable};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io;
 use std::io::{Read, Write};

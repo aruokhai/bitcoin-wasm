@@ -11,7 +11,7 @@ pub struct WasiTcpSocket {
 impl  WasiTcpSocket  {
     
     pub fn new( inner: TcpSocket, network_ref: Network) ->  Self {
-        return WasiTcpSocket{inner: Arc::new(inner),  network_ref: network_ref}
+        WasiTcpSocket{inner: Arc::new(inner),  network_ref}
     }
 
     pub fn blocking_bind(

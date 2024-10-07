@@ -1,9 +1,6 @@
-use crate::messages::message::Payload;
 use crate::messages::{COINBASE_OUTPOINT_HASH, COINBASE_OUTPOINT_INDEX};
-use crate::util::{sha256d, var_int, Error, Hash256, Result, Serializable};
-use bitcoin::Witness;
+use crate::util::{var_int, Result, Serializable};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use std::collections::HashSet;
 use std::fmt;
 use std::io;
 use std::io::{Read, Write};
@@ -149,9 +146,9 @@ impl Tx {
 
     /// Returns whether the transaction is the block reward
     pub fn coinbase(&self) -> bool {
-        return self.inputs.len() == 1
+        self.inputs.len() == 1
             && self.inputs[0].prev_output.hash == COINBASE_OUTPOINT_HASH
-            && self.inputs[0].prev_output.index == COINBASE_OUTPOINT_INDEX;
+            && self.inputs[0].prev_output.index == COINBASE_OUTPOINT_INDEX
     }
 }
 

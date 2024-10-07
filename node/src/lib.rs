@@ -4,7 +4,7 @@ use std::{cell::RefCell};
 
 use node::Node;
 use bindings::exports::component::node::types::{Guest,Error, GuestClientNode, NodeConfig, TbdexConfig, OfferingBargain};
-use bindings::component::tbdex::types::{Client, Error as TBdexError, };
+use bindings::component::tbdex::types::{Client, };
 
 
 
@@ -32,12 +32,12 @@ impl GuestClientNode for BitcoinNode {
         match &self.tbdex {
             Some(client) =>{
                 let offer =client.borrow().get_offer().map_err(|_| Error::TbdexError)?;
-                return  Ok( OfferingBargain { rate: offer.rate, fee: offer.fee, id: offer.id, estimated_settlement_time: offer.estimated_settlement_time})
+                Ok( OfferingBargain { rate: offer.rate, fee: offer.fee, id: offer.id, estimated_settlement_time: offer.estimated_settlement_time})
             },
             None => {
-                return Err(Error::NoTbdx)
+                Err(Error::NoTbdx)
             },
-        };
+        }
     }
 
     fn convert_amount(&self, amount: String, offer_id: String) -> Result<String, Error> {
@@ -46,12 +46,12 @@ impl GuestClientNode for BitcoinNode {
                 // let address = self.inner.borrow().wallet.address.clone();
                 let address = String::new();
                 let res = client.borrow().convert(&offer_id, &amount, &address).map_err(|_| Error::TbdexError)?;
-                return  Ok(res)
+                Ok(res)
             },
             None => {
-                return Err(Error::NoTbdx)
+                Err(Error::NoTbdx)
             },
-        };
+        }
     }
 
     fn new(config: NodeConfig, tbdx_config: Option<TbdexConfig>) -> Self {
@@ -61,7 +61,7 @@ impl GuestClientNode for BitcoinNode {
         } else {
             None
         };
-        return Self{ inner:  Node::new(config.into()).into(), tbdex: tbdex.into()};
+        Self{ inner:  Node::new(config.into()).into(), tbdex}
     }
 }
 

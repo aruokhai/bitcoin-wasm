@@ -1,10 +1,7 @@
-use crate::messages::{BlockHeader, OutPoint, Payload};
+use crate::messages::{BlockHeader, Payload};
 use crate::util::{
-    sha256d, var_int, Error, Hash256, Result, Serializable, BITCOIN_CASH_FORK_HEIGHT_MAINNET,
-    BITCOIN_CASH_FORK_HEIGHT_TESTNET, GENESIS_UPGRADE_HEIGHT_MAINNET,
-    GENESIS_UPGRADE_HEIGHT_TESTNET,
+    var_int, Result, Serializable,
 };
-use std::collections::{HashSet, VecDeque};
 use std::fmt;
 use std::io;
 use std::io::{Read, Write};

@@ -45,7 +45,7 @@ impl Serializable<InvVect> for InvVect {
     }
 
     fn write(&self, writer: &mut dyn Write) -> io::Result<()> {
-        writer.write_u32::<LittleEndian>(self.obj_type as u32)?;
+        writer.write_u32::<LittleEndian>(self.obj_type)?;
         self.hash.write(writer)
     }
 }

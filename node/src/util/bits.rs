@@ -106,7 +106,7 @@ pub fn lshift(v: &[u8], n: usize) -> Vec<u8> {
             val <<= bit_shift;
             result[k as usize] |= val;
         }
-        if k - 1 >= 0 {
+        if k > 0 {
             let mut carryval = v[i] & overflow_mask;
             carryval >>= (8 - bit_shift) % 8;
             result[(k - 1) as usize] |= carryval;

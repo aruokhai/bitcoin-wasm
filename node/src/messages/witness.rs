@@ -1,7 +1,6 @@
-use crate::messages::OutPoint;
 use crate::util::{var_int, Result, Serializable};
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use std::{io, vec};
+use byteorder::{ReadBytesExt, WriteBytesExt};
+use std::{io};
 use std::io::{Read, Write};
 
 /// Transaction input
