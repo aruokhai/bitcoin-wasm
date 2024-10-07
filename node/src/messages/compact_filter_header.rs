@@ -32,9 +32,9 @@ impl Serializable<CompactFilterHeader> for CompactFilterHeader {
         let stop_hash = Hash256::read(reader)?;
         let previous_filter_header = Hash256::read(reader)?;
         let filter_len = var_int::read(reader)?;
-        let mut filter_bytes = Vec::new();
+        let mut filter_hashes = Vec::new();
         for _i in 0..filter_len {
-            filter_bytes.push(Hash256::read(reader)?);
+            filter_hashes.push(Hash256::read(reader)?);
         }
         Ok(CompactFilterHeader {
             filter_type,
