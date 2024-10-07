@@ -48,6 +48,8 @@ impl Payload<FilterLocator> for FilterLocator {
 
 #[cfg(test)]
 mod tests {
+    use crate::messages::block_locator::BlockLocator;
+
     use super::*;
     use std::io::Cursor;
 

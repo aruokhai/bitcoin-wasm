@@ -353,7 +353,7 @@ impl Message {
             Message::GetCFilters(p) => write_with_payload(writer, GETCFILTERS, p, magic),
             Message::GetCFHeaders(p) => write_with_payload(writer, GETCFHEADERS, p, magic),
             Message::Headers(p) => write_with_payload(writer, HEADERS, p, magic),
-            Message::CFHeaders(compact_filter_header) => write_with_payload(writer, CFHEADERS, p, magic),
+            Message::CFHeaders(p) => write_with_payload(writer, CFHEADERS, p, magic),
             Message::CFilters(p) => write_with_payload(writer, CFILTERS, p, magic),
             Message::Mempool => write_without_payload(writer, MEMPOOL, magic),
             Message::NotFound(p) => write_with_payload(writer, NOTFOUND, p, magic),
