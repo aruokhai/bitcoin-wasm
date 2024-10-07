@@ -44,7 +44,11 @@ pub enum Error {
     /// Wrong P2P Message
     WrongP2PMessage,
     /// TCP Error,
-    TCPError(ErrorCode)
+    TCPError(ErrorCode),
+    /// Slice Error
+    SliceError(String),
+    /// Peer Not Found Error
+    PeerNotFound
 }
 
 impl std::fmt::Display for Error {
@@ -67,6 +71,8 @@ impl std::fmt::Display for Error {
             Error::StreamingError(s) => f.write_str(&format!("Srreaming Error: {}", s)),
             Error::Unsupported(s) => f.write_str(&format!("Unsuppored: {}", s)),
             Error::TCPError(c) => f.write_str(&format!("TCP socket Error: {}", c)),
+            Error::SliceError(c) => f.write_str(&format!("Slice Error: {}", c)),
+            Error::PeerNotFound => f.write_str(&format!("P2P peer not found")),
 
         }
     }
@@ -92,6 +98,8 @@ impl std::error::Error for Error {
             Error::StreamingError(_) => "P2P Streaming Error",
             Error::WrongP2PMessage => "Wrong P2P message gotten Error",
             Error::TCPError(_) => "TCP error",
+            Error::SliceError(_) => "Slice error",
+            Error::PeerNotFound => "P2P Peer Not Found"
         }
     }
 

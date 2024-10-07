@@ -20,6 +20,7 @@ use std::io;
 use std::io::{Cursor, Read, Write};
 
 use super::compact_filter::CompactFilter;
+use super::compact_filter_header::CompactFilterHeader;
 use super::filter_locator::FilterLocator;
 
 /// Checksum to use when there is an empty payload
@@ -114,8 +115,16 @@ pub mod commands {
     /// [GetCfilters command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#getcfilters)
     pub const GETCFILTERS: [u8; 12] = *b"getcfilters\0";
 
+    /// [GetCfheaders command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#getcfilters)
+    pub const GETCFHEADERS: [u8; 12] = *b"getcfheaders";
+
     /// [Cfilters command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#cfilters)
     pub const CFILTERS: [u8; 12] = *b"cfilter\0\0\0\0\0";
+
+    /// [Cfheaders command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#cfilters)
+    pub const CFHEADERS: [u8; 12] = *b"cfheaders\0\0\0\0";
+
+
 
 }
 
@@ -142,7 +151,9 @@ pub enum Message {
     Ping(Ping),
     Pong(Ping),
     GetCFilters(FilterLocator),
+    GetCFHeaders(FilterLocator),
     CFilters(CompactFilter),
+    CFHeaders(CompactFilterHeader),
     //Reject(Reject),
     SendHeaders,
     //SendCmpct(SendCmpct),
@@ -194,36 +205,6 @@ impl Message {
             return Ok(Message::Block(block));
         }
 
-        // // Feefilter
-        // if header.command == commands::FEEFILTER {
-        //     let payload = header.payload(reader)?;
-        //     let feefilter = FeeFilter::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::FeeFilter(feefilter));
-        // }
-
-        // // FilterAdd
-        // if header.command == commands::FILTERADD {
-        //     let payload = header.payload(reader)?;
-        //     let filter_add = FilterAdd::read(&mut Cursor::new(payload))?;
-        //     filter_add.validate()?;
-        //     return Ok(Message::FilterAdd(filter_add));
-        // }
-
-        // FilterClear
-        // if header.command == commands::FILTERCLEAR {
-        //     if header.payload_size != 0 {
-        //         return Err(Error::BadData("Bad payload".to_string()));
-        //     }
-        //     return Ok(Message::FilterClear);
-        // }
-
-        // FilterLoad
-        // if header.command == commands::FILTERLOAD {
-        //     let payload = header.payload(reader)?;
-        //     let filter_load = FilterLoad::read(&mut Cursor::new(payload))?;
-        //     filter_load.validate()?;
-        //     return Ok(Message::FilterLoad(filter_load));
-        // }
 
         // Getaddr
         if header.command == commands::GETADDR {
@@ -233,12 +214,6 @@ impl Message {
             return Ok(Message::GetAddr);
         }
 
-        // // Getblocks
-        // if header.command == commands::GETBLOCKS {
-        //     let payload = header.payload(reader)?;
-        //     let block_locator = BlockLocator::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::GetBlocks(block_locator));
-        // }
 
         // Getdata
         if header.command == commands::GETDATA {
@@ -268,6 +243,13 @@ impl Message {
             return Ok(Message::CFilters(cfilters));
         }
 
+        // CFilters
+        if header.command == commands::CFILTERS {
+            let payload = header.payload(reader)?;
+            let cfilters = CompactFilter::read(&mut Cursor::new(payload))?;
+            return Ok(Message::CFilters(cfilters));
+        }
+
         // Inv
         if header.command == commands::INV {
             let payload = header.payload(reader)?;
@@ -283,12 +265,6 @@ impl Message {
             return Ok(Message::Mempool);
         }
 
-        // // MerkleBlock
-        // if header.command == commands::MERKLEBLOCK {
-        //     let payload = header.payload(reader)?;
-        //     let merkle_block = MerkleBlock::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::MerkleBlock(merkle_block));
-        // }
 
         // Notfound
         if header.command == commands::NOTFOUND {
@@ -370,19 +346,16 @@ impl Message {
         match self {
             // Message::Addr(p) => write_with_payload(writer, ADDR, p, magic),
             Message::Block(p) => write_with_payload(writer, BLOCK, p, magic),
-            // Message::FeeFilter(p) => write_with_payload(writer, FEEFILTER, p, magic),
-            // Message::FilterAdd(p) => write_with_payload(writer, FILTERADD, p, magic),
-            //Message::FilterClear => write_without_payload(writer, FILTERCLEAR, magic),
-            //Message::FilterLoad(p) => write_with_payload(writer, FILTERLOAD, p, magic),
             Message::GetAddr => write_without_payload(writer, GETADDR, magic),
             Message::GetBlocks(p) => write_with_payload(writer, GETBLOCKS, p, magic),
             Message::GetData(p) => write_with_payload(writer, GETDATA, p, magic),
             Message::GetHeaders(p) => write_with_payload(writer, GETHEADERS, p, magic),
             Message::GetCFilters(p) => write_with_payload(writer, GETCFILTERS, p, magic),
+            Message::GetCFHeaders(p) => write_with_payload(writer, GETCFHEADERS, p, magic),
             Message::Headers(p) => write_with_payload(writer, HEADERS, p, magic),
+            Message::CFHeaders(compact_filter_header) => write_with_payload(writer, CFHEADERS, p, magic),
             Message::CFilters(p) => write_with_payload(writer, CFILTERS, p, magic),
             Message::Mempool => write_without_payload(writer, MEMPOOL, magic),
-          //  Message::MerkleBlock(p) => write_with_payload(writer, MERKLEBLOCK, p, magic),
             Message::NotFound(p) => write_with_payload(writer, NOTFOUND, p, magic),
             Message::Inv(p) => write_with_payload(writer, INV, p, magic),
             Message::Other(s) => Err(io::Error::new(io::ErrorKind::InvalidData, s.as_str())),
@@ -429,11 +402,15 @@ impl fmt::Debug for Message {
                 .debug_struct("GetFilters")
                 .field("block_locator_hashes", &p.hash_stop)
                 .finish(),
+            Message::GetCFHeaders(p) => f
+                .debug_struct("GetFiltersHeaders")
+                .field("block_locator_hashes", &p.hash_stop)
+                .finish(),
            Message::Headers(p) => f.write_str(&format!("{:#?}", p)),
            Message::CFilters(p) => f.write_str(&format!("{:#?}", p)),
+           Message::CFHeaders(p) => f.write_str(&format!("{:#?}", p)),
             Message::Inv(p) => f.write_str(&format!("{:#?}", p)),
             Message::Mempool => f.write_str("Mempool"),
-          //  Message::MerkleBlock(p) => f.write_str(&format!("{:#?}", p)),
             Message::NotFound(p) => f.debug_struct("NotFound").field("inv", &p).finish(),
             Message::Other(p) => f.write_str(&format!("{:#?}", p)),
             Message::Partial(h) => f.write_str(&format!("Partial {:#?}", h)),

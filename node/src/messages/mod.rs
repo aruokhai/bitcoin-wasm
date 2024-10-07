@@ -1,61 +1,3 @@
-//! Peer-to-peer network protocol messages
-//!
-//! # Examples
-//!
-//! Decode a network message
-//!
-//! ```rust
-//! use sv::messages::Message;
-//! use sv::network::Network;
-//! use std::io::Cursor;
-//!
-//! let bytes = [
-//!     227, 225, 243, 232, 104, 101, 97, 100, 101, 114, 115,
-//!     0, 0, 0, 0, 0, 1, 0, 0, 0, 20, 6, 224, 88, 0,
-//! ];
-//! let magic = Network::Mainnet.magic();
-//! let message = Message::read(&mut Cursor::new(&bytes), magic).unwrap();
-//!
-//! match message {
-//!     Message::Headers(headers) => { /* Handle headers message */ },
-//!     _ => { /* All other messages */ }
-//! }
-//! ```
-//!
-//! Construct a transaction:
-//!
-//! ```rust
-//! use sv::messages::{OutPoint, Tx, TxIn, TxOut};
-//! use sv::transaction::p2pkh::{create_lock_script, create_unlock_script};
-//! use sv::util::{hash160, Hash256};
-//!
-//! // Use real values here
-//! let signature = [0; 72];
-//! let public_key = [0; 33];
-//! let prev_output = OutPoint {
-//!     hash: Hash256([0; 32]),
-//!     index: 0,
-//! };
-//!
-//! let inputs = vec![TxIn {
-//!     prev_output,
-//!     unlock_script: create_unlock_script(&signature, &public_key),
-//!     sequence: 0,
-//! }];
-//!
-//! let outputs = vec![TxOut {
-//!     satoshis: 1000,
-//!     lock_script: create_lock_script(&hash160(&public_key)),
-//! }];
-//!
-//! let tx = Tx {
-//!     version: 2,
-//!     inputs,
-//!     outputs,
-//!     lock_time: 0,
-//! };
-//! ```
-
 //mod addr;
 pub mod block;
 mod block_header;
@@ -82,17 +24,13 @@ mod tx;
 pub mod tx_in;
 mod tx_out;
 mod version;
+mod compact_filter_header;
 
 
 // pub use self::addr::Addr;
 // pub use self::block::Block;
 pub use self::block_header::BlockHeader;
 // pub use self::block_locator::{BlockLocator, NO_HASH_STOP};
-// pub use self::fee_filter::FeeFilter;
-// pub use self::filter_add::{FilterAdd, MAX_FILTER_ADD_DATA_SIZE};
-// pub use self::filter_load::{
-//     FilterLoad, BLOOM_UPDATE_ALL, BLOOM_UPDATE_NONE, BLOOM_UPDATE_P2PUBKEY_ONLY,
-// };
 // pub use self::headers::{header_hash, Headers};
 pub use self::inv::{Inv, MAX_INV_ENTRIES};
 pub use self::inv_vect::{
