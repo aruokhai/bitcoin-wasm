@@ -83,21 +83,21 @@ impl Node {
 
 
     fn get_block_filters(& mut self) -> Vec<CompactFilter> {
-        let block_headers = p2p.fetch_headers(self.last_block_hash).unwrap();
+        let block_headers = self.p2p.fetch_headers(self.last_block_hash).unwrap();
         let last_block_hash = block_headers.last()
             .expect("No block headers found")
             .hash();
         // TODO: verify block headers;
 
-        let latest_block_num = self.last_block_num + block_headers.len();
+        let latest_block_num = self.last_block_num + block_headers.len() as u64;
         let mut filters: Vec<_> = Vec::new();
         
-        let block_headers_counter = 0;
+        let mut block_headers_counter = 0;
         let mut current_block_num = self.last_block_num ;
 
         while current_block_num <  latest_block_num {
             let next_block_num = current_block_num + 500; 
-            let last_know_block_hash = if next_block_num > last_block_num {
+            let last_know_block_hash = if next_block_num > latest_block_num {
                 last_block_hash
             } else {
                 block_headers_counter += 500;
@@ -122,7 +122,7 @@ impl Node {
 
         let blockhash_present: Vec<_> = filters.into_iter().filter_map(|filter| {
             let filter_algo = util::block_filter::BlockFilter::new(&filter.filter_bytes);
-            let filter_query = self.filter_scripts.into_iter();
+            let filter_query = self.filter_scripts.clone().into_iter();
             let result = filter_algo.match_any(&filter.block_hash, filter_query).unwrap();
             match result {
                 true => Some(filter.block_hash),
@@ -133,14 +133,14 @@ impl Node {
         let block_inv: Vec<_> = blockhash_present.into_iter().map(|hash| {
             InvVect{ obj_type: 2, hash }
         }).collect();
-        let blocks = p2p.get_block(Inv{ objects: block_inv}).unwrap();
+        let blocks = self.p2p.get_block(Inv{ objects: block_inv}).unwrap();
 
         // TODO: account also for txn input
-        let mut amount_sats = 0;
+        let mut amount_sats = self.balance_sats;
         for block in blocks {
              for txn in block.txns {
                  for output in txn.outputs {
-                     if output.lock_script == node_config.wallet_filter.clone() {
+                     if self.filter_scripts.contains(&output.lock_script) {
                          amount_sats += output.satoshis;
                      }
                  }

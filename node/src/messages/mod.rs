@@ -24,7 +24,7 @@ mod tx;
 pub mod tx_in;
 mod tx_out;
 mod version;
-mod compact_filter_header;
+pub mod compact_filter_header;
 
 
 // pub use self::addr::Addr;

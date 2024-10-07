@@ -4,7 +4,7 @@ use wasi::{cli::command, clocks::{monotonic_clock, wall_clock}, io::poll::Pollab
 use bitcoin::{
     block::{self, Header}, consensus::{encode, Decodable, Encodable}, network as bitcoin_network, Network
 };
-use crate::{messages::{self, block::Block, block_locator::{self, BlockLocator, NO_HASH_STOP }, commands::{self, PING, PONG}, compact_filter::CompactFilter, filter_locator::FilterLocator, BlockHeader, Inv, Message, MessageHeader, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
+use crate::{messages::{self, block::Block, block_locator::{self, BlockLocator, NO_HASH_STOP }, commands::{self, PING, PONG}, compact_filter::CompactFilter, compact_filter_header::CompactFilterHeader,  filter_locator::FilterLocator, BlockHeader, Inv, Message, MessageHeader, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
 use crate::node::CustomIPV4SocketAddress;
 use crate::tcpsocket::WasiTcpSocket;
 use core::sync::atomic::Ordering;
@@ -119,7 +119,7 @@ impl Peer {
             }
       }
 
-      pub fn fetch_compact_filter_headers(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Result<CompactFilterHeaders> {
+      pub fn fetch_compact_filter_headers(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Result<CompactFilterHeader> {
         let compact_locator = FilterLocator { filter_type: 0, start_height, hash_stop};
         self.send(Message::GetCFilters(compact_locator));
 
@@ -255,7 +255,7 @@ impl P2PControl for P2P {
                 .fetch_compact_filters(start_height, hash_stop)
         }
 
-        pub fn get_compact_filter_headers(&mut self, start_height: u32, hash_stop: Hash256) -> Result<Vec<CompactFilter>> { 
+        pub fn get_compact_filter_headers(&mut self, start_height: u32, hash_stop: Hash256) -> Result<CompactFilterHeader> { 
             self.peer
                 .as_mut()
                 .ok_or(Error::PeerNotFound)?
