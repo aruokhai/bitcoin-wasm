@@ -16,6 +16,16 @@ pub struct TxIn {
 
 }
 
+impl TxIn {
+    /// Returns the size of the transaction input in bytes
+    pub fn size(&self) -> usize {
+        OutPoint::SIZE
+            + var_int::size(self.unlock_script.len() as u64)
+            + self.unlock_script.len()
+            + 4
+    }
+}
+
 
 impl Serializable<TxIn> for TxIn {
     fn read(reader: &mut dyn Read) -> Result<TxIn> {
@@ -44,25 +54,25 @@ impl Serializable<TxIn> for TxIn {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::util::Hash256;
-//     use std::io::Cursor;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::util::Hash256;
+    use std::io::Cursor;
 
-//     #[test]
-//     fn write_read() {
-//         let mut v = Vec::new();
-//         let t = TxIn {
-//             prev_output: OutPoint {
-//                 hash: Hash256([6; 32]),
-//                 index: 8,
-//             },
-//             unlock_script: Script(vec![255; 254]),
-//             sequence: 100,
-//         };
-//         t.write(&mut v).unwrap();
-//         assert!(v.len() == t.size());
-//         assert!(TxIn::read(&mut Cursor::new(&v)).unwrap() == t);
-//     }
-// }
+    #[test]
+    fn write_read() {
+        let mut v = Vec::new();
+        let t = TxIn {
+            prev_output: OutPoint {
+                hash: Hash256([6; 32]),
+                index: 8,
+            },
+            unlock_script: vec![255; 254],
+            sequence: 100,
+        };
+        t.write(&mut v).unwrap();
+        assert!(v.len() == t.size());
+        assert!(TxIn::read(&mut Cursor::new(&v)).unwrap() == t);
+    }
+}

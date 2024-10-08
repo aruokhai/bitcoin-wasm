@@ -1,11 +1,11 @@
-use std::vec;
+use std::{iter::zip, vec};
 
 use bitcoin::{
-    network as bitcoin_network
+    block, network as bitcoin_network,
 };
 use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork, NodeConfig as WasiNodeConfig};
 
-use crate::{bindings, messages::{compact_filter::CompactFilter, filter_locator::NO_HASH_STOP, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, Hash256}};
+use crate::{bindings, messages::{block::Block, compact_filter::{self, CompactFilter}, filter_locator::NO_HASH_STOP, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, sha256d, Hash256}};
 
 
 
@@ -83,10 +83,14 @@ impl Node {
 
     fn get_block_filters(& mut self) -> Vec<CompactFilter> {
         let block_headers = self.p2p.fetch_headers(self.last_block_hash).unwrap();
+
+        if block_headers.len() == 0 {
+            return  Vec::new();
+        }
+
         let last_block_hash = block_headers.last()
             .expect("No block headers found")
             .hash();
-        // TODO: verify block headers;
 
         let latest_block_num = self.last_block_num + block_headers.len() as u64;
         let mut filters: Vec<_> = Vec::new();
@@ -103,21 +107,45 @@ impl Node {
                 block_headers[block_headers_counter].hash()
             };
 
-            let block_filters = self.p2p.get_compact_filters(current_block_num as u32,last_know_block_hash).unwrap();
-            //TODO: Verify block filters;
+            let (block_filters, latest_filter_header) = self.get_and_verify_compact_filters(current_block_num as u32,last_know_block_hash);
             filters.extend(block_filters);
             current_block_num = next_block_num;
+            self.last_filter_header = latest_filter_header;
         }
 
         self.last_block_num = latest_block_num;
         self.last_block_hash = last_block_hash;
+
         filters
     }
     
+    fn get_and_verify_compact_filters(& mut self, start_height: u32, last_block_hash: Hash256) -> (Vec<CompactFilter>, Hash256) {
+        let filterheader = self.p2p.get_compact_filter_headers(start_height, last_block_hash).unwrap();
+        let filters = self.p2p.get_compact_filters(start_height, last_block_hash).unwrap();
+
+        let last_known_filter_header = self.last_filter_header;
+        assert!(last_known_filter_header == filterheader.previous_filter_header, "last known filter header doesn't match");
+
+        let last_filter_header = filterheader.clone().filter_hashes.into_iter().fold(last_known_filter_header,|acc, filter_hash| {
+            return sha256d([acc.0, filter_hash.0].concat().as_slice())
+        });
+        
+        for (filterhash, compact_filter) in zip(filterheader.filter_hashes, filters.clone()) {
+            let computed_hash = sha256d(&compact_filter.filter_bytes);
+            assert!(computed_hash == filterhash, "Hash Doesnt match");
+        }
+
+        return (filters, last_filter_header);
+    }
+
     pub fn get_balance(& mut self) -> std::result::Result<i64, NodeError> {
         self.p2p.keep_alive().map_err(|_| NodeError::NetworkError)?;
 
         let filters = self.get_block_filters();
+
+        if filters.len() == 0 {
+            return Ok(self.balance_sats);
+        }
 
         let blockhash_present: Vec<_> = filters.into_iter().filter_map(|filter| {
             let filter_algo = util::block_filter::BlockFilter::new(&filter.filter_bytes);
@@ -134,8 +162,16 @@ impl Node {
         }).collect();
         let blocks = self.p2p.get_block(Inv{ objects: block_inv}).unwrap();
 
-        // TODO: account also for txn input
+        let amount_sats = self.calculate_balance(blocks);
+
+        self.balance_sats = amount_sats;
+        Ok(amount_sats)
+    }
+
+
+    fn calculate_balance(&mut self, blocks: Vec<Block>) -> i64 {
         let mut amount_sats = self.balance_sats;
+
         for block in blocks {
              for txn in block.txns {
                  for output in txn.outputs {
@@ -143,11 +179,19 @@ impl Node {
                          amount_sats += output.satoshis;
                      }
                  }
+
+                 for input in txn.inputs {
+                    let transaction_inv = Inv{ objects: vec![InvVect{ obj_type: 1, hash: input.prev_output.hash }]};
+                    let prev = self.p2p.get_transaction(transaction_inv).unwrap();
+                    let prev_out = &prev[0].outputs[input.prev_output.index as usize];
+                    if self.filter_scripts.contains(&prev_out.lock_script) {
+                        amount_sats -= prev_out.satoshis;
+                    }
+                }
              }
         }
-
-        self.balance_sats = amount_sats;
-        Ok(amount_sats)
+        return  amount_sats;
     }
+
  
 }

@@ -9,12 +9,12 @@
         "--all-targets",
         "--message-format=json"
     ],
-    "rust-analyzer.cargo.buildScripts.overrideCommand": [
-        "cargo",
-        "check",
-        "--package=runner",
-        "--package=mobile-money",
-        "--all-targets",
-        "--message-format=json"
-    ],
+    // "rust-analyzer.cargo.buildScripts.overrideCommand": [
+    //     "cargo",
+    //     "check",
+    //     "--package=runner",
+    //     "--package=mobile-money",
+    //     "--all-targets",
+    //     "--message-format=json"
+    // ],
 }

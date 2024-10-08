@@ -4,12 +4,12 @@ use wasi::{clocks::{monotonic_clock, wall_clock}, random::random, sockets::{inst
 use bitcoin::{
     network as bitcoin_network, Network
 };
-use crate::{messages::{self, block::Block, block_locator::{BlockLocator, NO_HASH_STOP }, commands::{self, PONG}, compact_filter::CompactFilter, compact_filter_header::CompactFilterHeader,  filter_locator::FilterLocator, BlockHeader, Inv, Message, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
+use crate::{messages::{self, block::Block, block_locator::{BlockLocator, NO_HASH_STOP }, commands::{self, PONG}, compact_filter::CompactFilter, compact_filter_header::CompactFilterHeader, filter_locator::FilterLocator, tx::Tx, BlockHeader, Inv, Message, NodeAddr, Version, PROTOCOL_VERSION}, util::Hash256};
 use crate::node::CustomIPV4SocketAddress;
 use crate::tcpsocket::WasiTcpSocket;
 use core::sync::atomic::Ordering;
 use crate::messages::Message::Ping;
-use crate::util::{Error, Result, Serializable};
+use crate::util::{Error, Result};
 
 const MAX_PROTOCOL_VERSION: u32 = 70015;
 const USER_AGENT: &str = concat!("/BITCOINWASM:", env!("CARGO_PKG_VERSION"), '/');
@@ -17,7 +17,6 @@ const USER_AGENT: &str = concat!("/BITCOINWASM:", env!("CARGO_PKG_VERSION"), '/'
 pub struct Peer {
     input_stream: InputStream,
     output_stream: OutputStream,
-    peer_id: u64,
     remote_address: NodeAddr,
     bitcoin_config: BitcoinP2PConfig,
 }
@@ -25,7 +24,6 @@ pub struct Peer {
 impl Peer {
       
     pub fn new(network: bitcoin_network::Network, input_stream: InputStream, output_stream: OutputStream, remote_address: NodeAddr) -> Self {
-      let peer_id = random::get_random_u64();
       let bitcoin_config = BitcoinP2PConfig {
          network,
          nonce: random::get_random_u64(),
@@ -33,8 +31,8 @@ impl Peer {
          user_agent: USER_AGENT.to_owned(),
          height: AtomicUsize::new(0),
       };
-      let mut peer =  Self { peer_id, input_stream, output_stream, remote_address, bitcoin_config};
-      peer.handshake();
+      let mut peer =  Self { input_stream, output_stream, remote_address, bitcoin_config};
+      peer.handshake().unwrap();
       peer
     }
 
@@ -60,7 +58,7 @@ impl Peer {
 
       fn handshake(&mut self) -> Result<()> {
         let version_message = self.version();
-        self.send(version_message);
+        self.send(version_message)?;
         let res = self.receive(commands::VERSION)?;
 
         if let Message::Version(_) = res {
@@ -83,7 +81,7 @@ impl Peer {
       pub fn fetch_headers(& mut self, last_known_blockhash: Hash256) -> Result<Vec<BlockHeader>> {
             let block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![last_known_blockhash], hash_stop: NO_HASH_STOP };
             let mut block_headers = Vec::new();
-            self.send(Message::GetHeaders(block_locator));
+            self.send(Message::GetHeaders(block_locator))?;
 
             loop {
                 if let Message::Headers(headers) =  self.receive(commands::HEADERS)?{
@@ -105,7 +103,7 @@ impl Peer {
       pub fn fetch_compact_filters(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Result<Vec<CompactFilter>> {
             let compact_locator = FilterLocator { filter_type: 0, start_height, hash_stop};
             let mut block_filters = Vec::new();
-            self.send(Message::GetCFilters(compact_locator));
+            self.send(Message::GetCFilters(compact_locator))?;
 
             loop {
                 if let Message::CFilters(filters) =  self.receive(commands::CFILTERS)?{
@@ -121,7 +119,7 @@ impl Peer {
 
       pub fn fetch_compact_filter_headers(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Result<CompactFilterHeader> {
         let compact_locator = FilterLocator { filter_type: 0, start_height, hash_stop};
-        self.send(Message::GetCFilters(compact_locator));
+        self.send(Message::GetCFilters(compact_locator))?;
 
         if let Message::CFHeaders(filters) =  self.receive(commands::CFHEADERS)? {
             return Ok(filters);
@@ -147,13 +145,30 @@ impl Peer {
       pub fn fetch_blocks(& mut self, inv: Inv) -> Result<Vec<Block>> {
         let mut blocks = Vec::new();
         let data_len = inv.objects.len();
-        self.send(Message::GetData(inv));
+        self.send(Message::GetData(inv))?;
 
         loop {
             if let Message::Block(block) =  self.receive(commands::BLOCK)?{
                 blocks.push(block.clone());
                 if blocks.len() == data_len {
                     return Ok(blocks);
+                } 
+                continue;
+            }
+            return Err(Error::WrongP2PMessage);
+        }
+    }
+
+    pub fn fetch_transactions(& mut self, inv: Inv) -> Result<Vec<Tx>> {
+        let mut transactions = Vec::new();
+        let data_len = inv.objects.len();
+        self.send(Message::GetData(inv))?;
+
+        loop {
+            if let Message::Tx(transaction) =  self.receive(commands::TX)?{
+                transactions.push(transaction.clone());
+                if transactions.len() == data_len {
+                    return Ok(transactions);
                 } 
                 continue;
             }
@@ -267,6 +282,13 @@ impl P2PControl for P2P {
                 .as_mut()
                 .ok_or(Error::PeerNotFound)?
                 .fetch_blocks(inv)
+        }
+
+        pub fn get_transaction(&mut self, inv: Inv) -> Result<Vec<Tx>> {
+            self.peer
+                .as_mut()
+                .ok_or(Error::PeerNotFound)?
+                .fetch_transactions(inv)
         }
     
         pub fn keep_alive(&mut self) -> Result<()> {

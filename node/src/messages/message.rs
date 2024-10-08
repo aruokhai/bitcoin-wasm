@@ -1,17 +1,13 @@
 // use crate::messages::addr::Addr;
 use crate::messages::block::Block;
 use crate::messages::block_locator::BlockLocator;
-// use crate::messages::fee_filter::FeeFilter;
-// use crate::messages::filter_add::FilterAdd;
-// use crate::messages::filter_load::FilterLoad;
 use crate::messages::headers::Headers;
 use crate::messages::inv::Inv;
-// use crate::messages::merkle_block::MerkleBlock;
 use crate::messages::message_header::MessageHeader;
 use crate::messages::ping::Ping;
 // use crate::messages::reject::Reject;
 // use crate::messages::send_cmpct::SendCmpct;
-// use crate::messages::tx::Tx;
+use crate::messages::tx::Tx;
 use crate::messages::version::Version;
 use crate::util::{Error, Result, Serializable};
 use ring::digest;
@@ -133,10 +129,6 @@ pub mod commands {
 pub enum Message {
     // Addr(Addr),
     Block(Block),
-    // FeeFilter(FeeFilter),
-    // FilterAdd(FilterAdd),
-    // FilterClear,
-    // FilterLoad(FilterLoad),
     GetAddr,
     GetBlocks(BlockLocator),
     GetData(Inv),
@@ -144,7 +136,6 @@ pub enum Message {
     Headers(Headers),
     Inv(Inv),
     Mempool,
-    //MerkleBlock(MerkleBlock),
     NotFound(Inv),
     Other(String),
     Partial(MessageHeader),
@@ -157,7 +148,7 @@ pub enum Message {
     //Reject(Reject),
     SendHeaders,
     //SendCmpct(SendCmpct),
-    //Tx(Tx),
+    Tx(Tx),
     Verack,
     Version(Version),
 }
@@ -346,6 +337,7 @@ impl Message {
         match self {
             // Message::Addr(p) => write_with_payload(writer, ADDR, p, magic),
             Message::Block(p) => write_with_payload(writer, BLOCK, p, magic),
+            Message::Tx(p) => write_with_payload(writer, TX, p, magic),
             Message::GetAddr => write_without_payload(writer, GETADDR, magic),
             Message::GetBlocks(p) => write_with_payload(writer, GETBLOCKS, p, magic),
             Message::GetData(p) => write_with_payload(writer, GETDATA, p, magic),
@@ -380,10 +372,7 @@ impl fmt::Debug for Message {
         match self {
             // Message::Addr(p) => f.write_str(&format!("{:#?}", p)),
             Message::Block(p) => f.write_str(&format!("{:#?}", p)),
-            // Message::FeeFilter(p) => f.write_str(&format!("{:#?}", p)),
-            // Message::FilterAdd(p) => f.write_str(&format!("{:#?}", p)),
-            // Message::FilterClear => f.write_str("FilterClear"),
-            // Message::FilterLoad(p) => f.write_str(&format!("{:#?}", p)),
+            Message::Tx(p) => f.write_str(&format!("{:#?}", p)),
             Message::GetAddr => f.write_str("GetAddr"),
             Message::GetBlocks(p) => f
                 .debug_struct("GetBlocks")

@@ -151,8 +151,7 @@ impl Payload<Block> for Block {
         let mut size = BlockHeader::SIZE;
         size += var_int::size(self.txns.len() as u64);
         for txn in self.txns.iter() {
-            // size += txn.size();
-            size +=1
+            size += txn.size();
         }
         size
     }
