@@ -13,7 +13,6 @@ mod node;
 mod p2p;
 mod tcpsocket;
 mod util;
-mod wallet;
 mod messages;
 
 struct Component;

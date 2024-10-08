@@ -56,7 +56,12 @@ pub struct NodeConfig {
 }
 
 pub enum NodeError {
-    NetworkError
+    NetworkError,
+    FetchCompactFilter(util::Error),
+    FetchCompactFilterHeader(util::Error),
+    FetchBlock(util::Error),
+    FetchTransaction(util::Error),
+    FetchHeader(util::Error),
 }
 
 
@@ -81,11 +86,11 @@ impl Node {
     }
 
 
-    fn get_block_filters(& mut self) -> Vec<CompactFilter> {
-        let block_headers = self.p2p.fetch_headers(self.last_block_hash).unwrap();
+    fn get_block_filters(& mut self) -> Result<Vec<CompactFilter>, NodeError> {
+        let block_headers = self.p2p.fetch_headers(self.last_block_hash).map_err(|err| NodeError::FetchHeader(err))?;
 
         if block_headers.len() == 0 {
-            return  Vec::new();
+            return  Ok(Vec::new());
         }
 
         let last_block_hash = block_headers.last()
@@ -107,7 +112,7 @@ impl Node {
                 block_headers[block_headers_counter].hash()
             };
 
-            let (block_filters, latest_filter_header) = self.get_and_verify_compact_filters(current_block_num as u32,last_know_block_hash);
+            let (block_filters, latest_filter_header) = self.get_and_verify_compact_filters(current_block_num as u32,last_know_block_hash)?;
             filters.extend(block_filters);
             current_block_num = next_block_num;
             self.last_filter_header = latest_filter_header;
@@ -116,12 +121,12 @@ impl Node {
         self.last_block_num = latest_block_num;
         self.last_block_hash = last_block_hash;
 
-        filters
+        Ok(filters)
     }
     
-    fn get_and_verify_compact_filters(& mut self, start_height: u32, last_block_hash: Hash256) -> (Vec<CompactFilter>, Hash256) {
-        let filterheader = self.p2p.get_compact_filter_headers(start_height, last_block_hash).unwrap();
-        let filters = self.p2p.get_compact_filters(start_height, last_block_hash).unwrap();
+    fn get_and_verify_compact_filters(& mut self, start_height: u32, last_block_hash: Hash256) -> Result<(Vec<CompactFilter>, Hash256), NodeError> {
+        let filterheader = self.p2p.get_compact_filter_headers(start_height, last_block_hash).map_err(|err| NodeError::FetchCompactFilterHeader(err))?;
+        let filters = self.p2p.get_compact_filters(start_height, last_block_hash).map_err(|err| NodeError::FetchCompactFilter(err))?;
 
         let last_known_filter_header = self.last_filter_header;
         assert!(last_known_filter_header == filterheader.previous_filter_header, "last known filter header doesn't match");
@@ -135,13 +140,13 @@ impl Node {
             assert!(computed_hash == filterhash, "Hash Doesnt match");
         }
 
-        return (filters, last_filter_header);
+        return Ok((filters, last_filter_header));
     }
 
-    pub fn get_balance(& mut self) -> std::result::Result<i64, NodeError> {
+    pub fn get_balance(& mut self) -> Result<i64, NodeError> {
         self.p2p.keep_alive().map_err(|_| NodeError::NetworkError)?;
 
-        let filters = self.get_block_filters();
+        let filters = self.get_block_filters()?;
 
         if filters.len() == 0 {
             return Ok(self.balance_sats);
@@ -160,16 +165,16 @@ impl Node {
         let block_inv: Vec<_> = blockhash_present.into_iter().map(|hash| {
             InvVect{ obj_type: 2, hash }
         }).collect();
-        let blocks = self.p2p.get_block(Inv{ objects: block_inv}).unwrap();
+        let blocks = self.p2p.get_block(Inv{ objects: block_inv}).map_err(|err| NodeError::FetchBlock(err))?;
 
-        let amount_sats = self.calculate_balance(blocks);
+        let amount_sats = self.calculate_balance(blocks)?;
 
         self.balance_sats = amount_sats;
         Ok(amount_sats)
     }
 
 
-    fn calculate_balance(&mut self, blocks: Vec<Block>) -> i64 {
+    fn calculate_balance(&mut self, blocks: Vec<Block>) -> Result<i64, NodeError> {
         let mut amount_sats = self.balance_sats;
 
         for block in blocks {
@@ -182,7 +187,7 @@ impl Node {
 
                  for input in txn.inputs {
                     let transaction_inv = Inv{ objects: vec![InvVect{ obj_type: 1, hash: input.prev_output.hash }]};
-                    let prev = self.p2p.get_transaction(transaction_inv).unwrap();
+                    let prev = self.p2p.get_transaction(transaction_inv).map_err(|err| NodeError::FetchTransaction(err))?;
                     let prev_out = &prev[0].outputs[input.prev_output.index as usize];
                     if self.filter_scripts.contains(&prev_out.lock_script) {
                         amount_sats -= prev_out.satoshis;
@@ -190,7 +195,7 @@ impl Node {
                 }
              }
         }
-        return  amount_sats;
+        return  Ok(amount_sats);
     }
 
  
