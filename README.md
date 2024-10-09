@@ -40,8 +40,10 @@ Here's a breakdown of its key features:
 ## :station: Open Source Adapters
 
 - [x] Key Value Store (Implemented)
-- [-] Silent Payment Support (in progress)
-- [x] tbDEX exchange feature (protocol v1)
+- [-] Silent Payment  (in progress)
+- [x] tbDEX protocol  (protocol v1)
+- [-] Deterministic wallet (inprogress)
+- [x] Blockstream Jade (not started)
 
 
 ##  Why Webassembly ?
