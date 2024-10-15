@@ -3,7 +3,7 @@ mod bindings;
 
 use bindings::Guest;
 
-use tbdx_test::test_tbdex;
+use node_test::test_node;
 mod store_test;
 mod node_test;
 mod tbdx_test;
@@ -14,8 +14,8 @@ impl Guest for Component {
     /// Say hello!
     fn test()  {
        // test_store();
-        // test_node();
-        test_tbdex();
+        test_node();
+        //test_tbdex();
     }
 
 }

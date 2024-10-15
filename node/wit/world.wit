@@ -2,7 +2,6 @@ package component:node@0.1.0;
 
 /// An example world for the component to target.
 world nodeworld {
-    import component:tbdex/types@0.1.0;
     export types;
 }
 
@@ -47,22 +46,14 @@ interface types {
         socket-address: socket-address
     }
 
-    record tbdex-config {
-        pfi-uri: string,
-        vc-url: string,
-        acct-number: string
-    }
-    
 
     resource client-node {
 
-        constructor(config: node-config, tbdex-config: option<tbdex-config>);
+        constructor(config: node-config);
 
         get-balance: func() -> result<s64, error>;
 
-        get-conversion-offer: func() -> result<offering-bargain, error>;
-
-        convert-amount: func(amount: string, offer-id: string) -> result<string, error>;
+     
 
     }
 }

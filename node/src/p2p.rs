@@ -72,6 +72,9 @@ impl Peer {
                 let ping_message = Ping(messages::ping::Ping { nonce });
                 self.send(ping_message)?;
                 self.receive(PONG)?;
+
+                println!("handshake complete");
+
                 return Ok(());
             }
         }
@@ -119,10 +122,11 @@ impl Peer {
 
       pub fn fetch_compact_filter_headers(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Result<CompactFilterHeader> {
         let compact_locator = FilterLocator { filter_type: 0, start_height, hash_stop};
-        self.send(Message::GetCFilters(compact_locator))?;
+        println!("initiated compact filter header");
+        self.send(Message::GetCFHeaders(compact_locator))?;
 
-        if let Message::CFHeaders(filters) =  self.receive(commands::CFHEADERS)? {
-            return Ok(filters);
+        if let Message::CFHeaders(cfheades) =  self.receive(commands::CFHEADERS)? {
+            return Ok(cfheades);
         }
         Err(Error::WrongP2PMessage)
   }
@@ -134,6 +138,8 @@ impl Peer {
 
             match self.receive(PONG) {
                 Ok(_) => {
+                    println!("initialted already");
+
                     Ok(())
                 },
                 Err(_) => {
@@ -163,9 +169,10 @@ impl Peer {
         let mut transactions = Vec::new();
         let data_len = inv.objects.len();
         self.send(Message::GetData(inv))?;
-
+        println!("data here");
         loop {
             if let Message::Tx(transaction) =  self.receive(commands::TX)?{
+                println!("gotten txn_Data");
                 transactions.push(transaction.clone());
                 if transactions.len() == data_len {
                     return Ok(transactions);

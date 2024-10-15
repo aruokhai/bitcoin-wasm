@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/store", "node", ]
+  "crates/store", "node", "tests/runner", "crates/tbdex"]
 
 exclude = [
 "bitcoin-wasm",
    "lightning-wasm",
-  "wallet","crates/tbdex", "tests/artifacts", "tests/runner", "examples/mobile-money"
+  "wallet","crates/tbdex",
 ]

@@ -234,11 +234,11 @@ impl Message {
             return Ok(Message::CFilters(cfilters));
         }
 
-        // CFilters
-        if header.command == commands::CFILTERS {
+        // CFHeader
+        if header.command == commands::CFHEADERS {
             let payload = header.payload(reader)?;
-            let cfilters = CompactFilter::read(&mut Cursor::new(payload))?;
-            return Ok(Message::CFilters(cfilters));
+            let cfheader = CompactFilterHeader::read(&mut Cursor::new(payload))?;
+            return Ok(Message::CFHeaders(cfheader));
         }
 
         // Inv
@@ -301,11 +301,11 @@ impl Message {
         }
 
         // // Tx
-        // if header.command == commands::TX {
-        //     let payload = header.payload(reader)?;
-        //     let tx = Tx::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::Tx(tx));
-        // }
+        if header.command == commands::TX {
+            let payload = header.payload(reader)?;
+            let tx = Tx::read(&mut Cursor::new(payload))?;
+            return Ok(Message::Tx(tx));
+        }
 
         // Version
         if header.command == commands::VERSION {
