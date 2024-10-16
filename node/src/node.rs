@@ -1,13 +1,14 @@
-use std::{iter::zip, vec};
+use std::{hash::Hash, iter::zip, vec};
 
 use bitcoin::{
     block, network as bitcoin_network,
 };
 use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork, NodeConfig as WasiNodeConfig};
 
-use crate::{bindings, messages::{block::Block, compact_filter::{self, CompactFilter}, filter_locator::NO_HASH_STOP, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, sha256d, Hash256}};
+use crate::{bindings, messages::{block::Block, compact_filter::{self, CompactFilter}, filter_locator::NO_HASH_STOP, headers, BlockHeader, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, sha256d, Hash256}};
 
 
+const MAX_HEADER_LEN: usize = 2000;
 
 pub struct CustomIPV4SocketAddress {
     pub ip: (u8,u8,u8,u8),
@@ -86,10 +87,9 @@ pub enum NodeError {
 
 pub struct Node {
     p2p: P2P,
-    last_filter_header: Hash256,
     filter_scripts: Vec<Vec<u8>>,
     last_block_hash: Hash256,
-    last_block_num: u64,
+    last_block_height: u64,
     balance_sats: i64,
 }
 
@@ -99,63 +99,15 @@ impl Node {
     pub fn new(node_config: NodeConfig) -> Self {
         let mut p2p = P2P::new();
         p2p.connect_peer(node_config.socket_address, node_config.network) .expect("Failed to connect to peer");
-        Self { p2p, last_filter_header: NO_HASH_STOP, filter_scripts: vec![], last_block_hash: node_config.genesis_blockhash, last_block_num: 0, balance_sats: 0}
+        Self { p2p, filter_scripts: vec![node_config.wallet_filter], last_block_hash: node_config.genesis_blockhash, last_block_height: 0, balance_sats: 0, }
 
     }
 
-
-    fn get_block_filters(& mut self) -> Result<Vec<CompactFilter>, NodeError> {
-        let block_headers = self.p2p.fetch_headers(self.last_block_hash).map_err(|err| NodeError::FetchHeader(err))?;
-
-        println!("filters {:?}", block_headers);
-        if block_headers.is_empty() {
-            return  Ok(Vec::new());
-        }
-
-        let last_block_hash = block_headers.last()
-            .expect("No block headers found")
-            .hash();
-
-        let latest_block_num = self.last_block_num + block_headers.len() as u64;
-        let mut filters: Vec<_> = Vec::new();
-        
-        let mut block_headers_counter = 0;
-        let mut current_block_num = self.last_block_num ;
-
-        while current_block_num <  latest_block_num {
-            let next_block_num = current_block_num + 500; 
-            let last_know_block_hash = if next_block_num > latest_block_num {
-                last_block_hash
-            } else {
-                block_headers_counter += 500;
-                block_headers[block_headers_counter].hash()
-            };
-
-            let (block_filters, latest_filter_header) = self.get_and_verify_compact_filters(current_block_num as u32,last_know_block_hash)?;
-            filters.extend(block_filters);
-            current_block_num = next_block_num;
-            self.last_filter_header = latest_filter_header;
-        }
-
-        println!("lastly gotten here");
-
-        self.last_block_num = latest_block_num;
-        self.last_block_hash = last_block_hash;
-
-        Ok(filters)
-    }
     
-    fn get_and_verify_compact_filters(& mut self, start_height: u32, last_block_hash: Hash256) -> Result<(Vec<CompactFilter>, Hash256), NodeError> {
+    fn get_and_verify_compact_filters(& mut self, start_height: u32, last_block_hash: Hash256) -> Result<Vec<CompactFilter>, NodeError> {
         let filter_header = self.p2p.get_compact_filter_headers(start_height, last_block_hash).map_err(|err| NodeError::FetchCompactFilterHeader(err))?;
         let filters = self.p2p.get_compact_filters(start_height, last_block_hash).map_err(|err| NodeError::FetchCompactFilter(err))?;
 
-        let last_known_filter_header = self.last_filter_header;
-        assert_eq!(self.last_filter_header, filter_header.previous_filter_header, "Last known filter header doesn't match");
-        println!("assertion 1 correct");
-
-        let last_filter_header = filter_header.clone().filter_hashes.into_iter().fold(last_known_filter_header,|acc, filter_hash| {
-            return sha256d([acc.0, filter_hash.0].concat().as_slice())
-        });
         
         for (filter_hash, compact_filter) in zip(filter_header.filter_hashes, filters.clone()) {
             let computed_hash = sha256d(&compact_filter.filter_bytes);
@@ -163,18 +115,80 @@ impl Node {
             println!("assertion 2 correct");
         }
         println!("all assertions  correct");
-        return Ok((filters, last_filter_header));
+        return Ok(filters);
     }
 
     pub fn get_balance(& mut self) -> Result<i64, NodeError> {
+
+        self.sync_balance()?;
+        return Ok(self.balance_sats)
+
+    }
+
+
+    pub fn sync_balance(& mut self) -> Result<(),NodeError> {
         self.p2p.keep_alive().map_err(|_| NodeError::NetworkError)?;
+        
+        let mut last_block_hash = self.last_block_hash;
+        let mut last_block_height = self.last_block_height;
+        let mut balance_sats = self.balance_sats;
+        let mut is_sync = true; 
 
-        let filters = self.get_block_filters()?;
+        while is_sync {
 
-        println!("gotten filter");
-        if filters.is_empty() {
-            return Ok(self.balance_sats);
-        }
+            let block_headers = self.p2p.fetch_headers(last_block_hash)
+            .map_err(|err| NodeError::FetchHeader(err))?;
+            
+            if block_headers.len() == 0 {
+                return Ok(());
+            }
+
+            last_block_hash = block_headers.last()
+                .expect("No block headers found")
+                .hash();
+    
+            last_block_height = last_block_height+ block_headers.len() as u64;
+            let filter_indexer = 500;
+    
+            
+            let mut block_headers_counter = 0;
+            let mut current_block_num = self.last_block_height + 1 ;
+    
+            while current_block_num <  last_block_height {
+                
+                let next_block_num = current_block_num + filter_indexer; 
+                let last_know_block_hash = if next_block_num > last_block_height {
+                    last_block_hash
+                } else {
+                    block_headers_counter += filter_indexer;
+                    block_headers[block_headers_counter as usize -1].hash()
+                };
+    
+                let block_filters = self.get_and_verify_compact_filters(current_block_num as u32,last_know_block_hash)?;
+                if block_filters.is_empty() {
+                    continue;
+                }
+                
+                balance_sats += self.calculate_balance(block_filters)?;
+                current_block_num = next_block_num;
+            }
+            if block_headers.len() < MAX_HEADER_LEN {
+                is_sync = false;
+            }
+        }  
+
+        self.balance_sats = balance_sats;
+        self.last_block_height = last_block_height;
+        self.last_block_hash = last_block_hash;
+        
+        Ok(())
+        
+    }
+
+
+    fn calculate_balance(&mut self, filters: Vec<CompactFilter>) -> Result<i64, NodeError> {
+
+        let mut amount_sats = 0;
 
         let blockhash_present: Vec<_> = filters.into_iter().filter_map(|filter| {
             let filter_algo = util::block_filter::BlockFilter::new(&filter.filter_bytes);
@@ -191,17 +205,9 @@ impl Node {
         let block_inv: Vec<_> = blockhash_present.into_iter().map(|hash| {
             InvVect{ obj_type: 2, hash }
         }).collect();
+
         let blocks = self.p2p.get_block(Inv{ objects: block_inv}).map_err(|err| NodeError::FetchBlock(err))?;
 
-        let amount_sats = self.calculate_balance(blocks)?;
-
-        self.balance_sats = amount_sats;
-        Ok(amount_sats)
-    }
-
-
-    fn calculate_balance(&mut self, blocks: Vec<Block>) -> Result<i64, NodeError> {
-        let mut amount_sats = self.balance_sats;
 
         for block in blocks {
              for txn in block.txns {
@@ -211,18 +217,20 @@ impl Node {
                      }
                  }
 
-                 for input in txn.inputs {
-                    println!("this is prevout hash {:?}", input.prev_output.hash);
-                    if input.prev_output.hash == NO_HASH_STOP {
-                        continue;
-                    }
-                    let transaction_inv = Inv{ objects: vec![InvVect{ obj_type: 1, hash: input.prev_output.hash }]};
-                    let prev = self.p2p.get_transaction(transaction_inv).map_err(|err| NodeError::FetchTransaction(err))?;
-                    let prev_out = &prev[0].outputs[input.prev_output.index as usize];
-                    if self.filter_scripts.contains(&prev_out.lock_script) {
-                        amount_sats -= prev_out.satoshis;
-                    }
-                }
+                 // TODO: Fix not working
+                //  for input in txn.inputs {
+                //     println!("this is prevout hash {:?}", input.prev_output.hash);
+                //     if input.prev_output.hash == NO_HASH_STOP {
+                //         continue;
+                //     }
+                    
+                //     let transaction_inv = Inv{ objects: vec![InvVect{ obj_type: 0x40000001, hash: input.prev_output.hash }]};
+                //     let prev = self.p2p.get_transaction(transaction_inv).map_err(|err| NodeError::FetchTransaction(err))?;
+                //     let prev_out = &prev[0].outputs[input.prev_output.index as usize];
+                //     if self.filter_scripts.contains(&prev_out.lock_script) {
+                //         amount_sats -= prev_out.satoshis;
+                //     }
+                // }
              }
         }
         return  Ok(amount_sats);

@@ -5,7 +5,7 @@ use crate::messages::headers::Headers;
 use crate::messages::inv::Inv;
 use crate::messages::message_header::MessageHeader;
 use crate::messages::ping::Ping;
-// use crate::messages::reject::Reject;
+use crate::messages::reject::Reject;
 // use crate::messages::send_cmpct::SendCmpct;
 use crate::messages::tx::Tx;
 use crate::messages::version::Version;
@@ -145,7 +145,7 @@ pub enum Message {
     GetCFHeaders(FilterLocator),
     CFilters(CompactFilter),
     CFHeaders(CompactFilterHeader),
-    //Reject(Reject),
+    Reject(Reject),
     SendHeaders,
     //SendCmpct(SendCmpct),
     Tx(Tx),
@@ -278,12 +278,12 @@ impl Message {
             return Ok(Message::Pong(pong));
         }
 
-        // // Reject
-        // if header.command == commands::REJECT {
-        //     let payload = header.payload(reader)?;
-        //     let reject = Reject::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::Reject(reject));
-        // }
+        // Reject
+        if header.command == commands::REJECT {
+            let payload = header.payload(reader)?;
+            let reject = Reject::read(&mut Cursor::new(payload))?;
+            return Ok(Message::Reject(reject));
+        }
 
         // // Sendcmpct
         // if header.command == commands::SENDCMPCT {
@@ -357,7 +357,7 @@ impl Message {
             )),
             Message::Ping(p) => write_with_payload(writer, PING, p, magic),
             Message::Pong(p) => write_with_payload(writer, PONG, p, magic),
-          //  Message::Reject(p) => write_with_payload(writer, REJECT, p, magic),
+           Message::Reject(p) => write_with_payload(writer, REJECT, p, magic),
             Message::SendHeaders => write_without_payload(writer, SENDHEADERS, magic),
         //    Message::SendCmpct(p) => write_with_payload(writer, SENDCMPCT, p, magic),
         //    Message::Tx(p) => write_with_payload(writer, TX, p, magic),
@@ -405,7 +405,7 @@ impl fmt::Debug for Message {
             Message::Partial(h) => f.write_str(&format!("Partial {:#?}", h)),
             Message::Ping(p) => f.write_str(&format!("{:#?}", p)),
             Message::Pong(p) => f.debug_struct("Pong").field("nonce", &p.nonce).finish(),
-          //  Message::Reject(p) => f.write_str(&format!("{:#?}", p)),
+            Message::Reject(p) => f.write_str(&format!("{:#?}", p)),
             Message::SendHeaders => f.write_str("SendHeaders"),
          //   Message::SendCmpct(p) => f.write_str(&format!("{:#?}", p)),
           //  Message::Tx(p) => f.write_str(&format!("{:#?}", p)),

@@ -82,25 +82,13 @@ impl Peer {
       }
 
       pub fn fetch_headers(& mut self, last_known_blockhash: Hash256) -> Result<Vec<BlockHeader>> {
-            let block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![last_known_blockhash], hash_stop: NO_HASH_STOP };
-            let mut block_headers = Vec::new();
+            let block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![last_known_blockhash], hash_stop:  NO_HASH_STOP};
             self.send(Message::GetHeaders(block_locator))?;
 
-            loop {
-                if let Message::Headers(headers) =  self.receive(commands::HEADERS)?{
-                    block_headers.extend(headers.inner.clone());
-
-                    if headers.inner.len() < 2000 {
-                        return Ok(block_headers);
-                    }
-
-                    let new_block_hash: Hash256 = headers.inner.last().map(|header| header.hash()).ok_or_else(|| Error::SliceError(String::from_str("Cant Read Last Value").unwrap()))?;
-                    let new_block_locator = BlockLocator{ version: PROTOCOL_VERSION, block_locator_hashes: vec![new_block_hash], hash_stop: NO_HASH_STOP };
-                    self.send(Message::GetHeaders(new_block_locator))?;
-                    continue;
-                }
-                return Err(Error::WrongP2PMessage);
+            if let Message::Headers(headers) =  self.receive(commands::HEADERS)?{
+                return Ok(headers.inner)
             }
+            return Err(Error::WrongP2PMessage);
       }
 
       pub fn fetch_compact_filters(& mut self, start_height: u32, hash_stop: Hash256 ) ->  Result<Vec<CompactFilter>> {
@@ -171,15 +159,23 @@ impl Peer {
         self.send(Message::GetData(inv))?;
         println!("data here");
         loop {
-            if let Message::Tx(transaction) =  self.receive(commands::TX)?{
-                println!("gotten txn_Data");
-                transactions.push(transaction.clone());
-                if transactions.len() == data_len {
-                    return Ok(transactions);
-                } 
-                continue;
+            match self.receive(commands::TX)? {
+                Message::Tx(transaction) => {
+                    println!("gotten txn_Data");
+                    transactions.push(transaction.clone());
+                    if transactions.len() == data_len {
+                        return Ok(transactions);
+                    } 
+                    continue;
+                },  
+                Message::NotFound(inv) => {
+                    println!("data not found {:?}", inv);
+                    return Err(Error::WrongP2PMessage);
+                },
+                _ => {
+                    return Err(Error::WrongP2PMessage);
+                }
             }
-            return Err(Error::WrongP2PMessage);
         }
     }
     
@@ -197,6 +193,9 @@ impl Peer {
              let decoded_message = Message::read(&mut self.input_stream);
              match decoded_message{
                  Ok(message) => {
+                    if message.1.command == commands::NOTFOUND {
+                        return Ok(message.0)
+                    }
                      if message.1.command == message_type {
                          return Ok(message.0)
                      }
