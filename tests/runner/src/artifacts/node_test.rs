@@ -30,10 +30,12 @@ fn create_node() -> wasmtime::Result<(Nodeworld, Store<ServerWasiView>, Resource
     // Add the command world (aka WASI CLI) to the linker
     wasmtime_wasi::add_to_linker_sync(&mut linker).unwrap();
     wasmtime_wasi_http::add_only_http_to_linker_sync(&mut linker).unwrap();
+    
     let wasi_view = ServerWasiView::new();
     let mut store = Store::new(&engine, wasi_view);
-
+    
     let component = Component::from_file(&engine, pathtowasm).unwrap();
+    // linker.define_unknown_imports_as_traps(&component).unwrap();
     let instance =  Nodeworld::instantiate(&mut store, &component, &linker)
         .unwrap();
     
@@ -65,9 +67,7 @@ impl ServerWasiView {
             .preopened_dir("/tmp", ".", DirPerms::all(), FilePerms::all()).unwrap()
             .inherit_network()
             .allow_ip_name_lookup(true)
-            .allow_ip_name_lookup(true)
             .allow_tcp(true)
-            .allow_ip_name_lookup(true)
             .build();
 
         Self { table, ctx, http_ctx }

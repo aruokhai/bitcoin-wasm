@@ -16,6 +16,8 @@ ring = { version = "0.17.8", default-features = false, features = ["alloc"] }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 base58 = "0.2.0"
 siphasher = { version = "1.0.1", default-features = false, features = ["serde"] }
+serde_json = { version = "1.0.122", default-features = false, features = ["alloc"] }
+
 
 [dev-dependencies]
 hex = "0.4.3"
@@ -37,3 +39,4 @@ package = "component:node"
 path = "wit"
 
 [package.metadata.component.target.dependencies]
+"component:store" = {path = "../crates/store/wit"}

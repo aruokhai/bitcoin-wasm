@@ -1,14 +1,15 @@
+use std::cell::RefCell;
 use std::{hash::Hash, iter::zip, vec};
 
 use bitcoin::{
     block, network as bitcoin_network,
 };
 use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork, NodeConfig as WasiNodeConfig};
+use bindings::component::store::types::{Store,KeyValuePair, Error as StoreError };
 
 use crate::{bindings, messages::{block::Block, compact_filter::{self, CompactFilter}, filter_locator::NO_HASH_STOP, headers, BlockHeader, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, sha256d, Hash256}};
 
 
-const MAX_HEADER_LEN: usize = 2000;
 
 pub struct CustomIPV4SocketAddress {
     pub ip: (u8,u8,u8,u8),
@@ -82,24 +83,81 @@ pub enum NodeError {
     FetchBlock(util::Error),
     FetchTransaction(util::Error),
     FetchHeader(util::Error),
+    StoreError(StoreError),
+    SerializationError,
 }
 
 
 pub struct Node {
     p2p: P2P,
-    filter_scripts: Vec<Vec<u8>>,
     last_block_hash: Hash256,
     last_block_height: u64,
     balance_sats: i64,
+    store: RefCell<Store>,
 }
 
 
 impl Node {
 
-    pub fn new(node_config: NodeConfig) -> Self {
+    pub fn new(node_config: NodeConfig, mut store: RefCell<Store>) -> Self {
         let mut p2p = P2P::new();
         p2p.connect_peer(node_config.socket_address, node_config.network) .expect("Failed to connect to peer");
-        Self { p2p, filter_scripts: vec![node_config.wallet_filter], last_block_hash: node_config.genesis_blockhash, last_block_height: 0, balance_sats: 0, }
+
+        let mut last_block_height= 0;
+        let mut balance_sats =  0;
+        let mut last_block_hash = node_config.genesis_blockhash;
+
+        if let Ok(stored_last_block_hash) = store.get_mut().search(&"last_block_hash".to_string()) {
+                last_block_hash = Hash256::decode(stored_last_block_hash.value.as_str()).expect("Cant decode block hash");
+        }
+
+        if let Ok(stored_balance_sat) = store.get_mut().search(&"balance_sats".to_string()) {
+            balance_sats = stored_balance_sat.value.parse::<i64>().expect("Cant parse Balance");
+        }
+
+        if let Ok(stored_last_block_height) = store.get_mut().search(&"last_block_height".to_string()) {
+            last_block_height = stored_last_block_height.value.parse::<u64>().expect("Cant parse BLock height Value");
+        }
+
+        Self { p2p, last_block_hash, last_block_height, balance_sats, store}
+
+    }
+
+    pub fn add_filter(& mut self, filter: String) -> Result<(), NodeError> {
+
+        let mut stored_filter_scripts = self.get_filters()?;
+
+        stored_filter_scripts.push(filter.into_bytes());
+
+        let string_data: Vec<String> = stored_filter_scripts.iter()
+        .map(|vec| String::from_utf8(vec.clone()).unwrap_or_else(|_| String::from("Invalid UTF-8")))
+        .collect();
+
+        // Serialize the Vec<String> to a JSON string
+        let json_string = serde_json::to_string(&string_data).map_err(|_| NodeError::SerializationError)?;
+
+        self.store.get_mut().insert(&KeyValuePair { key: "filter_scripts".to_string(), value: json_string}).map_err(|err| NodeError::StoreError(err))?;
+
+        Ok(())
+    }
+
+    fn get_filters(& mut self) -> Result<Vec<Vec<u8>>, NodeError> {
+
+        let filter_scripts = if let Ok(stored_filter_scripts) = self.store.get_mut().search(&"filter_scripts".to_string()) {
+            let string_vec: Vec<String> = serde_json::from_str(&stored_filter_scripts.value).map_err(|_| NodeError::SerializationError)?;
+
+            // Convert Vec<String> to Vec<Vec<u8>>
+            let byte_vecs: Vec<Vec<u8>> = string_vec
+                .iter()
+                .map(|s| s.as_bytes().to_vec()) // Convert each String to Vec<u8>
+                .collect(); // Collect results into Vec<Vec<u8>>
+            
+            byte_vecs
+        } else { 
+            vec![]
+        };
+
+        return Ok(filter_scripts)
 
     }
 
@@ -132,7 +190,9 @@ impl Node {
         let mut last_block_hash = self.last_block_hash;
         let mut last_block_height = self.last_block_height;
         let mut balance_sats = self.balance_sats;
-        let mut is_sync = true; 
+        let mut is_sync = true;
+        const MAX_HEADER_LEN: usize = 2000;
+ 
 
         while is_sync {
 
@@ -180,6 +240,11 @@ impl Node {
         self.balance_sats = balance_sats;
         self.last_block_height = last_block_height;
         self.last_block_hash = last_block_hash;
+
+        self.store.get_mut().insert(&KeyValuePair { key: "balance_sats".to_string(), value: balance_sats.to_string()}).map_err(|err| NodeError::StoreError(err))?;
+        self.store.get_mut().insert(&KeyValuePair { key: "last_block_height".to_string(), value: last_block_height.to_string()}).map_err(|err| NodeError::StoreError(err))?;
+        self.store.get_mut().insert(&KeyValuePair { key: "last_block_hash".to_string(), value: last_block_hash.encode()}).map_err(|err| NodeError::StoreError(err))?;
+
         
         Ok(())
         
@@ -192,7 +257,7 @@ impl Node {
 
         let blockhash_present: Vec<_> = filters.into_iter().filter_map(|filter| {
             let filter_algo = util::block_filter::BlockFilter::new(&filter.filter_bytes);
-            let filter_query = self.filter_scripts.clone().into_iter();
+            let filter_query = self.get_filters()?.clone().into_iter();
             let result = filter_algo.match_any(&filter.block_hash, filter_query).unwrap();
             println!("{}", result);
             match result {
@@ -212,12 +277,14 @@ impl Node {
         for block in blocks {
              for txn in block.txns {
                  for output in txn.outputs {
-                     if self.filter_scripts.contains(&output.lock_script) {
-                         amount_sats += output.satoshis;
+                     if let Ok(filters) = self.get_filters(){
+                        if filters.contains(&output.lock_script) {
+                            amount_sats += output.satoshis;
+                        }
                      }
                  }
 
-                 // TODO: Fix not working
+                // TODO: Fix not working
                 //  for input in txn.inputs {
                 //     println!("this is prevout hash {:?}", input.prev_output.hash);
                 //     if input.prev_output.hash == NO_HASH_STOP {

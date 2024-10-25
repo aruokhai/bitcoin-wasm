@@ -4,7 +4,7 @@ use std::{cell::RefCell};
 
 use node::Node;
 use bindings::exports::component::node::types::{Guest,Error, GuestClientNode, NodeConfig};
-
+use bindings::component::store::types::{Store };
 
 
 
@@ -20,14 +20,29 @@ struct BitcoinNode {
     inner: RefCell<Node>,
 }
 
+struct KeyValuePair {
+    key: String,
+    value: String,
+}
+
+
 impl GuestClientNode for BitcoinNode {
     fn get_balance(&self) -> Result<i64, Error> {
         return  self.inner.borrow_mut().get_balance().map_err(|_| Error::NetworkError);
     }
 
+    // fn new(config: NodeConfig, tbdx_config: Option<TbdexConfig>) -> Self {
+    //     let tbdex = if let Some(config) = tbdx_config {
+    //         let new_tbdex_client = Client::new(&config.pfi_uri, &config.vc_url, &config.acct_number);
+    //         Some(RefCell::new(new_tbdex_client))
+    //     } else {
+    //         None
+    //     };
+    //     Self{ inner:  Node::new(config.into()).into(), tbdex}
+    // }
 
     fn new(config: NodeConfig) -> Self {
-        Self{ inner:  Node::new(config.into()).into()}
+        Self{ inner:  Node::new(config.into(), Store::new().into()).into()}
     }
 }
 
