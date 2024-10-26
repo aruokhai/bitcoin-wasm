@@ -12,6 +12,8 @@ include!(concat!(env!("OUT_DIR"), "/node_WIT.rs"));
 pub fn test_node(){
     
     let (nodeworld, mut store ,node) = create_node().unwrap();
+    let wallet_filter = "0014622d0e3b6cc7af423cc297fd931a9528e8548292".to_string();
+    nodeworld.component_node_types().client_node().call_add_filter(&mut store, node.clone(), &wallet_filter).unwrap().unwrap();
     let balance = nodeworld.component_node_types().client_node().call_get_balance(&mut store, node.clone()).unwrap().unwrap();
     assert_eq!(balance, 10_0000_0000);
 
@@ -25,7 +27,7 @@ fn create_node() -> wasmtime::Result<(Nodeworld, Store<ServerWasiView>, Resource
     let engine = Engine::new(&config)?;
     let mut linker = Linker::new(&engine);
     let pathtowasm  = PathBuf::from(env::var_os("OUT_DIR").unwrap())
-            .join(format!("wasm32-wasi/debug/node.wasm"));
+            .join(format!("node-composed.wasm"));
 
     // Add the command world (aka WASI CLI) to the linker
     wasmtime_wasi::add_to_linker_sync(&mut linker).unwrap();
@@ -45,7 +47,7 @@ fn create_node() -> wasmtime::Result<(Nodeworld, Store<ServerWasiView>, Resource
     let wallet_filter = "0014622d0e3b6cc7af423cc297fd931a9528e8548292".to_string();
     let genesis_blockhash = "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206".to_string();
 
-    let node_config = NodeConfig{ socket_address: ip_config, network: network_config, wallet_address, wallet_filter, genesis_blockhash};
+    let node_config = NodeConfig{ socket_address: ip_config, network: network_config, wallet_address, genesis_blockhash};
     let resource = instance.component_node_types().client_node().call_constructor(&mut store, &node_config).unwrap();
     
     wasmtime::Result::Ok((instance, store, resource))

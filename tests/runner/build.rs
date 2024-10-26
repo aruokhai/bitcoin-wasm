@@ -4,13 +4,13 @@ use wit_component::ComponentEncoder;
 
 fn main() {
     println!("cargo:rerun-if-changed=../../");
-    compose_test_component();
+    build_and_compose_test_component();
     // build_and_generate_tests();
 }
 
 
 
-fn compose_test_component() {
+fn build_and_compose_test_component() {
     let meta = cargo_metadata::MetadataCommand::new().exec().unwrap();
     let targets = meta
         .packages
@@ -27,6 +27,7 @@ fn compose_test_component() {
     
     for (key, path) in targets.into_iter() {
         
+        // build component
         let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
         let mut cmd = Command::new("cargo-component");
         cmd.arg("build")
@@ -36,6 +37,8 @@ fn compose_test_component() {
             println!("running: {cmd:?}");
             let status = cmd.status().unwrap();
             assert!(status.success());
+
+        compose_component(&key);
 
         let mut wit_world = Vec::new();
         wit_world.push("wasmtime::component::bindgen!({\n".to_string());
@@ -63,4 +66,65 @@ fn compose_test_component() {
        
 }
 
+
+
+fn compose_component(package_name: &str) -> PathBuf {
+    println!("package name is {}", package_name);
+    let meta = cargo_metadata::MetadataCommand::new().exec().unwrap();
+    let targets = meta
+            .packages
+            .iter()
+            .find(|p| p.name == package_name)
+            .unwrap()
+            .metadata
+            .as_object()
+            .unwrap();
+    println!("target  is {:?}", targets.clone());
+    let real_targets = targets.get("component")
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .get("target")
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .get("dependencies").unwrap()
+        .as_object().unwrap();
+
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    
+    let built_path = out_dir
+        .join("wasm32-wasi")
+        .join("debug")
+        .join(format!("{}.wasm",package_name));
+    
+    if real_targets.is_empty() {
+        return  built_path;    
+    }
+
+
+    let mut wac = Command::new("wac");
+    let artifact_path = built_path.to_str().unwrap();
+    wac.arg("plug")
+    .arg(format!("{artifact_path}"));
+
+
+    for (key, path) in real_targets.into_iter() {
+        let modified_key = key.split(":").collect::<Vec<&str>>()[1];
+        let real_path: &str = path.get("path").unwrap().as_str().unwrap();
+        let path  = compose_component(modified_key); 
+        wac.arg("--plug")
+        .arg(format!("{}",path.to_str().unwrap()));
+    }
+
+    let output_path = out_dir
+        .join(format!("{}-composed.wasm",package_name));
+    wac.arg("-o")
+    .arg(format!("{}",output_path.to_str().unwrap()));
+    let status = wac.status().unwrap();
+    assert!(status.success());
+
+    return  output_path;
+
+}
 

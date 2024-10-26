@@ -437,7 +437,6 @@ pub mod exports {
                 #[derive(Clone)]
                 pub struct NodeConfig {
                     pub wallet_address: _rt::String,
-                    pub wallet_filter: _rt::String,
                     pub genesis_blockhash: _rt::String,
                     pub network: BitcoinNetwork,
                     pub socket_address: SocketAddress,
@@ -446,7 +445,6 @@ pub mod exports {
                     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                         f.debug_struct("NodeConfig")
                             .field("wallet-address", &self.wallet_address)
-                            .field("wallet-filter", &self.wallet_filter)
                             .field("genesis-blockhash", &self.genesis_blockhash)
                             .field("network", &self.network)
                             .field("socket-address", &self.socket_address)
@@ -601,12 +599,10 @@ pub mod exports {
                     arg1: usize,
                     arg2: *mut u8,
                     arg3: usize,
-                    arg4: *mut u8,
-                    arg5: usize,
-                    arg6: i32,
-                    arg7: *mut u8,
-                    arg8: usize,
-                    arg9: i32,
+                    arg4: i32,
+                    arg5: *mut u8,
+                    arg6: usize,
+                    arg7: i32,
                 ) -> i32 {
                     #[cfg(target_arch = "wasm32")]
                     _rt::run_ctors_once();
@@ -614,21 +610,18 @@ pub mod exports {
                     let bytes0 = _rt::Vec::from_raw_parts(arg0.cast(), len0, len0);
                     let len1 = arg3;
                     let bytes1 = _rt::Vec::from_raw_parts(arg2.cast(), len1, len1);
-                    let len2 = arg5;
-                    let bytes2 = _rt::Vec::from_raw_parts(arg4.cast(), len2, len2);
-                    let len3 = arg8;
-                    let bytes3 = _rt::Vec::from_raw_parts(arg7.cast(), len3, len3);
-                    let result4 = ClientNode::new(T::new(NodeConfig {
+                    let len2 = arg6;
+                    let bytes2 = _rt::Vec::from_raw_parts(arg5.cast(), len2, len2);
+                    let result3 = ClientNode::new(T::new(NodeConfig {
                         wallet_address: _rt::string_lift(bytes0),
-                        wallet_filter: _rt::string_lift(bytes1),
-                        genesis_blockhash: _rt::string_lift(bytes2),
-                        network: BitcoinNetwork::_lift(arg6 as u8),
+                        genesis_blockhash: _rt::string_lift(bytes1),
+                        network: BitcoinNetwork::_lift(arg4 as u8),
                         socket_address: SocketAddress {
-                            ip: _rt::string_lift(bytes3),
-                            port: arg9 as u16,
+                            ip: _rt::string_lift(bytes2),
+                            port: arg7 as u16,
                         },
                     }));
-                    (result4).take_handle() as i32
+                    (result3).take_handle() as i32
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
@@ -651,6 +644,33 @@ pub mod exports {
                         }
                     };
                     ptr1
+                }
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                pub unsafe fn _export_method_client_node_add_filter_cabi<T: GuestClientNode>(
+                    arg0: *mut u8,
+                    arg1: *mut u8,
+                    arg2: usize,
+                ) -> *mut u8 {
+                    #[cfg(target_arch = "wasm32")]
+                    _rt::run_ctors_once();
+                    let len0 = arg2;
+                    let bytes0 = _rt::Vec::from_raw_parts(arg1.cast(), len0, len0);
+                    let result1 = T::add_filter(
+                        ClientNodeBorrow::lift(arg0 as u32 as usize).get(),
+                        _rt::string_lift(bytes0),
+                    );
+                    let ptr2 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
+                    match result1 {
+                        Ok(_) => {
+                            *ptr2.add(0).cast::<u8>() = (0i32) as u8;
+                        }
+                        Err(e) => {
+                            *ptr2.add(0).cast::<u8>() = (1i32) as u8;
+                            *ptr2.add(1).cast::<u8>() = (e.clone() as i32) as u8;
+                        }
+                    };
+                    ptr2
                 }
                 pub trait Guest {
                     type ClientNode: GuestClientNode;
@@ -702,34 +722,39 @@ pub mod exports {
 
                     fn new(config: NodeConfig) -> Self;
                     fn get_balance(&self) -> Result<i64, Error>;
+                    fn add_filter(&self, filter: _rt::String) -> Result<(), Error>;
                 }
                 #[doc(hidden)]
 
                 macro_rules! __export_component_node_types_0_1_0_cabi{
-      ($ty:ident with_types_in $($path_to_types:tt)*) => (const _: () = {
+    ($ty:ident with_types_in $($path_to_types:tt)*) => (const _: () = {
 
-        #[export_name = "component:node/types@0.1.0#[constructor]client-node"]
-        unsafe extern "C" fn export_constructor_client_node(arg0: *mut u8,arg1: usize,arg2: *mut u8,arg3: usize,arg4: *mut u8,arg5: usize,arg6: i32,arg7: *mut u8,arg8: usize,arg9: i32,) -> i32 {
-          $($path_to_types)*::_export_constructor_client_node_cabi::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
+      #[export_name = "component:node/types@0.1.0#[constructor]client-node"]
+      unsafe extern "C" fn export_constructor_client_node(arg0: *mut u8,arg1: usize,arg2: *mut u8,arg3: usize,arg4: i32,arg5: *mut u8,arg6: usize,arg7: i32,) -> i32 {
+        $($path_to_types)*::_export_constructor_client_node_cabi::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+      }
+      #[export_name = "component:node/types@0.1.0#[method]client-node.get-balance"]
+      unsafe extern "C" fn export_method_client_node_get_balance(arg0: *mut u8,) -> *mut u8 {
+        $($path_to_types)*::_export_method_client_node_get_balance_cabi::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0)
+      }
+      #[export_name = "component:node/types@0.1.0#[method]client-node.add-filter"]
+      unsafe extern "C" fn export_method_client_node_add_filter(arg0: *mut u8,arg1: *mut u8,arg2: usize,) -> *mut u8 {
+        $($path_to_types)*::_export_method_client_node_add_filter_cabi::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0, arg1, arg2)
+      }
+
+      const _: () = {
+        #[doc(hidden)]
+        #[export_name = "component:node/types@0.1.0#[dtor]client-node"]
+        #[allow(non_snake_case)]
+        unsafe extern "C" fn dtor(rep: *mut u8) {
+          $($path_to_types)*::ClientNode::dtor::<
+          <$ty as $($path_to_types)*::Guest>::ClientNode
+          >(rep)
         }
-        #[export_name = "component:node/types@0.1.0#[method]client-node.get-balance"]
-        unsafe extern "C" fn export_method_client_node_get_balance(arg0: *mut u8,) -> *mut u8 {
-          $($path_to_types)*::_export_method_client_node_get_balance_cabi::<<$ty as $($path_to_types)*::Guest>::ClientNode>(arg0)
-        }
+      };
 
-        const _: () = {
-          #[doc(hidden)]
-          #[export_name = "component:node/types@0.1.0#[dtor]client-node"]
-          #[allow(non_snake_case)]
-          unsafe extern "C" fn dtor(rep: *mut u8) {
-            $($path_to_types)*::ClientNode::dtor::<
-            <$ty as $($path_to_types)*::Guest>::ClientNode
-            >(rep)
-          }
-        };
-
-      };);
-    }
+    };);
+  }
                 #[doc(hidden)]
                 pub(crate) use __export_component_node_types_0_1_0_cabi;
                 #[repr(align(8))]
@@ -919,27 +944,28 @@ pub(crate) use __export_nodeworld_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:nodeworld:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 925] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x9d\x06\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 969] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc9\x06\x01A\x02\x01\
 A\x04\x01B\x13\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01s\x04\
 \0\x03key\x03\0\x02\x01m\x01\x03nae\x04\0\x05error\x03\0\x04\x04\0\x05store\x03\x01\
 \x01i\x06\x01@\0\0\x07\x04\0\x12[constructor]store\x01\x08\x01h\x06\x01j\0\x01\x05\
 \x01@\x02\x04self\x09\x02kv\x01\0\x0a\x04\0\x14[method]store.insert\x01\x0b\x01j\
 \x01\x01\x01\x05\x01@\x02\x04self\x09\x03key\x03\0\x0c\x04\0\x14[method]store.se\
 arch\x01\x0d\x01@\x02\x04self\x09\x03key\x03\0\x0a\x04\0\x14[method]store.delete\
-\x01\x0e\x03\x01\x1bcomponent:store/types@0.1.0\x05\0\x01B\x15\x01r\x02\x03keys\x05\
+\x01\x0e\x03\x01\x1bcomponent:store/types@0.1.0\x05\0\x01B\x18\x01r\x02\x03keys\x05\
 values\x04\0\x0ekey-value-pair\x03\0\0\x01m\x03\x0dnetwork-error\x0btbdex-error\x07\
 no-tbdx\x04\0\x05error\x03\0\x02\x01r\x02\x02ips\x04port{\x04\0\x0esocket-addres\
 s\x03\0\x04\x01m\x03\x07mainnet\x07testnet\x07regtest\x04\0\x0fbitcoin-network\x03\
 \0\x06\x01ks\x01r\x04\x03fee\x08\x19estimated-settlement-timew\x02ids\x04rates\x04\
-\0\x10offering-bargain\x03\0\x09\x01r\x05\x0ewallet-addresss\x0dwallet-filters\x11\
-genesis-blockhashs\x07network\x07\x0esocket-address\x05\x04\0\x0bnode-config\x03\
-\0\x0b\x04\0\x0bclient-node\x03\x01\x01i\x0d\x01@\x01\x06config\x0c\0\x0e\x04\0\x18\
-[constructor]client-node\x01\x0f\x01h\x0d\x01j\x01x\x01\x03\x01@\x01\x04self\x10\
-\0\x11\x04\0\x1f[method]client-node.get-balance\x01\x12\x04\x01\x1acomponent:nod\
-e/types@0.1.0\x05\x01\x04\x01\x1ecomponent:node/nodeworld@0.1.0\x04\0\x0b\x0f\x01\
-\0\x09nodeworld\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\
-\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+\0\x10offering-bargain\x03\0\x09\x01r\x04\x0ewallet-addresss\x11genesis-blockhas\
+hs\x07network\x07\x0esocket-address\x05\x04\0\x0bnode-config\x03\0\x0b\x04\0\x0b\
+client-node\x03\x01\x01i\x0d\x01@\x01\x06config\x0c\0\x0e\x04\0\x18[constructor]\
+client-node\x01\x0f\x01h\x0d\x01j\x01x\x01\x03\x01@\x01\x04self\x10\0\x11\x04\0\x1f\
+[method]client-node.get-balance\x01\x12\x01j\0\x01\x03\x01@\x02\x04self\x10\x06f\
+ilters\0\x13\x04\0\x1e[method]client-node.add-filter\x01\x14\x04\x01\x1acomponen\
+t:node/types@0.1.0\x05\x01\x04\x01\x1ecomponent:node/nodeworld@0.1.0\x04\0\x0b\x0f\
+\x01\0\x09nodeworld\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-compo\
+nent\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

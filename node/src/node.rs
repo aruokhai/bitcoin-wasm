@@ -30,7 +30,7 @@ impl From<WasiBitcoinNetwork> for bitcoin_network::Network {
 
 impl From<WasiNodeConfig> for NodeConfig {
     fn from(val: WasiNodeConfig) -> Self {
-        let WasiNodeConfig { network, socket_address, genesis_blockhash, wallet_filter, wallet_address } = val;
+        let WasiNodeConfig { network, socket_address, genesis_blockhash, wallet_address } = val;
 
         // Convert the network type
         let network: bitcoin_network::Network = network.into();
@@ -51,8 +51,7 @@ impl From<WasiNodeConfig> for NodeConfig {
             port: socket_address.port,
         };
 
-        // Decode the wallet filter and genesis blockhash with error handling
-        let wallet_filter = hex::decode(wallet_filter).expect("Failed to decode wallet filter");
+        // Decode the  genesis blockhash with error handling
         let genesis_blockhash = Hash256::decode(&genesis_blockhash).expect("Failed to decode genesis blockhash");
 
         // Construct and return the NodeConfig
@@ -60,7 +59,6 @@ impl From<WasiNodeConfig> for NodeConfig {
             wallet_address,
             network,
             socket_address,
-            wallet_filter,
             genesis_blockhash,
         }
     }
@@ -72,10 +70,10 @@ pub struct NodeConfig {
     pub socket_address: CustomIPV4SocketAddress,
     pub network: bitcoin_network::Network,
     pub wallet_address: String,
-    pub wallet_filter: Vec<u8>,
     pub genesis_blockhash: Hash256,
 }
 
+#[derive(Debug)]
 pub enum NodeError {
     NetworkError,
     FetchCompactFilter(util::Error),
@@ -257,7 +255,7 @@ impl Node {
 
         let blockhash_present: Vec<_> = filters.into_iter().filter_map(|filter| {
             let filter_algo = util::block_filter::BlockFilter::new(&filter.filter_bytes);
-            let filter_query = self.get_filters()?.clone().into_iter();
+            let filter_query = self.get_filters().unwrap().clone().into_iter();
             let result = filter_algo.match_any(&filter.block_hash, filter_query).unwrap();
             println!("{}", result);
             match result {

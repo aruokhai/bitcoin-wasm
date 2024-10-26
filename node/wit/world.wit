@@ -41,7 +41,6 @@ interface types {
 
     record node-config {
         wallet-address: string,
-        wallet-filter: string,
         genesis-blockhash: string,
         network: bitcoin-network,
         socket-address: socket-address
@@ -53,6 +52,8 @@ interface types {
         constructor(config: node-config);
 
         get-balance: func() -> result<s64, error>;
+
+        add-filter: func(filter: string) -> result<_, error>;
 
      
 

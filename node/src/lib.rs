@@ -41,6 +41,10 @@ impl GuestClientNode for BitcoinNode {
     //     Self{ inner:  Node::new(config.into()).into(), tbdex}
     // }
 
+    fn add_filter(&self, filter: String) -> Result<(), Error> {
+        return  self.inner.borrow_mut().add_filter(filter).map_err(|_| Error::NetworkError);
+    }
+
     fn new(config: NodeConfig) -> Self {
         Self{ inner:  Node::new(config.into(), Store::new().into()).into()}
     }
