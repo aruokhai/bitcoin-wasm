@@ -6,7 +6,6 @@ use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{ DirPerms, FilePerms, WasiCtx, WasiCtxBuilder, WasiView};
 use wasmtime_wasi_http::{self, WasiHttpCtx, WasiHttpView};
 
-
 mod artifacts;
 
 fn main() {

@@ -8,17 +8,36 @@ world nodeworld {
 
 
 interface types { 
+  
 
     record key-value-pair {
         key: string,
         value: string,
     }
 
+    variant store-error{
+        key-not-found,
+        key-already-exists,
+        unexpected-error,
+        key-overflow-error,
+        value-overflow-error,
+        try-from-slice-error,
+        utf8-error,
+        filesystem-error(u8),
+        invalid-magic-bytes,
+        stream-error
+    }
 
-    enum error{
+    
+    variant error {
         network-error,
-        tbdex-error,
-        no-tbdx,
+        fetch-compact-filter(u32),
+        fetch-compact-filter-header(u32),
+        fetch-block(u32),
+        fetch-transaction(u32),
+        fetch-header(u32),
+        store-error(store-error),
+        serialization-error,
     }
 
     record socket-address {

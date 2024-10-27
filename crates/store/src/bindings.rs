@@ -28,54 +28,56 @@ pub mod exports {
                     }
                 }
                 pub type Key = _rt::String;
-                #[repr(u8)]
-                #[derive(Clone, Copy, Eq, PartialEq)]
+                #[derive(Clone, Copy)]
                 pub enum Error {
-                    Nae,
-                }
-                impl Error {
-                    pub fn name(&self) -> &'static str {
-                        match self {
-                            Error::Nae => "nae",
-                        }
-                    }
-                    pub fn message(&self) -> &'static str {
-                        match self {
-                            Error::Nae => "",
-                        }
-                    }
+                    KeyNotFound,
+                    KeyAlreadyExists,
+                    UnexpectedError,
+                    KeyOverflowError,
+                    ValueOverflowError,
+                    TryFromSliceError,
+                    Utf8Error,
+                    FilesystemError(u8),
+                    InvalidMagicBytes,
+                    StreamError,
                 }
                 impl ::core::fmt::Debug for Error {
                     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                        f.debug_struct("Error")
-                            .field("code", &(*self as i32))
-                            .field("name", &self.name())
-                            .field("message", &self.message())
-                            .finish()
+                        match self {
+                            Error::KeyNotFound => f.debug_tuple("Error::KeyNotFound").finish(),
+                            Error::KeyAlreadyExists => {
+                                f.debug_tuple("Error::KeyAlreadyExists").finish()
+                            }
+                            Error::UnexpectedError => {
+                                f.debug_tuple("Error::UnexpectedError").finish()
+                            }
+                            Error::KeyOverflowError => {
+                                f.debug_tuple("Error::KeyOverflowError").finish()
+                            }
+                            Error::ValueOverflowError => {
+                                f.debug_tuple("Error::ValueOverflowError").finish()
+                            }
+                            Error::TryFromSliceError => {
+                                f.debug_tuple("Error::TryFromSliceError").finish()
+                            }
+                            Error::Utf8Error => f.debug_tuple("Error::Utf8Error").finish(),
+                            Error::FilesystemError(e) => {
+                                f.debug_tuple("Error::FilesystemError").field(e).finish()
+                            }
+                            Error::InvalidMagicBytes => {
+                                f.debug_tuple("Error::InvalidMagicBytes").finish()
+                            }
+                            Error::StreamError => f.debug_tuple("Error::StreamError").finish(),
+                        }
                     }
                 }
                 impl ::core::fmt::Display for Error {
                     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                        write!(f, "{} (error {})", self.name(), *self as i32)
+                        write!(f, "{:?}", self)
                     }
                 }
 
                 impl std::error::Error for Error {}
-
-                impl Error {
-                    #[doc(hidden)]
-                    pub unsafe fn _lift(val: u8) -> Error {
-                        if !cfg!(debug_assertions) {
-                            return ::core::mem::transmute(val);
-                        }
-
-                        match val {
-                            0 => Error::Nae,
-
-                            _ => panic!("invalid enum discriminant"),
-                        }
-                    }
-                }
 
                 #[derive(Debug)]
                 #[repr(transparent)]
@@ -254,7 +256,39 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr3.add(0).cast::<u8>() = (1i32) as u8;
-                            *ptr3.add(1).cast::<u8>() = (e.clone() as i32) as u8;
+                            match e {
+                                Error::KeyNotFound => {
+                                    *ptr3.add(1).cast::<u8>() = (0i32) as u8;
+                                }
+                                Error::KeyAlreadyExists => {
+                                    *ptr3.add(1).cast::<u8>() = (1i32) as u8;
+                                }
+                                Error::UnexpectedError => {
+                                    *ptr3.add(1).cast::<u8>() = (2i32) as u8;
+                                }
+                                Error::KeyOverflowError => {
+                                    *ptr3.add(1).cast::<u8>() = (3i32) as u8;
+                                }
+                                Error::ValueOverflowError => {
+                                    *ptr3.add(1).cast::<u8>() = (4i32) as u8;
+                                }
+                                Error::TryFromSliceError => {
+                                    *ptr3.add(1).cast::<u8>() = (5i32) as u8;
+                                }
+                                Error::Utf8Error => {
+                                    *ptr3.add(1).cast::<u8>() = (6i32) as u8;
+                                }
+                                Error::FilesystemError(e) => {
+                                    *ptr3.add(1).cast::<u8>() = (7i32) as u8;
+                                    *ptr3.add(2).cast::<u8>() = (_rt::as_i32(e)) as u8;
+                                }
+                                Error::InvalidMagicBytes => {
+                                    *ptr3.add(1).cast::<u8>() = (8i32) as u8;
+                                }
+                                Error::StreamError => {
+                                    *ptr3.add(1).cast::<u8>() = (9i32) as u8;
+                                }
+                            }
                         }
                     };
                     ptr3
@@ -297,7 +331,39 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr2.add(0).cast::<u8>() = (1i32) as u8;
-                            *ptr2.add(4).cast::<u8>() = (e.clone() as i32) as u8;
+                            match e {
+                                Error::KeyNotFound => {
+                                    *ptr2.add(4).cast::<u8>() = (0i32) as u8;
+                                }
+                                Error::KeyAlreadyExists => {
+                                    *ptr2.add(4).cast::<u8>() = (1i32) as u8;
+                                }
+                                Error::UnexpectedError => {
+                                    *ptr2.add(4).cast::<u8>() = (2i32) as u8;
+                                }
+                                Error::KeyOverflowError => {
+                                    *ptr2.add(4).cast::<u8>() = (3i32) as u8;
+                                }
+                                Error::ValueOverflowError => {
+                                    *ptr2.add(4).cast::<u8>() = (4i32) as u8;
+                                }
+                                Error::TryFromSliceError => {
+                                    *ptr2.add(4).cast::<u8>() = (5i32) as u8;
+                                }
+                                Error::Utf8Error => {
+                                    *ptr2.add(4).cast::<u8>() = (6i32) as u8;
+                                }
+                                Error::FilesystemError(e) => {
+                                    *ptr2.add(4).cast::<u8>() = (7i32) as u8;
+                                    *ptr2.add(5).cast::<u8>() = (_rt::as_i32(e)) as u8;
+                                }
+                                Error::InvalidMagicBytes => {
+                                    *ptr2.add(4).cast::<u8>() = (8i32) as u8;
+                                }
+                                Error::StreamError => {
+                                    *ptr2.add(4).cast::<u8>() = (9i32) as u8;
+                                }
+                            }
                         }
                     };
                     ptr2
@@ -340,7 +406,39 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr2.add(0).cast::<u8>() = (1i32) as u8;
-                            *ptr2.add(1).cast::<u8>() = (e.clone() as i32) as u8;
+                            match e {
+                                Error::KeyNotFound => {
+                                    *ptr2.add(1).cast::<u8>() = (0i32) as u8;
+                                }
+                                Error::KeyAlreadyExists => {
+                                    *ptr2.add(1).cast::<u8>() = (1i32) as u8;
+                                }
+                                Error::UnexpectedError => {
+                                    *ptr2.add(1).cast::<u8>() = (2i32) as u8;
+                                }
+                                Error::KeyOverflowError => {
+                                    *ptr2.add(1).cast::<u8>() = (3i32) as u8;
+                                }
+                                Error::ValueOverflowError => {
+                                    *ptr2.add(1).cast::<u8>() = (4i32) as u8;
+                                }
+                                Error::TryFromSliceError => {
+                                    *ptr2.add(1).cast::<u8>() = (5i32) as u8;
+                                }
+                                Error::Utf8Error => {
+                                    *ptr2.add(1).cast::<u8>() = (6i32) as u8;
+                                }
+                                Error::FilesystemError(e) => {
+                                    *ptr2.add(1).cast::<u8>() = (7i32) as u8;
+                                    *ptr2.add(2).cast::<u8>() = (_rt::as_i32(e)) as u8;
+                                }
+                                Error::InvalidMagicBytes => {
+                                    *ptr2.add(1).cast::<u8>() = (8i32) as u8;
+                                }
+                                Error::StreamError => {
+                                    *ptr2.add(1).cast::<u8>() = (9i32) as u8;
+                                }
+                            }
                         }
                     };
                     ptr2
@@ -557,6 +655,76 @@ mod _rt {
             String::from_utf8_unchecked(bytes)
         }
     }
+
+    pub fn as_i32<T: AsI32>(t: T) -> i32 {
+        t.as_i32()
+    }
+
+    pub trait AsI32 {
+        fn as_i32(self) -> i32;
+    }
+
+    impl<'a, T: Copy + AsI32> AsI32 for &'a T {
+        fn as_i32(self) -> i32 {
+            (*self).as_i32()
+        }
+    }
+
+    impl AsI32 for i32 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for u32 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for i16 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for u16 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for i8 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for u8 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for char {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for usize {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
     pub unsafe fn cabi_dealloc(ptr: *mut u8, size: usize, align: usize) {
         if size == 0 {
             return;
@@ -599,10 +767,13 @@ pub(crate) use __export_store_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:store:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 438] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xba\x02\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 627] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xf7\x03\x01A\x02\x01\
 A\x02\x01B\x13\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01s\x04\
-\0\x03key\x03\0\x02\x01m\x01\x03nae\x04\0\x05error\x03\0\x04\x04\0\x05store\x03\x01\
+\0\x03key\x03\0\x02\x01q\x0a\x0dkey-not-found\0\0\x12key-already-exists\0\0\x10u\
+nexpected-error\0\0\x12key-overflow-error\0\0\x14value-overflow-error\0\0\x14try\
+-from-slice-error\0\0\x0autf8-error\0\0\x10filesystem-error\x01}\0\x13invalid-ma\
+gic-bytes\0\0\x0cstream-error\0\0\x04\0\x05error\x03\0\x04\x04\0\x05store\x03\x01\
 \x01i\x06\x01@\0\0\x07\x04\0\x12[constructor]store\x01\x08\x01h\x06\x01j\0\x01\x05\
 \x01@\x02\x04self\x09\x02kv\x01\0\x0a\x04\0\x14[method]store.insert\x01\x0b\x01j\
 \x01\x01\x01\x05\x01@\x02\x04self\x09\x03key\x03\0\x0c\x04\0\x14[method]store.se\

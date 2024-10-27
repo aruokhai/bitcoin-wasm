@@ -26,54 +26,54 @@ pub mod component {
                 }
             }
             pub type Key = _rt::String;
-            #[repr(u8)]
-            #[derive(Clone, Copy, Eq, PartialEq)]
+            #[derive(Clone, Copy)]
             pub enum Error {
-                Nae,
-            }
-            impl Error {
-                pub fn name(&self) -> &'static str {
-                    match self {
-                        Error::Nae => "nae",
-                    }
-                }
-                pub fn message(&self) -> &'static str {
-                    match self {
-                        Error::Nae => "",
-                    }
-                }
+                KeyNotFound,
+                KeyAlreadyExists,
+                UnexpectedError,
+                KeyOverflowError,
+                ValueOverflowError,
+                TryFromSliceError,
+                Utf8Error,
+                FilesystemError(u8),
+                InvalidMagicBytes,
+                StreamError,
             }
             impl ::core::fmt::Debug for Error {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                    f.debug_struct("Error")
-                        .field("code", &(*self as i32))
-                        .field("name", &self.name())
-                        .field("message", &self.message())
-                        .finish()
+                    match self {
+                        Error::KeyNotFound => f.debug_tuple("Error::KeyNotFound").finish(),
+                        Error::KeyAlreadyExists => {
+                            f.debug_tuple("Error::KeyAlreadyExists").finish()
+                        }
+                        Error::UnexpectedError => f.debug_tuple("Error::UnexpectedError").finish(),
+                        Error::KeyOverflowError => {
+                            f.debug_tuple("Error::KeyOverflowError").finish()
+                        }
+                        Error::ValueOverflowError => {
+                            f.debug_tuple("Error::ValueOverflowError").finish()
+                        }
+                        Error::TryFromSliceError => {
+                            f.debug_tuple("Error::TryFromSliceError").finish()
+                        }
+                        Error::Utf8Error => f.debug_tuple("Error::Utf8Error").finish(),
+                        Error::FilesystemError(e) => {
+                            f.debug_tuple("Error::FilesystemError").field(e).finish()
+                        }
+                        Error::InvalidMagicBytes => {
+                            f.debug_tuple("Error::InvalidMagicBytes").finish()
+                        }
+                        Error::StreamError => f.debug_tuple("Error::StreamError").finish(),
+                    }
                 }
             }
             impl ::core::fmt::Display for Error {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                    write!(f, "{} (error {})", self.name(), *self as i32)
+                    write!(f, "{:?}", self)
                 }
             }
 
             impl std::error::Error for Error {}
-
-            impl Error {
-                #[doc(hidden)]
-                pub unsafe fn _lift(val: u8) -> Error {
-                    if !cfg!(debug_assertions) {
-                        return ::core::mem::transmute(val);
-                    }
-
-                    match val {
-                        0 => Error::Nae,
-
-                        _ => panic!("invalid enum discriminant"),
-                    }
-                }
-            }
 
             #[derive(Debug)]
             #[repr(transparent)]
@@ -144,8 +144,8 @@ pub mod component {
                 pub fn insert(&self, kv: &KeyValuePair) -> Result<(), Error> {
                     unsafe {
                         #[repr(align(1))]
-                        struct RetArea([::core::mem::MaybeUninit<u8>; 2]);
-                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 2]);
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 3]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 3]);
                         let KeyValuePair {
                             key: key0,
                             value: value0,
@@ -199,8 +199,30 @@ pub mod component {
                             1 => {
                                 let e = {
                                     let l5 = i32::from(*ptr3.add(1).cast::<u8>());
+                                    let v7 = match l5 {
+                                        0 => Error::KeyNotFound,
+                                        1 => Error::KeyAlreadyExists,
+                                        2 => Error::UnexpectedError,
+                                        3 => Error::KeyOverflowError,
+                                        4 => Error::ValueOverflowError,
+                                        5 => Error::TryFromSliceError,
+                                        6 => Error::Utf8Error,
+                                        7 => {
+                                            let e7 = {
+                                                let l6 = i32::from(*ptr3.add(2).cast::<u8>());
 
-                                    Error::_lift(l5 as u8)
+                                                l6 as u8
+                                            };
+                                            Error::FilesystemError(e7)
+                                        }
+                                        8 => Error::InvalidMagicBytes,
+                                        n => {
+                                            debug_assert_eq!(n, 9, "invalid enum discriminant");
+                                            Error::StreamError
+                                        }
+                                    };
+
+                                    v7
                                 };
                                 Err(e)
                             }
@@ -255,8 +277,30 @@ pub mod component {
                             1 => {
                                 let e = {
                                     let l9 = i32::from(*ptr1.add(4).cast::<u8>());
+                                    let v11 = match l9 {
+                                        0 => Error::KeyNotFound,
+                                        1 => Error::KeyAlreadyExists,
+                                        2 => Error::UnexpectedError,
+                                        3 => Error::KeyOverflowError,
+                                        4 => Error::ValueOverflowError,
+                                        5 => Error::TryFromSliceError,
+                                        6 => Error::Utf8Error,
+                                        7 => {
+                                            let e11 = {
+                                                let l10 = i32::from(*ptr1.add(5).cast::<u8>());
 
-                                    Error::_lift(l9 as u8)
+                                                l10 as u8
+                                            };
+                                            Error::FilesystemError(e11)
+                                        }
+                                        8 => Error::InvalidMagicBytes,
+                                        n => {
+                                            debug_assert_eq!(n, 9, "invalid enum discriminant");
+                                            Error::StreamError
+                                        }
+                                    };
+
+                                    v11
                                 };
                                 Err(e)
                             }
@@ -270,8 +314,8 @@ pub mod component {
                 pub fn delete(&self, key: &Key) -> Result<(), Error> {
                     unsafe {
                         #[repr(align(1))]
-                        struct RetArea([::core::mem::MaybeUninit<u8>; 2]);
-                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 2]);
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 3]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 3]);
                         let vec0 = key;
                         let ptr0 = vec0.as_ptr().cast::<u8>();
                         let len0 = vec0.len();
@@ -297,8 +341,30 @@ pub mod component {
                             1 => {
                                 let e = {
                                     let l3 = i32::from(*ptr1.add(1).cast::<u8>());
+                                    let v5 = match l3 {
+                                        0 => Error::KeyNotFound,
+                                        1 => Error::KeyAlreadyExists,
+                                        2 => Error::UnexpectedError,
+                                        3 => Error::KeyOverflowError,
+                                        4 => Error::ValueOverflowError,
+                                        5 => Error::TryFromSliceError,
+                                        6 => Error::Utf8Error,
+                                        7 => {
+                                            let e5 = {
+                                                let l4 = i32::from(*ptr1.add(2).cast::<u8>());
 
-                                    Error::_lift(l3 as u8)
+                                                l4 as u8
+                                            };
+                                            Error::FilesystemError(e5)
+                                        }
+                                        8 => Error::InvalidMagicBytes,
+                                        n => {
+                                            debug_assert_eq!(n, 9, "invalid enum discriminant");
+                                            Error::StreamError
+                                        }
+                                    };
+
+                                    v5
                                 };
                                 Err(e)
                             }
@@ -324,63 +390,103 @@ pub mod exports {
                 static __FORCE_SECTION_REF: fn() =
                     super::super::super::super::__link_custom_section_describing_imports;
                 use super::super::super::super::_rt;
-                #[repr(u8)]
-                #[derive(Clone, Copy, Eq, PartialEq)]
+                #[derive(Clone, Copy)]
+                pub enum StoreError {
+                    KeyNotFound,
+                    KeyAlreadyExists,
+                    UnexpectedError,
+                    KeyOverflowError,
+                    ValueOverflowError,
+                    TryFromSliceError,
+                    Utf8Error,
+                    FilesystemError(u8),
+                    InvalidMagicBytes,
+                    StreamError,
+                }
+                impl ::core::fmt::Debug for StoreError {
+                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                        match self {
+                            StoreError::KeyNotFound => {
+                                f.debug_tuple("StoreError::KeyNotFound").finish()
+                            }
+                            StoreError::KeyAlreadyExists => {
+                                f.debug_tuple("StoreError::KeyAlreadyExists").finish()
+                            }
+                            StoreError::UnexpectedError => {
+                                f.debug_tuple("StoreError::UnexpectedError").finish()
+                            }
+                            StoreError::KeyOverflowError => {
+                                f.debug_tuple("StoreError::KeyOverflowError").finish()
+                            }
+                            StoreError::ValueOverflowError => {
+                                f.debug_tuple("StoreError::ValueOverflowError").finish()
+                            }
+                            StoreError::TryFromSliceError => {
+                                f.debug_tuple("StoreError::TryFromSliceError").finish()
+                            }
+                            StoreError::Utf8Error => {
+                                f.debug_tuple("StoreError::Utf8Error").finish()
+                            }
+                            StoreError::FilesystemError(e) => f
+                                .debug_tuple("StoreError::FilesystemError")
+                                .field(e)
+                                .finish(),
+                            StoreError::InvalidMagicBytes => {
+                                f.debug_tuple("StoreError::InvalidMagicBytes").finish()
+                            }
+                            StoreError::StreamError => {
+                                f.debug_tuple("StoreError::StreamError").finish()
+                            }
+                        }
+                    }
+                }
+                #[derive(Clone, Copy)]
                 pub enum Error {
                     NetworkError,
-                    TbdexError,
-                    NoTbdx,
-                }
-                impl Error {
-                    pub fn name(&self) -> &'static str {
-                        match self {
-                            Error::NetworkError => "network-error",
-                            Error::TbdexError => "tbdex-error",
-                            Error::NoTbdx => "no-tbdx",
-                        }
-                    }
-                    pub fn message(&self) -> &'static str {
-                        match self {
-                            Error::NetworkError => "",
-                            Error::TbdexError => "",
-                            Error::NoTbdx => "",
-                        }
-                    }
+                    FetchCompactFilter(u32),
+                    FetchCompactFilterHeader(u32),
+                    FetchBlock(u32),
+                    FetchTransaction(u32),
+                    FetchHeader(u32),
+                    StoreError(StoreError),
+                    SerializationError,
                 }
                 impl ::core::fmt::Debug for Error {
                     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                        f.debug_struct("Error")
-                            .field("code", &(*self as i32))
-                            .field("name", &self.name())
-                            .field("message", &self.message())
-                            .finish()
+                        match self {
+                            Error::NetworkError => f.debug_tuple("Error::NetworkError").finish(),
+                            Error::FetchCompactFilter(e) => {
+                                f.debug_tuple("Error::FetchCompactFilter").field(e).finish()
+                            }
+                            Error::FetchCompactFilterHeader(e) => f
+                                .debug_tuple("Error::FetchCompactFilterHeader")
+                                .field(e)
+                                .finish(),
+                            Error::FetchBlock(e) => {
+                                f.debug_tuple("Error::FetchBlock").field(e).finish()
+                            }
+                            Error::FetchTransaction(e) => {
+                                f.debug_tuple("Error::FetchTransaction").field(e).finish()
+                            }
+                            Error::FetchHeader(e) => {
+                                f.debug_tuple("Error::FetchHeader").field(e).finish()
+                            }
+                            Error::StoreError(e) => {
+                                f.debug_tuple("Error::StoreError").field(e).finish()
+                            }
+                            Error::SerializationError => {
+                                f.debug_tuple("Error::SerializationError").finish()
+                            }
+                        }
                     }
                 }
                 impl ::core::fmt::Display for Error {
                     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                        write!(f, "{} (error {})", self.name(), *self as i32)
+                        write!(f, "{:?}", self)
                     }
                 }
 
                 impl std::error::Error for Error {}
-
-                impl Error {
-                    #[doc(hidden)]
-                    pub unsafe fn _lift(val: u8) -> Error {
-                        if !cfg!(debug_assertions) {
-                            return ::core::mem::transmute(val);
-                        }
-
-                        match val {
-                            0 => Error::NetworkError,
-                            1 => Error::TbdexError,
-                            2 => Error::NoTbdx,
-
-                            _ => panic!("invalid enum discriminant"),
-                        }
-                    }
-                }
-
                 #[derive(Clone)]
                 pub struct SocketAddress {
                     pub ip: _rt::String,
@@ -640,7 +746,70 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr1.add(0).cast::<u8>() = (1i32) as u8;
-                            *ptr1.add(8).cast::<u8>() = (e.clone() as i32) as u8;
+                            match e {
+                                Error::NetworkError => {
+                                    *ptr1.add(8).cast::<u8>() = (0i32) as u8;
+                                }
+                                Error::FetchCompactFilter(e) => {
+                                    *ptr1.add(8).cast::<u8>() = (1i32) as u8;
+                                    *ptr1.add(12).cast::<i32>() = _rt::as_i32(e);
+                                }
+                                Error::FetchCompactFilterHeader(e) => {
+                                    *ptr1.add(8).cast::<u8>() = (2i32) as u8;
+                                    *ptr1.add(12).cast::<i32>() = _rt::as_i32(e);
+                                }
+                                Error::FetchBlock(e) => {
+                                    *ptr1.add(8).cast::<u8>() = (3i32) as u8;
+                                    *ptr1.add(12).cast::<i32>() = _rt::as_i32(e);
+                                }
+                                Error::FetchTransaction(e) => {
+                                    *ptr1.add(8).cast::<u8>() = (4i32) as u8;
+                                    *ptr1.add(12).cast::<i32>() = _rt::as_i32(e);
+                                }
+                                Error::FetchHeader(e) => {
+                                    *ptr1.add(8).cast::<u8>() = (5i32) as u8;
+                                    *ptr1.add(12).cast::<i32>() = _rt::as_i32(e);
+                                }
+                                Error::StoreError(e) => {
+                                    *ptr1.add(8).cast::<u8>() = (6i32) as u8;
+                                    match e {
+                                        StoreError::KeyNotFound => {
+                                            *ptr1.add(12).cast::<u8>() = (0i32) as u8;
+                                        }
+                                        StoreError::KeyAlreadyExists => {
+                                            *ptr1.add(12).cast::<u8>() = (1i32) as u8;
+                                        }
+                                        StoreError::UnexpectedError => {
+                                            *ptr1.add(12).cast::<u8>() = (2i32) as u8;
+                                        }
+                                        StoreError::KeyOverflowError => {
+                                            *ptr1.add(12).cast::<u8>() = (3i32) as u8;
+                                        }
+                                        StoreError::ValueOverflowError => {
+                                            *ptr1.add(12).cast::<u8>() = (4i32) as u8;
+                                        }
+                                        StoreError::TryFromSliceError => {
+                                            *ptr1.add(12).cast::<u8>() = (5i32) as u8;
+                                        }
+                                        StoreError::Utf8Error => {
+                                            *ptr1.add(12).cast::<u8>() = (6i32) as u8;
+                                        }
+                                        StoreError::FilesystemError(e) => {
+                                            *ptr1.add(12).cast::<u8>() = (7i32) as u8;
+                                            *ptr1.add(13).cast::<u8>() = (_rt::as_i32(e)) as u8;
+                                        }
+                                        StoreError::InvalidMagicBytes => {
+                                            *ptr1.add(12).cast::<u8>() = (8i32) as u8;
+                                        }
+                                        StoreError::StreamError => {
+                                            *ptr1.add(12).cast::<u8>() = (9i32) as u8;
+                                        }
+                                    }
+                                }
+                                Error::SerializationError => {
+                                    *ptr1.add(8).cast::<u8>() = (7i32) as u8;
+                                }
+                            }
                         }
                     };
                     ptr1
@@ -667,7 +836,70 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr2.add(0).cast::<u8>() = (1i32) as u8;
-                            *ptr2.add(1).cast::<u8>() = (e.clone() as i32) as u8;
+                            match e {
+                                Error::NetworkError => {
+                                    *ptr2.add(4).cast::<u8>() = (0i32) as u8;
+                                }
+                                Error::FetchCompactFilter(e) => {
+                                    *ptr2.add(4).cast::<u8>() = (1i32) as u8;
+                                    *ptr2.add(8).cast::<i32>() = _rt::as_i32(e);
+                                }
+                                Error::FetchCompactFilterHeader(e) => {
+                                    *ptr2.add(4).cast::<u8>() = (2i32) as u8;
+                                    *ptr2.add(8).cast::<i32>() = _rt::as_i32(e);
+                                }
+                                Error::FetchBlock(e) => {
+                                    *ptr2.add(4).cast::<u8>() = (3i32) as u8;
+                                    *ptr2.add(8).cast::<i32>() = _rt::as_i32(e);
+                                }
+                                Error::FetchTransaction(e) => {
+                                    *ptr2.add(4).cast::<u8>() = (4i32) as u8;
+                                    *ptr2.add(8).cast::<i32>() = _rt::as_i32(e);
+                                }
+                                Error::FetchHeader(e) => {
+                                    *ptr2.add(4).cast::<u8>() = (5i32) as u8;
+                                    *ptr2.add(8).cast::<i32>() = _rt::as_i32(e);
+                                }
+                                Error::StoreError(e) => {
+                                    *ptr2.add(4).cast::<u8>() = (6i32) as u8;
+                                    match e {
+                                        StoreError::KeyNotFound => {
+                                            *ptr2.add(8).cast::<u8>() = (0i32) as u8;
+                                        }
+                                        StoreError::KeyAlreadyExists => {
+                                            *ptr2.add(8).cast::<u8>() = (1i32) as u8;
+                                        }
+                                        StoreError::UnexpectedError => {
+                                            *ptr2.add(8).cast::<u8>() = (2i32) as u8;
+                                        }
+                                        StoreError::KeyOverflowError => {
+                                            *ptr2.add(8).cast::<u8>() = (3i32) as u8;
+                                        }
+                                        StoreError::ValueOverflowError => {
+                                            *ptr2.add(8).cast::<u8>() = (4i32) as u8;
+                                        }
+                                        StoreError::TryFromSliceError => {
+                                            *ptr2.add(8).cast::<u8>() = (5i32) as u8;
+                                        }
+                                        StoreError::Utf8Error => {
+                                            *ptr2.add(8).cast::<u8>() = (6i32) as u8;
+                                        }
+                                        StoreError::FilesystemError(e) => {
+                                            *ptr2.add(8).cast::<u8>() = (7i32) as u8;
+                                            *ptr2.add(9).cast::<u8>() = (_rt::as_i32(e)) as u8;
+                                        }
+                                        StoreError::InvalidMagicBytes => {
+                                            *ptr2.add(8).cast::<u8>() = (8i32) as u8;
+                                        }
+                                        StoreError::StreamError => {
+                                            *ptr2.add(8).cast::<u8>() = (9i32) as u8;
+                                        }
+                                    }
+                                }
+                                Error::SerializationError => {
+                                    *ptr2.add(4).cast::<u8>() = (7i32) as u8;
+                                }
+                            }
                         }
                     };
                     ptr2
@@ -910,6 +1142,76 @@ mod _rt {
             self as i64
         }
     }
+
+    pub fn as_i32<T: AsI32>(t: T) -> i32 {
+        t.as_i32()
+    }
+
+    pub trait AsI32 {
+        fn as_i32(self) -> i32;
+    }
+
+    impl<'a, T: Copy + AsI32> AsI32 for &'a T {
+        fn as_i32(self) -> i32 {
+            (*self).as_i32()
+        }
+    }
+
+    impl AsI32 for i32 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for u32 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for i16 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for u16 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for i8 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for u8 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for char {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for usize {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
     extern crate alloc as alloc_crate;
 }
 
@@ -944,28 +1246,37 @@ pub(crate) use __export_nodeworld_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:nodeworld:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 969] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc9\x06\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1497] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xd9\x0a\x01A\x02\x01\
 A\x04\x01B\x13\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01s\x04\
-\0\x03key\x03\0\x02\x01m\x01\x03nae\x04\0\x05error\x03\0\x04\x04\0\x05store\x03\x01\
+\0\x03key\x03\0\x02\x01q\x0a\x0dkey-not-found\0\0\x12key-already-exists\0\0\x10u\
+nexpected-error\0\0\x12key-overflow-error\0\0\x14value-overflow-error\0\0\x14try\
+-from-slice-error\0\0\x0autf8-error\0\0\x10filesystem-error\x01}\0\x13invalid-ma\
+gic-bytes\0\0\x0cstream-error\0\0\x04\0\x05error\x03\0\x04\x04\0\x05store\x03\x01\
 \x01i\x06\x01@\0\0\x07\x04\0\x12[constructor]store\x01\x08\x01h\x06\x01j\0\x01\x05\
 \x01@\x02\x04self\x09\x02kv\x01\0\x0a\x04\0\x14[method]store.insert\x01\x0b\x01j\
 \x01\x01\x01\x05\x01@\x02\x04self\x09\x03key\x03\0\x0c\x04\0\x14[method]store.se\
 arch\x01\x0d\x01@\x02\x04self\x09\x03key\x03\0\x0a\x04\0\x14[method]store.delete\
-\x01\x0e\x03\x01\x1bcomponent:store/types@0.1.0\x05\0\x01B\x18\x01r\x02\x03keys\x05\
-values\x04\0\x0ekey-value-pair\x03\0\0\x01m\x03\x0dnetwork-error\x0btbdex-error\x07\
-no-tbdx\x04\0\x05error\x03\0\x02\x01r\x02\x02ips\x04port{\x04\0\x0esocket-addres\
-s\x03\0\x04\x01m\x03\x07mainnet\x07testnet\x07regtest\x04\0\x0fbitcoin-network\x03\
-\0\x06\x01ks\x01r\x04\x03fee\x08\x19estimated-settlement-timew\x02ids\x04rates\x04\
-\0\x10offering-bargain\x03\0\x09\x01r\x04\x0ewallet-addresss\x11genesis-blockhas\
-hs\x07network\x07\x0esocket-address\x05\x04\0\x0bnode-config\x03\0\x0b\x04\0\x0b\
-client-node\x03\x01\x01i\x0d\x01@\x01\x06config\x0c\0\x0e\x04\0\x18[constructor]\
-client-node\x01\x0f\x01h\x0d\x01j\x01x\x01\x03\x01@\x01\x04self\x10\0\x11\x04\0\x1f\
-[method]client-node.get-balance\x01\x12\x01j\0\x01\x03\x01@\x02\x04self\x10\x06f\
-ilters\0\x13\x04\0\x1e[method]client-node.add-filter\x01\x14\x04\x01\x1acomponen\
-t:node/types@0.1.0\x05\x01\x04\x01\x1ecomponent:node/nodeworld@0.1.0\x04\0\x0b\x0f\
-\x01\0\x09nodeworld\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-compo\
-nent\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+\x01\x0e\x03\x01\x1bcomponent:store/types@0.1.0\x05\0\x01B\x1a\x01r\x02\x03keys\x05\
+values\x04\0\x0ekey-value-pair\x03\0\0\x01q\x0a\x0dkey-not-found\0\0\x12key-alre\
+ady-exists\0\0\x10unexpected-error\0\0\x12key-overflow-error\0\0\x14value-overfl\
+ow-error\0\0\x14try-from-slice-error\0\0\x0autf8-error\0\0\x10filesystem-error\x01\
+}\0\x13invalid-magic-bytes\0\0\x0cstream-error\0\0\x04\0\x0bstore-error\x03\0\x02\
+\x01q\x08\x0dnetwork-error\0\0\x14fetch-compact-filter\x01y\0\x1bfetch-compact-f\
+ilter-header\x01y\0\x0bfetch-block\x01y\0\x11fetch-transaction\x01y\0\x0cfetch-h\
+eader\x01y\0\x0bstore-error\x01\x03\0\x13serialization-error\0\0\x04\0\x05error\x03\
+\0\x04\x01r\x02\x02ips\x04port{\x04\0\x0esocket-address\x03\0\x06\x01m\x03\x07ma\
+innet\x07testnet\x07regtest\x04\0\x0fbitcoin-network\x03\0\x08\x01ks\x01r\x04\x03\
+fee\x0a\x19estimated-settlement-timew\x02ids\x04rates\x04\0\x10offering-bargain\x03\
+\0\x0b\x01r\x04\x0ewallet-addresss\x11genesis-blockhashs\x07network\x09\x0esocke\
+t-address\x07\x04\0\x0bnode-config\x03\0\x0d\x04\0\x0bclient-node\x03\x01\x01i\x0f\
+\x01@\x01\x06config\x0e\0\x10\x04\0\x18[constructor]client-node\x01\x11\x01h\x0f\
+\x01j\x01x\x01\x05\x01@\x01\x04self\x12\0\x13\x04\0\x1f[method]client-node.get-b\
+alance\x01\x14\x01j\0\x01\x05\x01@\x02\x04self\x12\x06filters\0\x15\x04\0\x1e[me\
+thod]client-node.add-filter\x01\x16\x04\x01\x1acomponent:node/types@0.1.0\x05\x01\
+\x04\x01\x1ecomponent:node/nodeworld@0.1.0\x04\0\x0b\x0f\x01\0\x09nodeworld\x03\0\
+\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bi\
+ndgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

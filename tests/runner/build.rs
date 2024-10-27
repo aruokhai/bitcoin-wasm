@@ -92,6 +92,15 @@ fn compose_component(package_name: &str) -> PathBuf {
         .as_object().unwrap();
 
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+
+    let mut cmd = Command::new("cargo-component");
+    cmd.arg("build")
+        .arg(format!("--package={}",package_name))
+        .env("CARGO_TARGET_DIR", &out_dir)
+        .env("CARGO_PROFILE_DEV_DEBUG", "1");
+        println!("running: {cmd:?}");
+        let status = cmd.status().unwrap();
+        assert!(status.success());
     
     let built_path = out_dir
         .join("wasm32-wasi")
@@ -111,8 +120,8 @@ fn compose_component(package_name: &str) -> PathBuf {
 
     for (key, path) in real_targets.into_iter() {
         let modified_key = key.split(":").collect::<Vec<&str>>()[1];
-        let real_path: &str = path.get("path").unwrap().as_str().unwrap();
         let path  = compose_component(modified_key); 
+        println!("this is output path{:?}", path);
         wac.arg("--plug")
         .arg(format!("{}",path.to_str().unwrap()));
     }

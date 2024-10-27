@@ -9,8 +9,17 @@ interface types {
 
     type key = string;
 
-    enum error{
-        nae,
+    variant error{
+        key-not-found,
+        key-already-exists,
+        unexpected-error,
+        key-overflow-error,
+        value-overflow-error,
+        try-from-slice-error,
+        utf8-error,
+        filesystem-error(u8),
+        invalid-magic-bytes,
+        stream-error
     }
     
 

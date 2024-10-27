@@ -48,6 +48,32 @@ pub enum Error {
     PeerNotFound
 }
 
+impl Error {
+    pub fn to_error_code(&self) -> u32 {
+        match self {
+            Error::BadArgument(_) => 1,
+            Error::BadData(_) => 2,
+            Error::FromBase58Error(_) => 3,
+            Error::FromHexError(_) => 4,
+            Error::FromUtf8Error(_) => 5,
+            Error::IllegalState(_) => 6,
+            Error::InvalidOperation(_) => 7,
+            Error::IOError(_) => 8,
+            Error::ParseIntError(_) => 9,
+            Error::ScriptError(_) => 10,
+            Error::Secp256k1Error(_) => 11,
+            Error::Timeout => 12,
+            Error::UnspecifiedRingError => 13,
+            Error::Unsupported(_) => 14,
+            Error::StreamingError(_) => 15,
+            Error::WrongP2PMessage => 16,
+            Error::TCPError(_) => 17,
+            Error::SliceError(_) => 18,
+            Error::PeerNotFound => 19,
+        }
+    }
+}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {

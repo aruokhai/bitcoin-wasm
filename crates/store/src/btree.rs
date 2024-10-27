@@ -47,7 +47,7 @@ impl BTreeBuilder {
             "wasm-btree",
             OpenFlags::DIRECTORY,
             DescriptorFlags::MUTATE_DIRECTORY)
-            .map_err(|err| Error::FilesystemError(err.name().to_string())).unwrap();
+            .map_err(|err| Error::FilesystemError(err as u8)).unwrap();
         BTreeBuilder {
             path: new_dir,
             b: 200,

@@ -184,7 +184,7 @@ impl TryFrom<&[u8]> for Value {
 
     fn try_from(arr: &[u8]) -> Result<Self, Self::Error> {
         if arr.len() > PTR_SIZE {
-            return Err(Error::TryFromSliceError("Unexpected Error: Array recieved is larger than the maximum allowed size of: 4096B."));
+            return Err(Error::TryFromSliceError);
         }
 
         let mut truncated_arr = [0u8; PTR_SIZE];

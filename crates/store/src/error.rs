@@ -8,10 +8,11 @@ pub enum Error {
     UnexpectedError,
     KeyOverflowError,
     ValueOverflowError,
-    TryFromSliceError(&'static str),
+    TryFromSliceError,
     UTF8Error,
-    FilesystemError(String),
+    FilesystemError(u8),
     InvalidMagicBytes,
+    StreamError
 }
 
 impl std::convert::From<std::io::Error> for Error {
@@ -20,9 +21,19 @@ impl std::convert::From<std::io::Error> for Error {
     }
 }
 
-impl From<Error> for GuestError {
-    
-    fn from(val: Error) -> Self {
-        GuestError::Nae
+impl Into<GuestError> for Error {
+    fn into(self) -> GuestError {
+        match self {
+            Error::KeyNotFound => GuestError::KeyNotFound,
+            Error::KeyAlreadyExists => GuestError::KeyAlreadyExists,
+            Error::UnexpectedError => GuestError::UnexpectedError,
+            Error::KeyOverflowError => GuestError::KeyOverflowError,
+            Error::ValueOverflowError => GuestError::ValueOverflowError,
+            Error::TryFromSliceError => GuestError::TryFromSliceError,
+            Error::UTF8Error => GuestError::Utf8Error,
+            Error::FilesystemError(error_code) =>  GuestError::FilesystemError(error_code),
+            Error::InvalidMagicBytes => GuestError::InvalidMagicBytes,
+            Error::StreamError => GuestError::StreamError,
+        }
     }
 }

@@ -4,7 +4,7 @@ use std::{hash::Hash, iter::zip, vec};
 use bitcoin::{
     block, network as bitcoin_network,
 };
-use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork, NodeConfig as WasiNodeConfig};
+use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork,Error as WasiError, NodeConfig as WasiNodeConfig, StoreError as NodeStoreError};
 use bindings::component::store::types::{Store,KeyValuePair, Error as StoreError };
 
 use crate::{bindings, messages::{block::Block, compact_filter::{self, CompactFilter}, filter_locator::NO_HASH_STOP, headers, BlockHeader, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, sha256d, Hash256}};
@@ -26,7 +26,39 @@ impl From<WasiBitcoinNetwork> for bitcoin_network::Network {
             WasiBitcoinNetwork::Regtest => bitcoin_network::Network::Regtest,
         }
     }
+}
+
+impl Into<WasiError> for NodeError {
+    fn into(self) -> WasiError {
+        match self {
+            NodeError::NetworkError => WasiError::NetworkError,
+            NodeError::FetchCompactFilter(error_code) => WasiError::FetchCompactFilter(error_code),
+            NodeError::FetchCompactFilterHeader(error_code) => WasiError::FetchCompactFilterHeader(error_code),
+            NodeError::FetchBlock(error_code) => WasiError::FetchBlock(error_code),
+            NodeError::FetchTransaction(error_code) => WasiError::FetchTransaction(error_code),
+            NodeError::FetchHeader(error_code) => WasiError::FetchHeader(error_code),
+            NodeError::StoreError(error)=> WasiError::StoreError(error),
+            NodeError::SerializationError => WasiError::SerializationError,
+        }
+    }
 } 
+
+impl From<StoreError> for NodeStoreError {
+    fn from(value: StoreError) -> Self {
+        match value {
+            StoreError::KeyNotFound => NodeStoreError::KeyNotFound,
+            StoreError::KeyAlreadyExists => NodeStoreError::KeyAlreadyExists,
+            StoreError::UnexpectedError => NodeStoreError::UnexpectedError,
+            StoreError::KeyOverflowError => NodeStoreError::KeyOverflowError,
+            StoreError::ValueOverflowError => NodeStoreError::ValueOverflowError,
+            StoreError::TryFromSliceError => NodeStoreError::TryFromSliceError,
+            StoreError::Utf8Error => NodeStoreError::Utf8Error,
+            StoreError::FilesystemError(error_code) => NodeStoreError::FilesystemError(error_code),
+            StoreError::InvalidMagicBytes => NodeStoreError::InvalidMagicBytes,
+            StoreError::StreamError => NodeStoreError::StreamError,
+        }
+    }
+}
 
 impl From<WasiNodeConfig> for NodeConfig {
     fn from(val: WasiNodeConfig) -> Self {
@@ -76,12 +108,12 @@ pub struct NodeConfig {
 #[derive(Debug)]
 pub enum NodeError {
     NetworkError,
-    FetchCompactFilter(util::Error),
-    FetchCompactFilterHeader(util::Error),
-    FetchBlock(util::Error),
-    FetchTransaction(util::Error),
-    FetchHeader(util::Error),
-    StoreError(StoreError),
+    FetchCompactFilter(u32),
+    FetchCompactFilterHeader(u32),
+    FetchBlock(u32),
+    FetchTransaction(u32),
+    FetchHeader(u32),
+    StoreError(NodeStoreError),
     SerializationError,
 }
 
@@ -134,7 +166,7 @@ impl Node {
         // Serialize the Vec<String> to a JSON string
         let json_string = serde_json::to_string(&string_data).map_err(|_| NodeError::SerializationError)?;
 
-        self.store.get_mut().insert(&KeyValuePair { key: "filter_scripts".to_string(), value: json_string}).map_err(|err| NodeError::StoreError(err))?;
+        self.store.get_mut().insert(&KeyValuePair { key: "filter_scripts".to_string(), value: json_string}).map_err(|err| NodeError::StoreError(err.into()))?;
 
         Ok(())
     }
@@ -161,8 +193,8 @@ impl Node {
 
     
     fn get_and_verify_compact_filters(& mut self, start_height: u32, last_block_hash: Hash256) -> Result<Vec<CompactFilter>, NodeError> {
-        let filter_header = self.p2p.get_compact_filter_headers(start_height, last_block_hash).map_err(|err| NodeError::FetchCompactFilterHeader(err))?;
-        let filters = self.p2p.get_compact_filters(start_height, last_block_hash).map_err(|err| NodeError::FetchCompactFilter(err))?;
+        let filter_header = self.p2p.get_compact_filter_headers(start_height, last_block_hash).map_err(|err| NodeError::FetchCompactFilterHeader(err.to_error_code()))?;
+        let filters = self.p2p.get_compact_filters(start_height, last_block_hash).map_err(|err| NodeError::FetchCompactFilter(err.to_error_code()))?;
 
         
         for (filter_hash, compact_filter) in zip(filter_header.filter_hashes, filters.clone()) {
@@ -195,7 +227,7 @@ impl Node {
         while is_sync {
 
             let block_headers = self.p2p.fetch_headers(last_block_hash)
-            .map_err(|err| NodeError::FetchHeader(err))?;
+            .map_err(|err| NodeError::FetchHeader(err.to_error_code()))?;
             
             if block_headers.len() == 0 {
                 return Ok(());
@@ -239,9 +271,9 @@ impl Node {
         self.last_block_height = last_block_height;
         self.last_block_hash = last_block_hash;
 
-        self.store.get_mut().insert(&KeyValuePair { key: "balance_sats".to_string(), value: balance_sats.to_string()}).map_err(|err| NodeError::StoreError(err))?;
-        self.store.get_mut().insert(&KeyValuePair { key: "last_block_height".to_string(), value: last_block_height.to_string()}).map_err(|err| NodeError::StoreError(err))?;
-        self.store.get_mut().insert(&KeyValuePair { key: "last_block_hash".to_string(), value: last_block_hash.encode()}).map_err(|err| NodeError::StoreError(err))?;
+        self.store.get_mut().insert(&KeyValuePair { key: "balance_sats".to_string(), value: balance_sats.to_string()}).map_err(|err| NodeError::StoreError(err.into()))?;
+        self.store.get_mut().insert(&KeyValuePair { key: "last_block_height".to_string(), value: last_block_height.to_string()}).map_err(|err| NodeError::StoreError(err.into()))?;
+        self.store.get_mut().insert(&KeyValuePair { key: "last_block_hash".to_string(), value: last_block_hash.encode()}).map_err(|err| NodeError::StoreError(err.into()))?;
 
         
         Ok(())
@@ -269,7 +301,7 @@ impl Node {
             InvVect{ obj_type: 2, hash }
         }).collect();
 
-        let blocks = self.p2p.get_block(Inv{ objects: block_inv}).map_err(|err| NodeError::FetchBlock(err))?;
+        let blocks = self.p2p.get_block(Inv{ objects: block_inv}).map_err(|err| NodeError::FetchBlock(err.to_error_code()))?;
 
 
         for block in blocks {

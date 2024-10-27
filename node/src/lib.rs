@@ -20,15 +20,9 @@ struct BitcoinNode {
     inner: RefCell<Node>,
 }
 
-struct KeyValuePair {
-    key: String,
-    value: String,
-}
-
-
 impl GuestClientNode for BitcoinNode {
     fn get_balance(&self) -> Result<i64, Error> {
-        return  self.inner.borrow_mut().get_balance().map_err(|_| Error::NetworkError);
+        return  self.inner.borrow_mut().get_balance().map_err(|err| err.into());
     }
 
     // fn new(config: NodeConfig, tbdx_config: Option<TbdexConfig>) -> Self {
@@ -42,7 +36,7 @@ impl GuestClientNode for BitcoinNode {
     // }
 
     fn add_filter(&self, filter: String) -> Result<(), Error> {
-        return  self.inner.borrow_mut().add_filter(filter).map_err(|_| Error::NetworkError);
+        return  self.inner.borrow_mut().add_filter(filter).map_err(|err| err.into());
     }
 
     fn new(config: NodeConfig) -> Self {
