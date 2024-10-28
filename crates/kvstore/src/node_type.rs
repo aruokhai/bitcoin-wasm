@@ -3,7 +3,7 @@ use crate::page_layout::PTR_SIZE;
 use std::cmp::{Eq, Ord, Ordering, PartialOrd};
 use std::convert::From;
 use std::convert::TryFrom;
-use crate::bindings::exports::component::store::types::{KeyValuePair as KV};
+use crate::bindings::exports::component::kvstore::types::{KeyValuePair as KV};
 
 
 #[derive(Clone, Eq, PartialEq, Debug)]

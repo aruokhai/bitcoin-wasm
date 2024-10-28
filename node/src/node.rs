@@ -5,7 +5,7 @@ use bitcoin::{
     block, network as bitcoin_network,
 };
 use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork,Error as WasiError, NodeConfig as WasiNodeConfig, StoreError as NodeStoreError};
-use bindings::component::store::types::{Store,KeyValuePair, Error as StoreError };
+use bindings::component::kvstore::types::{Kvstore,KeyValuePair, Error as StoreError };
 
 use crate::{bindings, messages::{block::Block, compact_filter::{self, CompactFilter}, filter_locator::NO_HASH_STOP, headers, BlockHeader, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, sha256d, Hash256}};
 
@@ -123,13 +123,13 @@ pub struct Node {
     last_block_hash: Hash256,
     last_block_height: u64,
     balance_sats: i64,
-    store: RefCell<Store>,
+    store: RefCell<Kvstore>,
 }
 
 
 impl Node {
 
-    pub fn new(node_config: NodeConfig, mut store: RefCell<Store>) -> Self {
+    pub fn new(node_config: NodeConfig, mut store: RefCell<Kvstore>) -> Self {
         let mut p2p = P2P::new();
         p2p.connect_peer(node_config.socket_address, node_config.network) .expect("Failed to connect to peer");
 

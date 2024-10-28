@@ -127,6 +127,8 @@ fn compose_component(package_name: &str) -> PathBuf {
     }
 
     let output_path = out_dir
+        .join("wasm32-wasi")
+        .join("debug")
         .join(format!("{}-composed.wasm",package_name));
     wac.arg("-o")
     .arg(format!("{}",output_path.to_str().unwrap()));

@@ -1,4 +1,5 @@
-use exports::component::node::types::{BitcoinNetwork, NodeConfig, SocketAddress};
+
+use exports::component::kvstore::types::{KeyValuePair, Kvstore, Error};
 use std::env;
 use std::path::PathBuf;
 use wasmtime::component::*;
@@ -6,28 +7,39 @@ use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{ DirPerms, FilePerms, WasiCtx, WasiCtxBuilder, WasiView};
 use wasmtime_wasi_http::{self, WasiHttpCtx, WasiHttpView};
 
-include!(concat!(env!("OUT_DIR"), "/node_WIT.rs"));
+include!(concat!(env!("OUT_DIR"), "/kvstore_WIT.rs"));
 
 
-pub fn test_node(){
+pub fn test_store(){
     
-    let (nodeworld, mut store ,node) = create_node().unwrap();
-    let wallet_filter = "0014622d0e3b6cc7af423cc297fd931a9528e8548292".to_string();
-    nodeworld.component_node_types().client_node().call_add_filter(&mut store, node.clone(), &wallet_filter).unwrap().unwrap();
-    let balance = nodeworld.component_node_types().client_node().call_get_balance(&mut store, node.clone()).unwrap().unwrap();
-    assert_eq!(balance, 10_0000_0000);
+    let (storeworld, mut store ,kvstore) = create_kvstore().unwrap();
+
+    let mut key_value:  Vec<(String,String)> = vec![];
+    for i in 1..20 {
+        let k = i * 3;
+        key_value.push((i.to_string(), k.to_string()))
+    }
+
+    for (key,value) in key_value.iter() {
+        storeworld.component_kvstore_types().kvstore().call_insert(&mut store, kvstore.clone(), &KeyValuePair{ key: key.to_owned(), value: value.to_owned()}).unwrap().unwrap();
+    }
+    for (key,value) in key_value.iter() {
+        let searched_value = storeworld.component_kvstore_types().kvstore().call_search(&mut store, kvstore.clone(), key).unwrap().unwrap();
+        assert_eq!(searched_value.value, value.to_owned());
+        println!("working motherfucker")
+    }
 
 
 }
 
-fn create_node() -> wasmtime::Result<(Nodeworld, Store<ServerWasiView>, ResourceAny)> {
+fn create_kvstore() -> wasmtime::Result<(Kvstoreworld, Store<ServerWasiView>, ResourceAny)> {
     let mut config = Config::default();
     config.wasm_component_model(true);
     config.async_support(false);
     let engine = Engine::new(&config)?;
     let mut linker = Linker::new(&engine);
     let pathtowasm  = PathBuf::from(env::var_os("OUT_DIR").unwrap())
-            .join(format!("wasm32-wasi/debug/node-composed.wasm"));
+            .join(format!("wasm32-wasi/debug/kvstore.wasm"));
 
     // Add the command world (aka WASI CLI) to the linker
     wasmtime_wasi::add_to_linker_sync(&mut linker).unwrap();
@@ -38,17 +50,11 @@ fn create_node() -> wasmtime::Result<(Nodeworld, Store<ServerWasiView>, Resource
     
     let component = Component::from_file(&engine, pathtowasm).unwrap();
     // linker.define_unknown_imports_as_traps(&component).unwrap();
-    let instance =  Nodeworld::instantiate(&mut store, &component, &linker)
+    let instance =  Kvstoreworld::instantiate(&mut store, &component, &linker)
         .unwrap();
     
-    let ip_config = SocketAddress{ ip: "127.0.0.1".to_string(), port: 19444 };
-    let network_config = BitcoinNetwork::Regtest;
-    let wallet_address = "bcrt1qvgksuwmvc7h5y0xzjl7exx549r59fq5jgcdm93".to_string();
-    let wallet_filter = "0014622d0e3b6cc7af423cc297fd931a9528e8548292".to_string();
-    let genesis_blockhash = "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206".to_string();
 
-    let node_config = NodeConfig{ socket_address: ip_config, network: network_config, wallet_address, genesis_blockhash};
-    let resource = instance.component_node_types().client_node().call_constructor(&mut store, &node_config).unwrap();
+    let resource = instance.component_kvstore_types().kvstore().call_constructor(&mut store).unwrap();
     
     wasmtime::Result::Ok((instance, store, resource))
 }
@@ -95,3 +101,31 @@ impl WasiHttpView for ServerWasiView {
         &mut self.http_ctx
     }
 }
+
+// pub fn test_store(){
+//     test_insert();
+//     test_delete();
+// } 
+
+
+//  fn test_insert() {
+    
+// }
+
+//  fn test_delete() {
+//     let mut key_value:  Vec<(String,String)> = vec![];
+//     for i in 1..20 {
+//         let k = i * 3;
+//         key_value.push((i.to_string(), k.to_string()))
+//     }
+
+//     let new_store = Store::new();
+//     for (key,value) in key_value.iter() {
+//         new_store.insert(&KeyValuePair{ key: key.to_owned(), value: value.to_owned()}).unwrap();
+//     }
+//     for (key,value) in key_value.iter() {
+//         new_store.delete(key).unwrap();
+//         assert!(matches!(new_store.search(key), Err(_)))
+//     }
+// }
+

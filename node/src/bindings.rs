@@ -3,7 +3,7 @@
 #[allow(dead_code)]
 pub mod component {
     #[allow(dead_code)]
-    pub mod store {
+    pub mod kvstore {
         #[allow(dead_code, clippy::all)]
         pub mod types {
             #[used]
@@ -77,11 +77,11 @@ pub mod component {
 
             #[derive(Debug)]
             #[repr(transparent)]
-            pub struct Store {
-                handle: _rt::Resource<Store>,
+            pub struct Kvstore {
+                handle: _rt::Resource<Kvstore>,
             }
 
-            impl Store {
+            impl Kvstore {
                 #[doc(hidden)]
                 pub unsafe fn from_handle(handle: u32) -> Self {
                     Self {
@@ -100,7 +100,7 @@ pub mod component {
                 }
             }
 
-            unsafe impl _rt::WasmResource for Store {
+            unsafe impl _rt::WasmResource for Kvstore {
                 #[inline]
                 unsafe fn drop(_handle: u32) {
                     #[cfg(not(target_arch = "wasm32"))]
@@ -108,9 +108,9 @@ pub mod component {
 
                     #[cfg(target_arch = "wasm32")]
                     {
-                        #[link(wasm_import_module = "component:store/types@0.1.0")]
+                        #[link(wasm_import_module = "component:kvstore/types@0.1.0")]
                         extern "C" {
-                            #[link_name = "[resource-drop]store"]
+                            #[link_name = "[resource-drop]kvstore"]
                             fn drop(_: u32);
                         }
 
@@ -119,14 +119,14 @@ pub mod component {
                 }
             }
 
-            impl Store {
+            impl Kvstore {
                 #[allow(unused_unsafe, clippy::all)]
                 pub fn new() -> Self {
                     unsafe {
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:store/types@0.1.0")]
+                        #[link(wasm_import_module = "component:kvstore/types@0.1.0")]
                         extern "C" {
-                            #[link_name = "[constructor]store"]
+                            #[link_name = "[constructor]kvstore"]
                             fn wit_import() -> i32;
                         }
 
@@ -135,11 +135,11 @@ pub mod component {
                             unreachable!()
                         }
                         let ret = wit_import();
-                        Store::from_handle(ret as u32)
+                        Kvstore::from_handle(ret as u32)
                     }
                 }
             }
-            impl Store {
+            impl Kvstore {
                 #[allow(unused_unsafe, clippy::all)]
                 pub fn insert(&self, kv: &KeyValuePair) -> Result<(), Error> {
                     unsafe {
@@ -158,9 +158,9 @@ pub mod component {
                         let len2 = vec2.len();
                         let ptr3 = ret_area.0.as_mut_ptr().cast::<u8>();
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:store/types@0.1.0")]
+                        #[link(wasm_import_module = "component:kvstore/types@0.1.0")]
                         extern "C" {
-                            #[link_name = "[method]store.insert"]
+                            #[link_name = "[method]kvstore.insert"]
                             fn wit_import(
                                 _: i32,
                                 _: *mut u8,
@@ -231,7 +231,7 @@ pub mod component {
                     }
                 }
             }
-            impl Store {
+            impl Kvstore {
                 #[allow(unused_unsafe, clippy::all)]
                 pub fn search(&self, key: &Key) -> Result<KeyValuePair, Error> {
                     unsafe {
@@ -243,9 +243,9 @@ pub mod component {
                         let len0 = vec0.len();
                         let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:store/types@0.1.0")]
+                        #[link(wasm_import_module = "component:kvstore/types@0.1.0")]
                         extern "C" {
-                            #[link_name = "[method]store.search"]
+                            #[link_name = "[method]kvstore.search"]
                             fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
                         }
 
@@ -309,7 +309,7 @@ pub mod component {
                     }
                 }
             }
-            impl Store {
+            impl Kvstore {
                 #[allow(unused_unsafe, clippy::all)]
                 pub fn delete(&self, key: &Key) -> Result<(), Error> {
                     unsafe {
@@ -321,9 +321,9 @@ pub mod component {
                         let len0 = vec0.len();
                         let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:store/types@0.1.0")]
+                        #[link(wasm_import_module = "component:kvstore/types@0.1.0")]
                         extern "C" {
-                            #[link_name = "[method]store.delete"]
+                            #[link_name = "[method]kvstore.delete"]
                             fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
                         }
 
@@ -1246,37 +1246,37 @@ pub(crate) use __export_nodeworld_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:nodeworld:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1497] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xd9\x0a\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1509] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xe5\x0a\x01A\x02\x01\
 A\x04\x01B\x13\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01s\x04\
 \0\x03key\x03\0\x02\x01q\x0a\x0dkey-not-found\0\0\x12key-already-exists\0\0\x10u\
 nexpected-error\0\0\x12key-overflow-error\0\0\x14value-overflow-error\0\0\x14try\
 -from-slice-error\0\0\x0autf8-error\0\0\x10filesystem-error\x01}\0\x13invalid-ma\
-gic-bytes\0\0\x0cstream-error\0\0\x04\0\x05error\x03\0\x04\x04\0\x05store\x03\x01\
-\x01i\x06\x01@\0\0\x07\x04\0\x12[constructor]store\x01\x08\x01h\x06\x01j\0\x01\x05\
-\x01@\x02\x04self\x09\x02kv\x01\0\x0a\x04\0\x14[method]store.insert\x01\x0b\x01j\
-\x01\x01\x01\x05\x01@\x02\x04self\x09\x03key\x03\0\x0c\x04\0\x14[method]store.se\
-arch\x01\x0d\x01@\x02\x04self\x09\x03key\x03\0\x0a\x04\0\x14[method]store.delete\
-\x01\x0e\x03\x01\x1bcomponent:store/types@0.1.0\x05\0\x01B\x1a\x01r\x02\x03keys\x05\
-values\x04\0\x0ekey-value-pair\x03\0\0\x01q\x0a\x0dkey-not-found\0\0\x12key-alre\
-ady-exists\0\0\x10unexpected-error\0\0\x12key-overflow-error\0\0\x14value-overfl\
-ow-error\0\0\x14try-from-slice-error\0\0\x0autf8-error\0\0\x10filesystem-error\x01\
-}\0\x13invalid-magic-bytes\0\0\x0cstream-error\0\0\x04\0\x0bstore-error\x03\0\x02\
-\x01q\x08\x0dnetwork-error\0\0\x14fetch-compact-filter\x01y\0\x1bfetch-compact-f\
-ilter-header\x01y\0\x0bfetch-block\x01y\0\x11fetch-transaction\x01y\0\x0cfetch-h\
-eader\x01y\0\x0bstore-error\x01\x03\0\x13serialization-error\0\0\x04\0\x05error\x03\
-\0\x04\x01r\x02\x02ips\x04port{\x04\0\x0esocket-address\x03\0\x06\x01m\x03\x07ma\
-innet\x07testnet\x07regtest\x04\0\x0fbitcoin-network\x03\0\x08\x01ks\x01r\x04\x03\
-fee\x0a\x19estimated-settlement-timew\x02ids\x04rates\x04\0\x10offering-bargain\x03\
-\0\x0b\x01r\x04\x0ewallet-addresss\x11genesis-blockhashs\x07network\x09\x0esocke\
-t-address\x07\x04\0\x0bnode-config\x03\0\x0d\x04\0\x0bclient-node\x03\x01\x01i\x0f\
-\x01@\x01\x06config\x0e\0\x10\x04\0\x18[constructor]client-node\x01\x11\x01h\x0f\
-\x01j\x01x\x01\x05\x01@\x01\x04self\x12\0\x13\x04\0\x1f[method]client-node.get-b\
-alance\x01\x14\x01j\0\x01\x05\x01@\x02\x04self\x12\x06filters\0\x15\x04\0\x1e[me\
-thod]client-node.add-filter\x01\x16\x04\x01\x1acomponent:node/types@0.1.0\x05\x01\
-\x04\x01\x1ecomponent:node/nodeworld@0.1.0\x04\0\x0b\x0f\x01\0\x09nodeworld\x03\0\
-\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bi\
-ndgen-rust\x060.25.0";
+gic-bytes\0\0\x0cstream-error\0\0\x04\0\x05error\x03\0\x04\x04\0\x07kvstore\x03\x01\
+\x01i\x06\x01@\0\0\x07\x04\0\x14[constructor]kvstore\x01\x08\x01h\x06\x01j\0\x01\
+\x05\x01@\x02\x04self\x09\x02kv\x01\0\x0a\x04\0\x16[method]kvstore.insert\x01\x0b\
+\x01j\x01\x01\x01\x05\x01@\x02\x04self\x09\x03key\x03\0\x0c\x04\0\x16[method]kvs\
+tore.search\x01\x0d\x01@\x02\x04self\x09\x03key\x03\0\x0a\x04\0\x16[method]kvsto\
+re.delete\x01\x0e\x03\x01\x1dcomponent:kvstore/types@0.1.0\x05\0\x01B\x1a\x01r\x02\
+\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01q\x0a\x0dkey-not-found\0\0\
+\x12key-already-exists\0\0\x10unexpected-error\0\0\x12key-overflow-error\0\0\x14\
+value-overflow-error\0\0\x14try-from-slice-error\0\0\x0autf8-error\0\0\x10filesy\
+stem-error\x01}\0\x13invalid-magic-bytes\0\0\x0cstream-error\0\0\x04\0\x0bstore-\
+error\x03\0\x02\x01q\x08\x0dnetwork-error\0\0\x14fetch-compact-filter\x01y\0\x1b\
+fetch-compact-filter-header\x01y\0\x0bfetch-block\x01y\0\x11fetch-transaction\x01\
+y\0\x0cfetch-header\x01y\0\x0bstore-error\x01\x03\0\x13serialization-error\0\0\x04\
+\0\x05error\x03\0\x04\x01r\x02\x02ips\x04port{\x04\0\x0esocket-address\x03\0\x06\
+\x01m\x03\x07mainnet\x07testnet\x07regtest\x04\0\x0fbitcoin-network\x03\0\x08\x01\
+ks\x01r\x04\x03fee\x0a\x19estimated-settlement-timew\x02ids\x04rates\x04\0\x10of\
+fering-bargain\x03\0\x0b\x01r\x04\x0ewallet-addresss\x11genesis-blockhashs\x07ne\
+twork\x09\x0esocket-address\x07\x04\0\x0bnode-config\x03\0\x0d\x04\0\x0bclient-n\
+ode\x03\x01\x01i\x0f\x01@\x01\x06config\x0e\0\x10\x04\0\x18[constructor]client-n\
+ode\x01\x11\x01h\x0f\x01j\x01x\x01\x05\x01@\x01\x04self\x12\0\x13\x04\0\x1f[meth\
+od]client-node.get-balance\x01\x14\x01j\0\x01\x05\x01@\x02\x04self\x12\x06filter\
+s\0\x15\x04\0\x1e[method]client-node.add-filter\x01\x16\x04\x01\x1acomponent:nod\
+e/types@0.1.0\x05\x01\x04\x01\x1ecomponent:node/nodeworld@0.1.0\x04\0\x0b\x0f\x01\
+\0\x09nodeworld\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\
+\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

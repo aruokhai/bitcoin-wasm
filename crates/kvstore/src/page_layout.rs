@@ -2,12 +2,12 @@ use crate::btree::MAX_BRANCHING_FACTOR;
 use std::mem::size_of;
 
 /// A single page size.
-/// Each page represents a node in the BTree.
-pub const PAGE_SIZE: usize = 4096;
+/// Each page represents a node in the BTree (1 MB).
+pub const PAGE_SIZE: usize = 1048576;
 
 pub const PTR_SIZE: usize = size_of::<usize>();
 
-/// Common Node header layout (Ten bytes in total)
+/// Common Node header layout (10 bytes in total)
 pub const IS_ROOT_SIZE: usize = 1;
 pub const IS_ROOT_OFFSET: usize = 0;
 pub const NODE_TYPE_SIZE: usize = 1;
@@ -16,15 +16,15 @@ pub const PARENT_POINTER_OFFSET: usize = 2;
 pub const PARENT_POINTER_SIZE: usize = PTR_SIZE;
 pub const COMMON_NODE_HEADER_SIZE: usize = NODE_TYPE_SIZE + IS_ROOT_SIZE + PARENT_POINTER_SIZE;
 
-/// Leaf node header layout (Eighteen bytes in total)
+/// Leaf node header layout (18 bytes in total)
 ///
-/// Space for keys and values: PAGE_SIZE - LEAF_NODE_HEADER_SIZE = 4096 - 18 = 4078 bytes.
-/// Which leaves 4076 / keys_limit = 20 (ten for key and 10 for value).
+/// Space for keys and values: PAGE_SIZE - LEAF_NODE_HEADER_SIZE = 1048576 - 18 = 1048558 bytes.
+/// Which leaves 1048558 / (1) keys_limit = 1_001_024 ( 1024 key and 1_000_000 for value).
 pub const LEAF_NODE_NUM_PAIRS_OFFSET: usize = COMMON_NODE_HEADER_SIZE;
 pub const LEAF_NODE_NUM_PAIRS_SIZE: usize = PTR_SIZE;
 pub const LEAF_NODE_HEADER_SIZE: usize = COMMON_NODE_HEADER_SIZE + LEAF_NODE_NUM_PAIRS_SIZE;
 
-/// Internal header layout (Eighteen bytes in total)
+/// Internal header layout (18 bytes in total)
 ///
 // Space for children and keys: PAGE_SIZE - INTERNAL_NODE_HEADER_SIZE = 4096 - 18 = 4078 bytes.
 pub const INTERNAL_NODE_NUM_CHILDREN_OFFSET: usize = COMMON_NODE_HEADER_SIZE;
@@ -46,8 +46,8 @@ pub const MAX_SPACE_FOR_KEYS: usize =
     PAGE_SIZE - INTERNAL_NODE_HEADER_SIZE - MAX_SPACE_FOR_CHILDREN;
 
 /// Key, Value sizes.
-pub const KEY_SIZE: usize = 10;
-pub const VALUE_SIZE: usize = 10;
+pub const KEY_SIZE: usize = 1024;
+pub const VALUE_SIZE: usize = 1_000_000;
 
 /// Wrappers for converting byte to bool and back.
 /// The convention used throughout the index file is: one is true; otherwise - false.

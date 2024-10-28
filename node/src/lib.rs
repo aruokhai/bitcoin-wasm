@@ -4,7 +4,7 @@ use std::{cell::RefCell};
 
 use node::Node;
 use bindings::exports::component::node::types::{Guest,Error, GuestClientNode, NodeConfig};
-use bindings::component::store::types::{Store };
+use bindings::component::kvstore::types::{Kvstore };
 
 
 
@@ -40,7 +40,7 @@ impl GuestClientNode for BitcoinNode {
     }
 
     fn new(config: NodeConfig) -> Self {
-        Self{ inner:  Node::new(config.into(), Store::new().into()).into()}
+        Self{ inner:  Node::new(config.into(), Kvstore::new().into()).into()}
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::bindings::exports::component::store::types::{Error as GuestError};
+use crate::bindings::exports::component::kvstore::types::{Error as GuestError};
 
 
 #[derive(Debug)]

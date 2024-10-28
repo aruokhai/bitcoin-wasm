@@ -1,4 +1,8 @@
-package component:store@0.1.0;
+package component:kvstore@0.1.0;
+
+world kvstoreworld {
+    export types;
+}
 
 interface types { 
 
@@ -23,7 +27,7 @@ interface types {
     }
     
 
-    resource store {
+    resource kvstore {
 
         constructor();
 
@@ -34,13 +38,9 @@ interface types {
         delete: func(key: key) -> result<_, error>;
 
        
+    }
 }
 
-}
 
 
-/// An example world for the component to target.
-world store {
-    export types;
-}
 

@@ -5,7 +5,7 @@ pub mod exports {
     #[allow(dead_code)]
     pub mod component {
         #[allow(dead_code)]
-        pub mod store {
+        pub mod kvstore {
             #[allow(dead_code, clippy::all)]
             pub mod types {
                 #[used]
@@ -81,40 +81,40 @@ pub mod exports {
 
                 #[derive(Debug)]
                 #[repr(transparent)]
-                pub struct Store {
-                    handle: _rt::Resource<Store>,
+                pub struct Kvstore {
+                    handle: _rt::Resource<Kvstore>,
                 }
 
-                type _StoreRep<T> = Option<T>;
+                type _KvstoreRep<T> = Option<T>;
 
-                impl Store {
+                impl Kvstore {
                     /// Creates a new resource from the specified representation.
                     ///
                     /// This function will create a new resource handle by moving `val` onto
                     /// the heap and then passing that heap pointer to the component model to
-                    /// create a handle. The owned handle is then returned as `Store`.
-                    pub fn new<T: GuestStore>(val: T) -> Self {
+                    /// create a handle. The owned handle is then returned as `Kvstore`.
+                    pub fn new<T: GuestKvstore>(val: T) -> Self {
                         Self::type_guard::<T>();
-                        let val: _StoreRep<T> = Some(val);
-                        let ptr: *mut _StoreRep<T> = _rt::Box::into_raw(_rt::Box::new(val));
+                        let val: _KvstoreRep<T> = Some(val);
+                        let ptr: *mut _KvstoreRep<T> = _rt::Box::into_raw(_rt::Box::new(val));
                         unsafe { Self::from_handle(T::_resource_new(ptr.cast())) }
                     }
 
                     /// Gets access to the underlying `T` which represents this resource.
-                    pub fn get<T: GuestStore>(&self) -> &T {
+                    pub fn get<T: GuestKvstore>(&self) -> &T {
                         let ptr = unsafe { &*self.as_ptr::<T>() };
                         ptr.as_ref().unwrap()
                     }
 
                     /// Gets mutable access to the underlying `T` which represents this
                     /// resource.
-                    pub fn get_mut<T: GuestStore>(&mut self) -> &mut T {
+                    pub fn get_mut<T: GuestKvstore>(&mut self) -> &mut T {
                         let ptr = unsafe { &mut *self.as_ptr::<T>() };
                         ptr.as_mut().unwrap()
                     }
 
                     /// Consumes this resource and returns the underlying `T`.
-                    pub fn into_inner<T: GuestStore>(self) -> T {
+                    pub fn into_inner<T: GuestKvstore>(self) -> T {
                         let ptr = unsafe { &mut *self.as_ptr::<T>() };
                         ptr.take().unwrap()
                     }
@@ -136,7 +136,7 @@ pub mod exports {
                         _rt::Resource::handle(&self.handle)
                     }
 
-                    // It's theoretically possible to implement the `GuestStore` trait twice
+                    // It's theoretically possible to implement the `GuestKvstore` trait twice
                     // so guard against using it with two different types here.
                     #[doc(hidden)]
                     fn type_guard<T: 'static>() {
@@ -158,25 +158,25 @@ pub mod exports {
                     #[doc(hidden)]
                     pub unsafe fn dtor<T: 'static>(handle: *mut u8) {
                         Self::type_guard::<T>();
-                        let _ = _rt::Box::from_raw(handle as *mut _StoreRep<T>);
+                        let _ = _rt::Box::from_raw(handle as *mut _KvstoreRep<T>);
                     }
 
-                    fn as_ptr<T: GuestStore>(&self) -> *mut _StoreRep<T> {
-                        Store::type_guard::<T>();
+                    fn as_ptr<T: GuestKvstore>(&self) -> *mut _KvstoreRep<T> {
+                        Kvstore::type_guard::<T>();
                         T::_resource_rep(self.handle()).cast()
                     }
                 }
 
-                /// A borrowed version of [`Store`] which represents a borrowed value
+                /// A borrowed version of [`Kvstore`] which represents a borrowed value
                 /// with the lifetime `'a`.
                 #[derive(Debug)]
                 #[repr(transparent)]
-                pub struct StoreBorrow<'a> {
+                pub struct KvstoreBorrow<'a> {
                     rep: *mut u8,
-                    _marker: core::marker::PhantomData<&'a Store>,
+                    _marker: core::marker::PhantomData<&'a Kvstore>,
                 }
 
-                impl<'a> StoreBorrow<'a> {
+                impl<'a> KvstoreBorrow<'a> {
                     #[doc(hidden)]
                     pub unsafe fn lift(rep: usize) -> Self {
                         Self {
@@ -186,7 +186,7 @@ pub mod exports {
                     }
 
                     /// Gets access to the underlying `T` in this resource.
-                    pub fn get<T: GuestStore>(&self) -> &T {
+                    pub fn get<T: GuestKvstore>(&self) -> &T {
                         let ptr = unsafe { &mut *self.as_ptr::<T>() };
                         ptr.as_ref().unwrap()
                     }
@@ -194,13 +194,13 @@ pub mod exports {
                     // NB: mutable access is not allowed due to the component model allowing
                     // multiple borrows of the same resource.
 
-                    fn as_ptr<T: 'static>(&self) -> *mut _StoreRep<T> {
-                        Store::type_guard::<T>();
+                    fn as_ptr<T: 'static>(&self) -> *mut _KvstoreRep<T> {
+                        Kvstore::type_guard::<T>();
                         self.rep.cast()
                     }
                 }
 
-                unsafe impl _rt::WasmResource for Store {
+                unsafe impl _rt::WasmResource for Kvstore {
                     #[inline]
                     unsafe fn drop(_handle: u32) {
                         #[cfg(not(target_arch = "wasm32"))]
@@ -208,9 +208,9 @@ pub mod exports {
 
                         #[cfg(target_arch = "wasm32")]
                         {
-                            #[link(wasm_import_module = "[export]component:store/types@0.1.0")]
+                            #[link(wasm_import_module = "[export]component:kvstore/types@0.1.0")]
                             extern "C" {
-                                #[link_name = "[resource-drop]store"]
+                                #[link_name = "[resource-drop]kvstore"]
                                 fn drop(_: u32);
                             }
 
@@ -221,15 +221,15 @@ pub mod exports {
 
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn _export_constructor_store_cabi<T: GuestStore>() -> i32 {
+                pub unsafe fn _export_constructor_kvstore_cabi<T: GuestKvstore>() -> i32 {
                     #[cfg(target_arch = "wasm32")]
                     _rt::run_ctors_once();
-                    let result0 = Store::new(T::new());
+                    let result0 = Kvstore::new(T::new());
                     (result0).take_handle() as i32
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn _export_method_store_insert_cabi<T: GuestStore>(
+                pub unsafe fn _export_method_kvstore_insert_cabi<T: GuestKvstore>(
                     arg0: *mut u8,
                     arg1: *mut u8,
                     arg2: usize,
@@ -243,7 +243,7 @@ pub mod exports {
                     let len1 = arg4;
                     let bytes1 = _rt::Vec::from_raw_parts(arg3.cast(), len1, len1);
                     let result2 = T::insert(
-                        StoreBorrow::lift(arg0 as u32 as usize).get(),
+                        KvstoreBorrow::lift(arg0 as u32 as usize).get(),
                         KeyValuePair {
                             key: _rt::string_lift(bytes0),
                             value: _rt::string_lift(bytes1),
@@ -295,7 +295,7 @@ pub mod exports {
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn _export_method_store_search_cabi<T: GuestStore>(
+                pub unsafe fn _export_method_kvstore_search_cabi<T: GuestKvstore>(
                     arg0: *mut u8,
                     arg1: *mut u8,
                     arg2: usize,
@@ -305,7 +305,7 @@ pub mod exports {
                     let len0 = arg2;
                     let bytes0 = _rt::Vec::from_raw_parts(arg1.cast(), len0, len0);
                     let result1 = T::search(
-                        StoreBorrow::lift(arg0 as u32 as usize).get(),
+                        KvstoreBorrow::lift(arg0 as u32 as usize).get(),
                         _rt::string_lift(bytes0),
                     );
                     let ptr2 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
@@ -370,7 +370,7 @@ pub mod exports {
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn __post_return_method_store_search<T: GuestStore>(arg0: *mut u8) {
+                pub unsafe fn __post_return_method_kvstore_search<T: GuestKvstore>(arg0: *mut u8) {
                     let l0 = i32::from(*arg0.add(0).cast::<u8>());
                     match l0 {
                         0 => {
@@ -386,7 +386,7 @@ pub mod exports {
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn _export_method_store_delete_cabi<T: GuestStore>(
+                pub unsafe fn _export_method_kvstore_delete_cabi<T: GuestKvstore>(
                     arg0: *mut u8,
                     arg1: *mut u8,
                     arg2: usize,
@@ -396,7 +396,7 @@ pub mod exports {
                     let len0 = arg2;
                     let bytes0 = _rt::Vec::from_raw_parts(arg1.cast(), len0, len0);
                     let result1 = T::delete(
-                        StoreBorrow::lift(arg0 as u32 as usize).get(),
+                        KvstoreBorrow::lift(arg0 as u32 as usize).get(),
                         _rt::string_lift(bytes0),
                     );
                     let ptr2 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
@@ -444,9 +444,9 @@ pub mod exports {
                     ptr2
                 }
                 pub trait Guest {
-                    type Store: GuestStore;
+                    type Kvstore: GuestKvstore;
                 }
-                pub trait GuestStore: 'static {
+                pub trait GuestKvstore: 'static {
                     #[doc(hidden)]
                     unsafe fn _resource_new(val: *mut u8) -> u32
                     where
@@ -460,9 +460,9 @@ pub mod exports {
 
                         #[cfg(target_arch = "wasm32")]
                         {
-                            #[link(wasm_import_module = "[export]component:store/types@0.1.0")]
+                            #[link(wasm_import_module = "[export]component:kvstore/types@0.1.0")]
                             extern "C" {
-                                #[link_name = "[resource-new]store"]
+                                #[link_name = "[resource-new]kvstore"]
                                 fn new(_: *mut u8) -> u32;
                             }
                             new(val)
@@ -482,9 +482,9 @@ pub mod exports {
 
                         #[cfg(target_arch = "wasm32")]
                         {
-                            #[link(wasm_import_module = "[export]component:store/types@0.1.0")]
+                            #[link(wasm_import_module = "[export]component:kvstore/types@0.1.0")]
                             extern "C" {
-                                #[link_name = "[resource-rep]store"]
+                                #[link_name = "[resource-rep]kvstore"]
                                 fn rep(_: u32) -> *mut u8;
                             }
                             unsafe { rep(handle) }
@@ -498,37 +498,37 @@ pub mod exports {
                 }
                 #[doc(hidden)]
 
-                macro_rules! __export_component_store_types_0_1_0_cabi{
+                macro_rules! __export_component_kvstore_types_0_1_0_cabi{
   ($ty:ident with_types_in $($path_to_types:tt)*) => (const _: () = {
 
-    #[export_name = "component:store/types@0.1.0#[constructor]store"]
-    unsafe extern "C" fn export_constructor_store() -> i32 {
-      $($path_to_types)*::_export_constructor_store_cabi::<<$ty as $($path_to_types)*::Guest>::Store>()
+    #[export_name = "component:kvstore/types@0.1.0#[constructor]kvstore"]
+    unsafe extern "C" fn export_constructor_kvstore() -> i32 {
+      $($path_to_types)*::_export_constructor_kvstore_cabi::<<$ty as $($path_to_types)*::Guest>::Kvstore>()
     }
-    #[export_name = "component:store/types@0.1.0#[method]store.insert"]
-    unsafe extern "C" fn export_method_store_insert(arg0: *mut u8,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,) -> *mut u8 {
-      $($path_to_types)*::_export_method_store_insert_cabi::<<$ty as $($path_to_types)*::Guest>::Store>(arg0, arg1, arg2, arg3, arg4)
+    #[export_name = "component:kvstore/types@0.1.0#[method]kvstore.insert"]
+    unsafe extern "C" fn export_method_kvstore_insert(arg0: *mut u8,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,) -> *mut u8 {
+      $($path_to_types)*::_export_method_kvstore_insert_cabi::<<$ty as $($path_to_types)*::Guest>::Kvstore>(arg0, arg1, arg2, arg3, arg4)
     }
-    #[export_name = "component:store/types@0.1.0#[method]store.search"]
-    unsafe extern "C" fn export_method_store_search(arg0: *mut u8,arg1: *mut u8,arg2: usize,) -> *mut u8 {
-      $($path_to_types)*::_export_method_store_search_cabi::<<$ty as $($path_to_types)*::Guest>::Store>(arg0, arg1, arg2)
+    #[export_name = "component:kvstore/types@0.1.0#[method]kvstore.search"]
+    unsafe extern "C" fn export_method_kvstore_search(arg0: *mut u8,arg1: *mut u8,arg2: usize,) -> *mut u8 {
+      $($path_to_types)*::_export_method_kvstore_search_cabi::<<$ty as $($path_to_types)*::Guest>::Kvstore>(arg0, arg1, arg2)
     }
-    #[export_name = "cabi_post_component:store/types@0.1.0#[method]store.search"]
-    unsafe extern "C" fn _post_return_method_store_search(arg0: *mut u8,) {
-      $($path_to_types)*::__post_return_method_store_search::<<$ty as $($path_to_types)*::Guest>::Store>(arg0)
+    #[export_name = "cabi_post_component:kvstore/types@0.1.0#[method]kvstore.search"]
+    unsafe extern "C" fn _post_return_method_kvstore_search(arg0: *mut u8,) {
+      $($path_to_types)*::__post_return_method_kvstore_search::<<$ty as $($path_to_types)*::Guest>::Kvstore>(arg0)
     }
-    #[export_name = "component:store/types@0.1.0#[method]store.delete"]
-    unsafe extern "C" fn export_method_store_delete(arg0: *mut u8,arg1: *mut u8,arg2: usize,) -> *mut u8 {
-      $($path_to_types)*::_export_method_store_delete_cabi::<<$ty as $($path_to_types)*::Guest>::Store>(arg0, arg1, arg2)
+    #[export_name = "component:kvstore/types@0.1.0#[method]kvstore.delete"]
+    unsafe extern "C" fn export_method_kvstore_delete(arg0: *mut u8,arg1: *mut u8,arg2: usize,) -> *mut u8 {
+      $($path_to_types)*::_export_method_kvstore_delete_cabi::<<$ty as $($path_to_types)*::Guest>::Kvstore>(arg0, arg1, arg2)
     }
 
     const _: () = {
       #[doc(hidden)]
-      #[export_name = "component:store/types@0.1.0#[dtor]store"]
+      #[export_name = "component:kvstore/types@0.1.0#[dtor]kvstore"]
       #[allow(non_snake_case)]
       unsafe extern "C" fn dtor(rep: *mut u8) {
-        $($path_to_types)*::Store::dtor::<
-        <$ty as $($path_to_types)*::Guest>::Store
+        $($path_to_types)*::Kvstore::dtor::<
+        <$ty as $($path_to_types)*::Guest>::Kvstore
         >(rep)
       }
     };
@@ -536,7 +536,7 @@ pub mod exports {
   };);
 }
                 #[doc(hidden)]
-                pub(crate) use __export_component_store_types_0_1_0_cabi;
+                pub(crate) use __export_component_kvstore_types_0_1_0_cabi;
                 #[repr(align(4))]
                 struct _RetArea([::core::mem::MaybeUninit<u8>; 20]);
                 static mut _RET_AREA: _RetArea = _RetArea([::core::mem::MaybeUninit::uninit(); 20]);
@@ -755,32 +755,33 @@ mod _rt {
 #[allow(unused_macros)]
 #[doc(hidden)]
 
-macro_rules! __export_store_impl {
+macro_rules! __export_kvstoreworld_impl {
   ($ty:ident) => (self::export!($ty with_types_in self););
   ($ty:ident with_types_in $($path_to_types_root:tt)*) => (
-  $($path_to_types_root)*::exports::component::store::types::__export_component_store_types_0_1_0_cabi!($ty with_types_in $($path_to_types_root)*::exports::component::store::types);
+  $($path_to_types_root)*::exports::component::kvstore::types::__export_component_kvstore_types_0_1_0_cabi!($ty with_types_in $($path_to_types_root)*::exports::component::kvstore::types);
   )
 }
 #[doc(inline)]
-pub(crate) use __export_store_impl as export;
+pub(crate) use __export_kvstoreworld_impl as export;
 
 #[cfg(target_arch = "wasm32")]
-#[link_section = "component-type:wit-bindgen:0.25.0:store:encoded world"]
+#[link_section = "component-type:wit-bindgen:0.25.0:kvstoreworld:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 627] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xf7\x03\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 655] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x8c\x04\x01A\x02\x01\
 A\x02\x01B\x13\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01s\x04\
 \0\x03key\x03\0\x02\x01q\x0a\x0dkey-not-found\0\0\x12key-already-exists\0\0\x10u\
 nexpected-error\0\0\x12key-overflow-error\0\0\x14value-overflow-error\0\0\x14try\
 -from-slice-error\0\0\x0autf8-error\0\0\x10filesystem-error\x01}\0\x13invalid-ma\
-gic-bytes\0\0\x0cstream-error\0\0\x04\0\x05error\x03\0\x04\x04\0\x05store\x03\x01\
-\x01i\x06\x01@\0\0\x07\x04\0\x12[constructor]store\x01\x08\x01h\x06\x01j\0\x01\x05\
-\x01@\x02\x04self\x09\x02kv\x01\0\x0a\x04\0\x14[method]store.insert\x01\x0b\x01j\
-\x01\x01\x01\x05\x01@\x02\x04self\x09\x03key\x03\0\x0c\x04\0\x14[method]store.se\
-arch\x01\x0d\x01@\x02\x04self\x09\x03key\x03\0\x0a\x04\0\x14[method]store.delete\
-\x01\x0e\x04\x01\x1bcomponent:store/types@0.1.0\x05\0\x04\x01\x1bcomponent:store\
-/store@0.1.0\x04\0\x0b\x0b\x01\0\x05store\x03\0\0\0G\x09producers\x01\x0cprocess\
-ed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+gic-bytes\0\0\x0cstream-error\0\0\x04\0\x05error\x03\0\x04\x04\0\x07kvstore\x03\x01\
+\x01i\x06\x01@\0\0\x07\x04\0\x14[constructor]kvstore\x01\x08\x01h\x06\x01j\0\x01\
+\x05\x01@\x02\x04self\x09\x02kv\x01\0\x0a\x04\0\x16[method]kvstore.insert\x01\x0b\
+\x01j\x01\x01\x01\x05\x01@\x02\x04self\x09\x03key\x03\0\x0c\x04\0\x16[method]kvs\
+tore.search\x01\x0d\x01@\x02\x04self\x09\x03key\x03\0\x0a\x04\0\x16[method]kvsto\
+re.delete\x01\x0e\x04\x01\x1dcomponent:kvstore/types@0.1.0\x05\0\x04\x01$compone\
+nt:kvstore/kvstoreworld@0.1.0\x04\0\x0b\x12\x01\0\x0ckvstoreworld\x03\0\0\0G\x09\
+producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rus\
+t\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

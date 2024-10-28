@@ -17,4 +17,4 @@ cargo_metadata = "0.18.1"
 [package.metadata.runnercomponent]
 "node" = {path = "../../node/wit/world.wit"}
 "tbdex" = {path = "../../crates/tbdex/wit/world.wit"}
-"store" = {path = "../../crates/store/wit/world.wit"}
+"kvstore" = {path = "../../crates/kvstore/wit/world.wit"}
