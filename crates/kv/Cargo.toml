@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 wit-bindgen-rt = { version = "0.34.0", features = ["bitflags"] }
 wasi = "0.13.1+wasi-0.2.0"
+byteorder = { version = "1", default-features = false }
+
 
 [lib]
 crate-type = ["cdylib"]

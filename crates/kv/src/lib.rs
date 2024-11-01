@@ -4,6 +4,12 @@ mod clock;
 mod bit_cask_key;
 mod config;
 mod merge_config;
+mod field_generator;
+mod entry;
+mod segment;
+mod store;
+mod errors;
+
 use bindings::Guest;
 
 struct Component;
