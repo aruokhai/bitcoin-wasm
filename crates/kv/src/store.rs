@@ -7,7 +7,7 @@ use wasi::filesystem::types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags}
 
 use crate::errors::Error;
 
-pub trait Store {
+pub trait Store  {
     fn append(&mut self, bytes: &[u8]) -> Result<i64, Error>;
     fn read(&self, offset: i64, size: u32) -> Result<Vec<u8>, Error>;
     fn read_full(&self) -> Result<Vec<u8>, Error>;
