@@ -9,6 +9,7 @@ mod entry;
 mod segment;
 mod store;
 mod errors;
+mod segments;
 
 use bindings::Guest;
 

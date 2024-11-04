@@ -1,5 +1,7 @@
 #[derive(Debug)]
 pub enum Error {
     OpenFileError,
-    StreamError
+    StreamError,
+    FileNotFound(u64),
+    InvalidData
 }

@@ -13,7 +13,7 @@ pub trait Store  {
     fn read_full(&self) -> Result<Vec<u8>, Error>;
     fn size_in_bytes(&self) -> i64;
     fn sync(&self);
-
+    fn new(file_path: &str, directory_path:  &str) -> Result<Self, Error> where Self: Sized ;
 }
 
 pub struct WasiStore {
@@ -21,41 +21,46 @@ pub struct WasiStore {
     current_write_offset: i64,
 }
 
-impl WasiStore {
-    pub fn new(file_path: &str) -> Result<Self, Error> {
-        let (director_descriptor, _) = &filesystem::preopens::get_directories()[0];
-        let file_descriptor = director_descriptor
-            .open_at(
-                PathFlags::empty(),
-                file_path,
-                OpenFlags::CREATE,
-                DescriptorFlags::READ | DescriptorFlags::WRITE,
-            ).map_err(|_| Error::OpenFileError)?;
-           
-        Ok(WasiStore {
-            file_descriptor,
-            current_write_offset: 0,
-        })
-    }
 
-    pub fn reload(file_path: &str) -> Result<Self, Error> {
-        let (director_descriptor, _) = &filesystem::preopens::get_directories()[0];
-        let file_descriptor = director_descriptor
-            .open_at(
-                PathFlags::empty(),
-                file_path,
-                OpenFlags::CREATE,
-                DescriptorFlags::READ | DescriptorFlags::WRITE,
-            ).map_err(|_| Error::OpenFileError)?;
-           
-        Ok(WasiStore {
-            file_descriptor,
-            current_write_offset: 0,
-        })
-    }
-}
 
 impl Store for WasiStore {
+
+
+    fn new(file_path: &str, directory_path:  &str) -> Result<Self, Error> {
+        let (directory_descriptor, _) = &filesystem::preopens::get_directories()[0];
+        if let Err(err) =  directory_descriptor
+            .create_directory_at(
+                directory_path
+            ) {
+                if err != filesystem::types::ErrorCode::Exist {
+                    panic!("{}",err.name().to_string());
+                }
+            }
+            ;
+        
+        let opened_directory = directory_descriptor.open_at(PathFlags::empty(),
+            directory_path,
+            OpenFlags::DIRECTORY,
+            DescriptorFlags::MUTATE_DIRECTORY)
+            .map_err(|err| Error::OpenFileError)?;
+
+
+        let file_descriptor = opened_directory
+            .open_at(
+                PathFlags::empty(),
+                file_path,
+                OpenFlags::CREATE,
+                DescriptorFlags::READ | DescriptorFlags::WRITE,
+            ).map_err(|_| Error::OpenFileError)?;
+           
+        Ok(WasiStore {
+            file_descriptor,
+            current_write_offset: 0,
+        })
+    }
+
+
+
     fn append(&mut self, bytes: &[u8]) -> Result<i64, Error> {
         let offset = self.file_descriptor.write(bytes,self.current_write_offset as u64)
             .map_err(|_| Error::OpenFileError)?;

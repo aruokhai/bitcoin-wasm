@@ -1,4 +1,6 @@
 use std::mem;
+use std::rc::Rc;
+use std::sync::Arc;
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use crate::config;
 use crate::clock::Clock;
@@ -16,15 +18,17 @@ struct ValueReference {
     tombstone: u8,
 }
 
-pub struct Entry<K: Serializable> {
+#[derive(Clone)]
+
+pub struct Entry<K: BitCaskKey> {
     key: K,
     value: ValueReference,
     timestamp: u32,
-    clock: Box<dyn Clock>,
+    clock: Arc<dyn Clock>,
 }
 
-impl<K: Serializable> Entry<K> {
-    pub fn new(key: K, value: Vec<u8>, clock: Box<dyn Clock>) -> Self {
+impl<K: BitCaskKey> Entry<K> {
+    pub fn new(key: K, value: Vec<u8>, clock: Arc<dyn Clock>) -> Self {
         Entry {
             key,
             value: ValueReference { value, tombstone: 0 },
@@ -33,7 +37,7 @@ impl<K: Serializable> Entry<K> {
         }
     }
 
-    pub fn new_preserving_timestamp(key: K, value: Vec<u8>, ts: u32, clock: Box<dyn Clock>) -> Self {
+    pub fn new_preserving_timestamp(key: K, value: Vec<u8>, ts: u32, clock: Arc<dyn Clock>) -> Self {
         Entry {
             key,
             value: ValueReference { value, tombstone: 0 },
@@ -42,7 +46,7 @@ impl<K: Serializable> Entry<K> {
         }
     }
 
-    pub fn new_deleted_entry(key: K, clock: Box<dyn Clock>) -> Self {
+    pub fn new_deleted_entry(key: K, clock: Arc<dyn Clock>) -> Self {
         Entry {
             key,
             value: ValueReference { value: vec![], tombstone: 1 },
