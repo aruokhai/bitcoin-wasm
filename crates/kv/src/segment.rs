@@ -77,9 +77,9 @@ impl<S: Store> Segment<S> {
     //     self.store.stop_writes()
     // }
 
-    // pub fn remove(&self) {
-    //     self.store.remove()
-    // }
+    pub fn remove(&mut self) {
+        self.store.remove()
+    }
 }
 
 

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -121,25 +122,24 @@ impl<S: Store + Clone + Default> Segments<S> {
         Ok(write_back_responses)
     }
 
-    // TODO: Fix
-    // pub fn remove_active(&mut self) {
-    //     self.active_segment.remove();
-    // }
+    pub fn remove_active(&mut self) {
+        self.active_segment.remove();
+    }
 
-    // pub fn remove_all_inactive(&mut self) {
-    //     for segment in self.inactive_segments.values() {
-    //         segment.remove();
-    //     }
-    //     self.inactive_segments.clear();
-    // }
+    pub fn remove_all_inactive(&mut self) {
+        for segment in self.inactive_segments.values() {
+            segment.remove();
+        }
+        self.inactive_segments.clear();
+    }
 
-    // pub fn remove(&mut self, file_ids: &[u64]) {
-    //     for file_id in file_ids {
-    //         if let Some(segment) = self.inactive_segments.remove(file_id) {
-    //             segment.remove();
-    //         }
-    //     }
-    // }
+    pub fn remove(&mut self, file_ids: &[u64]) {
+        for file_id in file_ids {
+            if let Some(segment) = self.inactive_segments.remove(file_id) {
+                segment.remove();
+            }
+        }
+    }
 
     pub fn all_inactive_segments(&self) -> &HashMap<u64, Segment<S>> {
         &self.inactive_segments
@@ -177,26 +177,12 @@ impl<S: Store + Clone + Default> Segments<S> {
     }
 
     fn reload(&mut self) -> Result<(), Error> {
-        let entries = fs::read_dir(&self.directory)?;
-        let suffix = format!("{}.{}", SEGMENT_FILE_PREFIX, SEGMENT_FILE_SUFFIX);
 
-        for entry in entries {
-            let entry = entry?;
-            if entry.path().extension().unwrap_or_default() == suffix {
-                let file_id = entry
-                    .path()
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .and_then(|s| s.split('_').next())
-                    .and_then(|s| s.parse::<u64>().ok())
-                    .ok_or_else(|| Error::InvalidData)?;
-
-                if file_id != self.active_segment.file_id {
-                    let segment = Segment::reload_inactive(file_id, &self.directory)?;
-                    self.inactive_segments.insert(file_id, segment);
-                }
-            }
+        if S::is_file_present(&self.directory, self.active_segment.file_id)? {
+            let segment = Segment::reload_inactive(file_id, &self.directory)?;
+            self.inactive_segments.insert(file_id, segment);
         }
+            
         Ok(())
     }
 }

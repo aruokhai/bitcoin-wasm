@@ -6,6 +6,7 @@ use wasi::filesystem;
 use wasi::filesystem::types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags};
 
 use crate::errors::Error;
+use crate::segment::{SEGMENT_FILE_PREFIX, SEGMENT_FILE_SUFFIX};
 
 pub trait Store  {
     fn append(&mut self, bytes: &[u8]) -> Result<i64, Error>;
@@ -13,12 +14,16 @@ pub trait Store  {
     fn read_full(&self) -> Result<Vec<u8>, Error>;
     fn size_in_bytes(&self) -> i64;
     fn sync(&self);
+    fn is_file_present(directory_path: &str, file_id: u64 )-> Result<bool, Error>;
     fn new(file_path: &str, directory_path:  &str) -> Result<Self, Error> where Self: Sized ;
+    fn remove(&mut self);
 }
 
 pub struct WasiStore {
     file_descriptor: Descriptor,
     current_write_offset: i64,
+    directory_path: String,
+    file_name: String,
 }
 
 
@@ -56,6 +61,8 @@ impl Store for WasiStore {
         Ok(WasiStore {
             file_descriptor,
             current_write_offset: 0,
+            directory_path: directory_path.into(),
+            file_name: file_path.into()
         })
     }
 
@@ -91,5 +98,55 @@ impl Store for WasiStore {
     fn sync(&self) {
         self.file_descriptor.sync();
     }
+    
+    fn is_file_present(directory_path: &str, file_id: u64 ) -> Result<bool, Error> {
+        let suffix = format!("{}.{}", SEGMENT_FILE_PREFIX, SEGMENT_FILE_SUFFIX);
+        
+        let (directory_descriptor, _) = &filesystem::preopens::get_directories()[0];
+
+        let opened_directory = directory_descriptor.open_at(PathFlags::empty(),
+            directory_path,
+            OpenFlags::DIRECTORY,
+            DescriptorFlags::MUTATE_DIRECTORY)
+            .map_err(|_| Error::OpenFileError)?;
+
+        let files = opened_directory.read_directory().unwrap();
+        for file_option in files.read_directory_entry(){
+            match  file_option {
+                Some(entry) => {
+                    let identified_file_id = entry.name
+                        .split('_')
+                        .next()
+                        .and_then(|s| s.parse::<u64>().ok())
+                        .ok_or_else(|| Error::InvalidData)?;
+
+                    if identified_file_id == file_id {
+                        return Ok(true)
+                    }
+                    continue;
+                },
+                None => {
+                    return Err(Error::InvalidData);
+                },
+            }
+
+        }
+        Err(Error::InvalidData)
+    }
+
+    fn remove(&mut self) {
+        let (directory_descriptor, _) = &filesystem::preopens::get_directories()[0];
+        
+        let opened_directory = directory_descriptor.open_at(PathFlags::empty(),
+            self.directory_path.as_str(),
+            OpenFlags::DIRECTORY,
+            DescriptorFlags::MUTATE_DIRECTORY)
+            .map_err(|_| Error::OpenFileError);
+
+        if let Ok(dir) = opened_directory {
+            dir.unlink_file_at(&self.file_name);
+        }
+    }
+    
 
 }
