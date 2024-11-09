@@ -14,8 +14,8 @@ pub trait Store  {
     fn read_full(&self) -> Result<Vec<u8>, Error>;
     fn size_in_bytes(&self) -> i64;
     fn sync(&self);
-    fn is_file_present(directory_path: &str, file_id: u64 )-> Result<bool, Error>;
-    fn new(file_path: &str, directory_path:  &str) -> Result<Self, Error> where Self: Sized ;
+    fn get_files(directory_path: &str )-> Result<Vec<String>, Error>;
+    fn open(file_path: &str, directory_path:  &str) -> Result<Self, Error> where Self: Sized ;
     fn remove(&mut self);
 }
 
@@ -31,7 +31,7 @@ pub struct WasiStore {
 impl Store for WasiStore {
 
 
-    fn new(file_path: &str, directory_path:  &str) -> Result<Self, Error> {
+    fn open(file_path: &str, directory_path:  &str) -> Result<Self, Error> {
         let (directory_descriptor, _) = &filesystem::preopens::get_directories()[0];
         if let Err(err) =  directory_descriptor
             .create_directory_at(
@@ -99,9 +99,8 @@ impl Store for WasiStore {
         self.file_descriptor.sync();
     }
     
-    fn is_file_present(directory_path: &str, file_id: u64 ) -> Result<bool, Error> {
-        let suffix = format!("{}.{}", SEGMENT_FILE_PREFIX, SEGMENT_FILE_SUFFIX);
-        
+    fn get_files(directory_path: &str) -> Result<Vec<String>, Error> {
+        let mut store_files = Vec::new();
         let (directory_descriptor, _) = &filesystem::preopens::get_directories()[0];
 
         let opened_directory = directory_descriptor.open_at(PathFlags::empty(),
@@ -114,24 +113,14 @@ impl Store for WasiStore {
         for file_option in files.read_directory_entry(){
             match  file_option {
                 Some(entry) => {
-                    let identified_file_id = entry.name
-                        .split('_')
-                        .next()
-                        .and_then(|s| s.parse::<u64>().ok())
-                        .ok_or_else(|| Error::InvalidData)?;
-
-                    if identified_file_id == file_id {
-                        return Ok(true)
-                    }
-                    continue;
+                    store_files.push(entry.name);
                 },
                 None => {
-                    return Err(Error::InvalidData);
+                    break
                 },
             }
-
         }
-        Err(Error::InvalidData)
+        Ok(store_files)
     }
 
     fn remove(&mut self) {

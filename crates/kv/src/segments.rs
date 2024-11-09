@@ -9,7 +9,7 @@ use crate::bit_cask_key::BitCaskKey;
 use crate::entry::{Entry, MappedStoredEntry, StoredEntry};
 use crate::errors::Error;
 use crate::field_generator::TimestampBasedFileIdGenerator;
-use crate::segment::{AppendEntryResponse, Segment, SEGMENT_FILE_PREFIX, SEGMENT_FILE_SUFFIX};
+use crate::segment::{segment_name, AppendEntryResponse, Segment, SEGMENT_FILE_PREFIX, SEGMENT_FILE_SUFFIX};
 use crate::store::Store;
 
 
@@ -28,7 +28,7 @@ pub struct WriteBackResponse<K> {
 }
 
 impl<S: Store + Clone + Default> Segments<S> {
-    pub fn new(directory: String, max_segment_size_bytes: u64, clock: Arc<dyn Clock>) -> Result<Self, Error> {
+    pub fn new<K: BitCaskKey>(directory: String, max_segment_size_bytes: u64, clock: Arc<dyn Clock>) -> Result<Self, Error> {
         let file_id_generator = TimestampBasedFileIdGenerator{ clock: clock.clone()};
         let file_id = file_id_generator.next();
         let active_segment = Segment::new(file_id, &directory)?;
@@ -41,7 +41,7 @@ impl<S: Store + Clone + Default> Segments<S> {
             max_segment_size_bytes,
             directory,
         };
-        segments.reload()?;
+        segments.reload::<K>()?;
         Ok(segments)
     }
 
@@ -127,7 +127,7 @@ impl<S: Store + Clone + Default> Segments<S> {
     }
 
     pub fn remove_all_inactive(&mut self) {
-        for segment in self.inactive_segments.values() {
+        for segment in self.inactive_segments.values_mut() {
             segment.remove();
         }
         self.inactive_segments.clear();
@@ -135,7 +135,7 @@ impl<S: Store + Clone + Default> Segments<S> {
 
     pub fn remove(&mut self, file_ids: &[u64]) {
         for file_id in file_ids {
-            if let Some(segment) = self.inactive_segments.remove(file_id) {
+            if let Some(mut segment) = self.inactive_segments.remove(file_id) {
                 segment.remove();
             }
         }
@@ -176,13 +176,32 @@ impl<S: Store + Clone + Default> Segments<S> {
         }
     }
 
-    fn reload(&mut self) -> Result<(), Error> {
+    fn reload<K: BitCaskKey>(&mut self) -> Result<(), Error> {
+        let suffix = format!("{}.{}", SEGMENT_FILE_PREFIX, SEGMENT_FILE_SUFFIX);
+ 
+        for entry in S::get_files(&self.directory)? {
+            if entry.ends_with(&suffix) {
+                let file_id_str = entry.split('_').next().ok_or(Error::ParseError)?;
+                let file_id: u64 = file_id_str.parse().map_err(|_| Error::ParseError)?;
 
-        if S::is_file_present(&self.directory, self.active_segment.file_id)? {
-            let segment = Segment::reload_inactive(file_id, &self.directory)?;
-            self.inactive_segments.insert(file_id, segment);
+                if file_id != self.active_segment.file_id {
+                    let segment = Self::reload_inactive_segment::<K>(file_id, &self.directory)?;
+                    self.inactive_segments.insert(file_id, segment);
+                }
+            }
         }
             
         Ok(())
+    }
+
+    fn reload_inactive_segment<K: BitCaskKey>(file_id: u64, directory: &str) -> Result<Segment<S>, Error> {
+        let file_path = segment_name(file_id);
+        let store = S::open(&file_path, directory)?;
+        
+        Ok(Segment {
+            file_id,
+            file_path,
+            store,
+        })
     }
 }

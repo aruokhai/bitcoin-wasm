@@ -143,6 +143,8 @@ fn decode_from(content: &[u8], mut offset: u32) -> (StoredEntry, u32) {
     )
 }
 
+#[derive(Clone)]
+
 pub struct MappedStoredEntry<K> {
     pub key: K,
     pub value: Vec<u8>,

@@ -10,6 +10,9 @@ mod segment;
 mod store;
 mod errors;
 mod segments;
+mod key_directory;
+mod merged_state;
+mod kvstore;
 
 use bindings::Guest;
 
