@@ -1,6 +1,32 @@
 package component:kv;
 
-/// An example world for the component to target.
-world example {
-    export hello-world: func() -> string;
+world kv {
+    export types;
+}
+
+
+interface types { 
+
+    variant error {
+        open-file-error,
+        stream-error,
+        file-not-found(u64),
+        invalid-data,
+        parse-error,
+        entry-not-found
+    }
+    
+
+    resource kvstore {
+
+        constructor();
+
+        insert: func(key: string, value: list<u8>) -> result<_, error>;
+
+        get: func(key: string) -> result<list<u8>, error>;
+
+        delete: func(key: string) -> result<_, error>;
+
+       
+    }
 }

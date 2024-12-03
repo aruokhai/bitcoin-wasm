@@ -1,6 +1,7 @@
 use std::fs::{self, File};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
+use std::sync::Arc;
 
 use wasi::filesystem;
 use wasi::filesystem::types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags};
@@ -8,7 +9,7 @@ use wasi::filesystem::types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags}
 use crate::errors::Error;
 use crate::segment::{SEGMENT_FILE_PREFIX, SEGMENT_FILE_SUFFIX};
 
-pub trait Store  {
+pub trait Store: Clone   {
     fn append(&mut self, bytes: &[u8]) -> Result<i64, Error>;
     fn read(&self, offset: i64, size: u32) -> Result<Vec<u8>, Error>;
     fn read_full(&self) -> Result<Vec<u8>, Error>;
@@ -19,12 +20,14 @@ pub trait Store  {
     fn remove(&mut self);
 }
 
+#[derive(Clone)]
 pub struct WasiStore {
-    file_descriptor: Descriptor,
+    file_descriptor: Arc<Descriptor>,
     current_write_offset: i64,
     directory_path: String,
     file_name: String,
 }
+
 
 
 
@@ -59,7 +62,7 @@ impl Store for WasiStore {
             ).map_err(|_| Error::OpenFileError)?;
            
         Ok(WasiStore {
-            file_descriptor,
+            file_descriptor: Arc::new(file_descriptor),
             current_write_offset: 0,
             directory_path: directory_path.into(),
             file_name: file_path.into()

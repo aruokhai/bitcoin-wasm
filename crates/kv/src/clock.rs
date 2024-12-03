@@ -7,9 +7,9 @@ pub trait Clock {
     fn now(&self) ->  u64;
 }
 
-pub struct WasmClock;
+pub struct WasiClock;
 
-impl Clock for WasmClock {
+impl Clock for WasiClock {
     fn now(&self) -> u64 {
         clocks::wall_clock::now().seconds
     }

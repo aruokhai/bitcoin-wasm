@@ -27,7 +27,7 @@ pub struct WriteBackResponse<K> {
     pub append_entry_response: AppendEntryResponse,
 }
 
-impl<S: Store + Clone + Default> Segments<S> {
+impl<S: Store > Segments<S> {
     pub fn new<K: BitCaskKey>(directory: String, max_segment_size_bytes: u64, clock: Arc<dyn Clock>) -> Result<Self, Error> {
         let file_id_generator = TimestampBasedFileIdGenerator{ clock: clock.clone()};
         let file_id = file_id_generator.next();
@@ -152,10 +152,10 @@ impl<S: Store + Clone + Default> Segments<S> {
         }
     }
 
-    pub fn shutdown(&mut self) {
-        self.active_segment = Segment::default(); // Implement Default for Segment if necessary
-        self.inactive_segments.clear();
-    }
+    // pub fn shutdown(&mut self) {
+    //     self.active_segment = Segment::default(); // Implement Default for Segment if necessary
+    //     self.inactive_segments.clear();
+    // }
 
     fn maybe_rollover_active_segment(&mut self) -> Result<(), Error> {
         if let Some(new_segment) = self.maybe_rollover_segment(&mut self.active_segment.clone())? {

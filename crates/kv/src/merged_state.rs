@@ -5,10 +5,9 @@ use std::hash::Hash;
 use crate::bit_cask_key::BitCaskKey;
 use crate::entry::MappedStoredEntry;
 
-
 pub struct MergedState<Key: BitCaskKey> {
-    value_by_key: HashMap<Key, MappedStoredEntry<Key>>,
-    deleted_keys: HashMap<Key, MappedStoredEntry<Key>>,
+    pub value_by_key: HashMap<Key, MappedStoredEntry<Key>>,
+    pub deleted_keys: HashMap<Key, MappedStoredEntry<Key>>,
 }
 
 impl<Key: BitCaskKey + Eq + Hash + Clone> MergedState<Key> {

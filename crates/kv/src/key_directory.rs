@@ -8,9 +8,9 @@ use crate::segments::WriteBackResponse;
 
 
 pub struct Entry {
-    file_id: u64,
-    offset: i64,
-    entry_length: u32,
+    pub file_id: u64,
+    pub offset: i64,
+    pub entry_length: u32,
 }
 
 impl Entry {
@@ -40,7 +40,7 @@ pub struct KeyDirectory<Key: BitCaskKey> {
     entry_by_key: HashMap<Key, Entry>,
 }
 
-impl<Key: BitCaskKey + Clone + Eq +  Hash> KeyDirectory<Key> {
+impl<Key: BitCaskKey> KeyDirectory<Key> {
     // NewKeyDirectory equivalent constructor function
     pub fn new(initial_capacity: usize) -> Self {
         KeyDirectory {
