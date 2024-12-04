@@ -1,9 +1,4 @@
-use std::fs;
-use std::path::Path;
-use byteorder::{LittleEndian, WriteBytesExt, ReadBytesExt};
 use crate::bit_cask_key::BitCaskKey;
-use crate::config;
-use crate::clock::Clock;
 use crate::entry::{decode, decode_multi, Entry, MappedStoredEntry, StoredEntry};
 use crate::errors::Error;
 use crate::store::Store;
@@ -56,6 +51,7 @@ impl<S: Store> Segment<S> {
 
     pub fn read(&self, offset: i64, size: u32) -> Result<StoredEntry, Error> {
         let bytes = self.store.read(offset, size)?;
+        println!("this is the read byte {:?}", bytes);
         Ok(decode(&bytes))
     }
 

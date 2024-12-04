@@ -72,8 +72,9 @@ impl Store for WasiStore {
 
 
     fn append(&mut self, bytes: &[u8]) -> Result<i64, Error> {
-        let offset = self.file_descriptor.write(bytes,self.current_write_offset as u64)
+        self.file_descriptor.write(bytes,self.current_write_offset as u64)
             .map_err(|_| Error::OpenFileError)?;
+        let offset = self.current_write_offset;
         self.current_write_offset += bytes.len() as i64;
         Ok(offset as i64)
     }
@@ -113,16 +114,18 @@ impl Store for WasiStore {
             .map_err(|_| Error::OpenFileError)?;
 
         let files = opened_directory.read_directory().unwrap();
-        for file_option in files.read_directory_entry(){
-            match  file_option {
+
+        while let Ok(entry_option) = files.read_directory_entry() {
+            match entry_option {
                 Some(entry) => {
                     store_files.push(entry.name);
-                },
+                }
                 None => {
-                    break
-                },
+                    break;
+                }
             }
         }
+        
         Ok(store_files)
     }
 

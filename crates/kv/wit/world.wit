@@ -1,6 +1,6 @@
-package component:kv;
+package component:kv@0.1.0;
 
-world kv {
+world kvworld {
     export types;
 }
 

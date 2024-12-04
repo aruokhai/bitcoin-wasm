@@ -174,7 +174,7 @@ pub mod exports {
 
                         #[cfg(target_arch = "wasm32")]
                         {
-                            #[link(wasm_import_module = "[export]component:kv/types")]
+                            #[link(wasm_import_module = "[export]component:kv/types@0.1.0")]
                             extern "C" {
                                 #[link_name = "[resource-drop]kvstore"]
                                 fn drop(_: u32);
@@ -376,7 +376,7 @@ pub mod exports {
 
                         #[cfg(target_arch = "wasm32")]
                         {
-                            #[link(wasm_import_module = "[export]component:kv/types")]
+                            #[link(wasm_import_module = "[export]component:kv/types@0.1.0")]
                             extern "C" {
                                 #[link_name = "[resource-new]kvstore"]
                                 fn new(_: *mut u8) -> u32;
@@ -398,7 +398,7 @@ pub mod exports {
 
                         #[cfg(target_arch = "wasm32")]
                         {
-                            #[link(wasm_import_module = "[export]component:kv/types")]
+                            #[link(wasm_import_module = "[export]component:kv/types@0.1.0")]
                             extern "C" {
                                 #[link_name = "[resource-rep]kvstore"]
                                 fn rep(_: u32) -> *mut u8;
@@ -414,33 +414,33 @@ pub mod exports {
                 }
                 #[doc(hidden)]
 
-                macro_rules! __export_component_kv_types_cabi{
+                macro_rules! __export_component_kv_types_0_1_0_cabi{
   ($ty:ident with_types_in $($path_to_types:tt)*) => (const _: () = {
 
-    #[export_name = "component:kv/types#[constructor]kvstore"]
+    #[export_name = "component:kv/types@0.1.0#[constructor]kvstore"]
     unsafe extern "C" fn export_constructor_kvstore() -> i32 {
       $($path_to_types)*::_export_constructor_kvstore_cabi::<<$ty as $($path_to_types)*::Guest>::Kvstore>()
     }
-    #[export_name = "component:kv/types#[method]kvstore.insert"]
+    #[export_name = "component:kv/types@0.1.0#[method]kvstore.insert"]
     unsafe extern "C" fn export_method_kvstore_insert(arg0: *mut u8,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,) -> *mut u8 {
       $($path_to_types)*::_export_method_kvstore_insert_cabi::<<$ty as $($path_to_types)*::Guest>::Kvstore>(arg0, arg1, arg2, arg3, arg4)
     }
-    #[export_name = "component:kv/types#[method]kvstore.get"]
+    #[export_name = "component:kv/types@0.1.0#[method]kvstore.get"]
     unsafe extern "C" fn export_method_kvstore_get(arg0: *mut u8,arg1: *mut u8,arg2: usize,) -> *mut u8 {
       $($path_to_types)*::_export_method_kvstore_get_cabi::<<$ty as $($path_to_types)*::Guest>::Kvstore>(arg0, arg1, arg2)
     }
-    #[export_name = "cabi_post_component:kv/types#[method]kvstore.get"]
+    #[export_name = "cabi_post_component:kv/types@0.1.0#[method]kvstore.get"]
     unsafe extern "C" fn _post_return_method_kvstore_get(arg0: *mut u8,) {
       $($path_to_types)*::__post_return_method_kvstore_get::<<$ty as $($path_to_types)*::Guest>::Kvstore>(arg0)
     }
-    #[export_name = "component:kv/types#[method]kvstore.delete"]
+    #[export_name = "component:kv/types@0.1.0#[method]kvstore.delete"]
     unsafe extern "C" fn export_method_kvstore_delete(arg0: *mut u8,arg1: *mut u8,arg2: usize,) -> *mut u8 {
       $($path_to_types)*::_export_method_kvstore_delete_cabi::<<$ty as $($path_to_types)*::Guest>::Kvstore>(arg0, arg1, arg2)
     }
 
     const _: () = {
       #[doc(hidden)]
-      #[export_name = "component:kv/types#[dtor]kvstore"]
+      #[export_name = "component:kv/types@0.1.0#[dtor]kvstore"]
       #[allow(non_snake_case)]
       unsafe extern "C" fn dtor(rep: *mut u8) {
         $($path_to_types)*::Kvstore::dtor::<
@@ -452,7 +452,7 @@ pub mod exports {
   };);
 }
                 #[doc(hidden)]
-                pub(crate) use __export_component_kv_types_cabi;
+                pub(crate) use __export_component_kv_types_0_1_0_cabi;
                 #[repr(align(8))]
                 struct _RetArea([::core::mem::MaybeUninit<u8>; 24]);
                 static mut _RET_AREA: _RetArea = _RetArea([::core::mem::MaybeUninit::uninit(); 24]);
@@ -629,30 +629,30 @@ mod _rt {
 #[allow(unused_macros)]
 #[doc(hidden)]
 
-macro_rules! __export_kv_impl {
+macro_rules! __export_kvworld_impl {
   ($ty:ident) => (self::export!($ty with_types_in self););
   ($ty:ident with_types_in $($path_to_types_root:tt)*) => (
-  $($path_to_types_root)*::exports::component::kv::types::__export_component_kv_types_cabi!($ty with_types_in $($path_to_types_root)*::exports::component::kv::types);
+  $($path_to_types_root)*::exports::component::kv::types::__export_component_kv_types_0_1_0_cabi!($ty with_types_in $($path_to_types_root)*::exports::component::kv::types);
   )
 }
 #[doc(inline)]
-pub(crate) use __export_kv_impl as export;
+pub(crate) use __export_kvworld_impl as export;
 
 #[cfg(target_arch = "wasm32")]
-#[link_section = "component-type:wit-bindgen:0.25.0:kv:encoded world"]
+#[link_section = "component-type:wit-bindgen:0.25.0:kvworld:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 480] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xe7\x02\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 502] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xf8\x02\x01A\x02\x01\
 A\x02\x01B\x10\x01q\x06\x0fopen-file-error\0\0\x0cstream-error\0\0\x0efile-not-f\
 ound\x01w\0\x0cinvalid-data\0\0\x0bparse-error\0\0\x0fentry-not-found\0\0\x04\0\x05\
 error\x03\0\0\x04\0\x07kvstore\x03\x01\x01i\x02\x01@\0\0\x03\x04\0\x14[construct\
 or]kvstore\x01\x04\x01h\x02\x01p}\x01j\0\x01\x01\x01@\x03\x04self\x05\x03keys\x05\
 value\x06\0\x07\x04\0\x16[method]kvstore.insert\x01\x08\x01j\x01\x06\x01\x01\x01\
 @\x02\x04self\x05\x03keys\0\x09\x04\0\x13[method]kvstore.get\x01\x0a\x01@\x02\x04\
-self\x05\x03keys\0\x07\x04\0\x16[method]kvstore.delete\x01\x0b\x04\x01\x12compon\
-ent:kv/types\x05\0\x04\x01\x0fcomponent:kv/kv\x04\0\x0b\x08\x01\0\x02kv\x03\0\0\0\
-G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindge\
-n-rust\x060.25.0";
+self\x05\x03keys\0\x07\x04\0\x16[method]kvstore.delete\x01\x0b\x04\x01\x18compon\
+ent:kv/types@0.1.0\x05\0\x04\x01\x1acomponent:kv/kvworld@0.1.0\x04\0\x0b\x0d\x01\
+\0\x07kvworld\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x07\
+0.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

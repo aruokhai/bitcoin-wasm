@@ -33,6 +33,7 @@ impl<Key: BitCaskKey, S: Store > KVStore<Key, S> {
             counter: 0
         };
         store.reload()?;
+        store.begin_merge()?;
         Ok(store)
     }
 
@@ -106,6 +107,7 @@ impl<Key: BitCaskKey, S: Store > KVStore<Key, S> {
     fn reload(&mut self) -> Result<(), Error> {
         let _write_lock = self.lock.write().unwrap();
         for (file_id, segment) in self.segments.all_inactive_segments() {
+            println!("this is file ID {:?}", file_id);
             let entries = segment.read_full(self.merge_config.key_mapper())?;
             self.key_directory.reload(*file_id, entries);
         }

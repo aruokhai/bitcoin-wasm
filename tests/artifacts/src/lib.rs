@@ -13,7 +13,7 @@ struct Component;
 impl Guest for Component {
     /// Say hello!
     fn test()  {
-       // test_store();
+       test_store();
         test_node();
         //test_tbdex();
     }

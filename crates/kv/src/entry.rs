@@ -1,7 +1,7 @@
 use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
-use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
+use byteorder::{ByteOrder, LittleEndian};
 use crate::config;
 use crate::clock::Clock;
 use crate::bit_cask_key::Serializable;
@@ -69,9 +69,13 @@ impl<K: BitCaskKey> Entry<K> {
         } else {
             self.timestamp
         };
-        encoded.write_u32::<LittleEndian>(timestamp).unwrap();
-        encoded.write_u32::<LittleEndian>(key_len_size).unwrap();
-        encoded.write_u32::<LittleEndian>(value_len_size).unwrap();
+
+        println!("len {}", encoded.len());
+        println!("value being stored {:?}", &self.value.value.clone());
+        // Write the header
+        encoded.extend_from_slice(&timestamp.to_le_bytes()); // Write timestamp as little-endian
+        encoded.extend_from_slice(&key_len_size.to_le_bytes());   // Write key length
+        encoded.extend_from_slice(&value_len_size.to_le_bytes()); // Write value length
         encoded.extend_from_slice(&serialized_key);
         encoded.extend_from_slice(&self.value.value);
         encoded.push(self.value.tombstone);
@@ -132,6 +136,7 @@ fn decode_from(content: &[u8], mut offset: u32) -> (StoredEntry, u32) {
     offset += value_size;
 
     let value_length = value.len();
+    println!("value_length {}", value_length);
     (
         StoredEntry {
             key: serialized_key.to_vec(),

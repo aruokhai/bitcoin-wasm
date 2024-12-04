@@ -11,7 +11,7 @@ pub trait BitCaskKey: Serializable + PartialEq + Clone + Eq +  Hash {}
 
 
 #[derive(Clone, Hash, PartialEq)]
-pub struct UUIDWasiKey(uuid::Uuid);
+pub struct UUIDWasiKey(String);
 
 impl Serializable for UUIDWasiKey {
     fn serialize(&self) -> Vec<u8> {
@@ -24,20 +24,15 @@ impl BitCaskKey for UUIDWasiKey {}
 
 
 
-impl UUIDWasiKey {
-    fn new(&self) -> Self {
-        UUIDWasiKey(uuid::Uuid::from_u64_pair(random::random::get_random_u64(), random::random::get_random_u64()))
-    }
 
-}
 
 impl From<String> for UUIDWasiKey {
     fn from(value: String) -> Self {
-        UUIDWasiKey(uuid::Uuid::from_str(&value).unwrap())
+        UUIDWasiKey(value)
     }
 }
 
 pub fn UUIDWasiKeyFrom(value: &[u8]) -> UUIDWasiKey {
-        UUIDWasiKey(uuid::Uuid::from_slice(&value).unwrap())
+        UUIDWasiKey(String::from_utf8(value.to_vec()).unwrap())
 }
 
