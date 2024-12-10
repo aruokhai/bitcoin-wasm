@@ -8,6 +8,6 @@ pub struct TimestampBasedFileIdGenerator {
 
 impl TimestampBasedFileIdGenerator {
     pub fn next(&self) -> u64 {
-        self.clock.now()
+        self.clock.monotonic_now()
     }
 }

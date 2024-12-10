@@ -29,17 +29,9 @@ impl<S: Store> Segment<S> {
         })
     }
 
-    pub fn reload_inactive(file_id: u64, directory: &str) -> Result<Self, Error> {
-        let file_path = segment_name(file_id);
-        let store = S::open(&file_path, directory)?;
-        Ok(Segment {
-            file_id,
-            file_path,
-            store,
-        })
-    }
 
     pub fn append<K: BitCaskKey>(&mut self, entry: &Entry<K>) -> Result<AppendEntryResponse, Error> {
+        println!("about to be encoded {:?}", entry.key);
         let encoded = entry.encode();
         let offset = self.store.append(&encoded)?;
         Ok(AppendEntryResponse {
@@ -51,7 +43,6 @@ impl<S: Store> Segment<S> {
 
     pub fn read(&self, offset: i64, size: u32) -> Result<StoredEntry, Error> {
         let bytes = self.store.read(offset, size)?;
-        println!("this is the read byte {:?}", bytes);
         Ok(decode(&bytes))
     }
 

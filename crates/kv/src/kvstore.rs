@@ -33,12 +33,11 @@ impl<Key: BitCaskKey, S: Store > KVStore<Key, S> {
             counter: 0
         };
         store.reload()?;
-        store.begin_merge()?;
         Ok(store)
     }
 
     fn put(&mut self, key: Key, value: Vec<u8>) -> Result<(), Error> {
-        if self.counter == self.merge_config.run_merge_every() {
+        if self.counter >= self.merge_config.run_merge_every() {
             self.begin_merge()?;
             self.counter = 0
         }
@@ -61,15 +60,6 @@ impl<Key: BitCaskKey, S: Store > KVStore<Key, S> {
         Ok(())
     }
 
-    pub fn silent_get(&self, key: Key) -> Option<Vec<u8>> {
-        let _read_lock = self.lock.read().unwrap();
-        if let Some(entry) = self.key_directory.get(&key) {
-            if let Ok(stored_entry) = self.segments.read(entry.file_id, entry.offset, entry.entry_length) {
-                return Some(stored_entry.value);
-            }
-        }
-        None
-    }
 
     pub fn get(&self, key: Key) -> Result<Vec<u8>, Error> {
         let _read_lock = self.lock.read().unwrap();
@@ -80,6 +70,9 @@ impl<Key: BitCaskKey, S: Store > KVStore<Key, S> {
         Err(Error::EntryNotFound)
     }
 
+    // WriteBack writes back the changes (merged changes) to new inactive segments. This operation is performed during merge.
+    // It writes all the changes into M new inactive segments and once those changes are written to the new inactive segment(s), the state of the keys present in the `changes` parameter is updated in the KeyDirectory. More on this is mentioned in Worker.go inside merge/ package.
+    // Once the state is updated in the KeyDirectory, the old segments identified by `fileIds` are removed from disk.
     fn write_back(&mut self, file_ids: Vec<u64>, changes: HashMap<Key, MappedStoredEntry<Key>>) -> Result<(), Error> {
         let _write_lock = self.lock.write().unwrap();
         let write_back_responses = self.segments.write_back(changes)?;
@@ -94,7 +87,7 @@ impl<Key: BitCaskKey, S: Store > KVStore<Key, S> {
         self.segments.remove_all_inactive();
     }
 
-    pub fn sync(&self) {
+    fn sync(&self) {
         let _write_lock = self.lock.write().unwrap();
         self.segments.sync();
     }
@@ -121,7 +114,7 @@ impl<Key: BitCaskKey, S: Store > KVStore<Key, S> {
             } else {
                 self.segments.read_inactive_segments(self.merge_config.total_segments_to_read(), self.merge_config.key_mapper())?
             };
-
+            println!("old file ids {:?}", file_ids.clone());
         if segments.len() >= 2 {
             let mut merged_state = MergedState::new();
             merged_state.take_all(segments[0].to_owned());
@@ -133,6 +126,8 @@ impl<Key: BitCaskKey, S: Store > KVStore<Key, S> {
             // Ignoring the result for `write_back`, as in the Go code
             let _ = self.write_back(file_ids, merged_state.value_by_key.clone());
         }
+
+        self.sync();
 
         Ok(())
     }

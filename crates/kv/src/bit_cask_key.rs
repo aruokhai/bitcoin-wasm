@@ -1,16 +1,16 @@
 use core::hash::Hash;
 use std::str::FromStr;
-
+use std::fmt::Debug;
 use wasi::random;
 
 pub trait Serializable {
     fn serialize(&self) -> Vec<u8>;
 }
 
-pub trait BitCaskKey: Serializable + PartialEq + Clone + Eq +  Hash {}
+pub trait BitCaskKey: Serializable + PartialEq + Debug + Clone + Eq +  Hash {}
 
 
-#[derive(Clone, Hash, PartialEq)]
+#[derive(Clone, Hash, PartialEq,Debug)]
 pub struct UUIDWasiKey(String);
 
 impl Serializable for UUIDWasiKey {

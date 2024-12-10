@@ -5,6 +5,7 @@ use std::hash::Hash;
 use crate::bit_cask_key::BitCaskKey;
 use crate::entry::MappedStoredEntry;
 
+#[derive(Debug)]
 pub struct MergedState<Key: BitCaskKey> {
     pub value_by_key: HashMap<Key, MappedStoredEntry<Key>>,
     pub deleted_keys: HashMap<Key, MappedStoredEntry<Key>>,
@@ -29,7 +30,7 @@ impl<Key: BitCaskKey + Eq + Hash + Clone> MergedState<Key> {
         self.merge_with(other_entries);
     }
 
-    // Equivalent to takeAll method
+    // transfers all state
     pub fn take_all(&mut self, mapped_entries: Vec<MappedStoredEntry<Key>>) {
         for entry in mapped_entries {
             if entry.deleted {
@@ -40,23 +41,24 @@ impl<Key: BitCaskKey + Eq + Hash + Clone> MergedState<Key> {
         }
     }
 
-    // Equivalent to mergeWith method
+    // Merge existing segment entries with current segment
     pub fn merge_with(&mut self, mapped_entries: Vec<MappedStoredEntry<Key>>) {
         for new_entry in mapped_entries {
             if let Some(existing) = self.value_by_key.get(&new_entry.key) {
                 self.maybe_update(&existing.clone(), new_entry);
             } else if let Some(deleted_entry) = self.deleted_keys.remove(&new_entry.key) {
                 self.maybe_update(&deleted_entry, new_entry.clone());
-                if !new_entry.deleted {
-                    self.value_by_key.insert(new_entry.key.clone(), new_entry);
-                }
+                // TODO: Check if needed
+                // if !new_entry.deleted {
+                //     self.value_by_key.insert(new_entry.key.clone(), new_entry);
+                // }
             } else {
                 self.value_by_key.insert(new_entry.key.clone(), new_entry);
             }
         }
     }
 
-    // Equivalent to maybeUpdate method
+    // Update entries by timestamp comparison and if deleted
     fn maybe_update(&mut self, existing_entry: &MappedStoredEntry<Key>, new_entry: MappedStoredEntry<Key>) {
         if new_entry.timestamp > existing_entry.timestamp {
             if new_entry.deleted {

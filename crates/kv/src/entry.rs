@@ -21,7 +21,7 @@ struct ValueReference {
 #[derive(Clone)]
 
 pub struct Entry<K: BitCaskKey> {
-    key: K,
+    pub key: K,
     value: ValueReference,
     timestamp: u32,
     clock: Arc<dyn Clock>,
@@ -111,7 +111,7 @@ pub fn decode_multi<K: BitCaskKey>(
             deleted: entry.deleted,
             timestamp: entry.timestamp,
             key_offset: offset,
-            entry_length: traversed_offset,
+            entry_length: traversed_offset - offset,
         });
         offset = traversed_offset;
     }
@@ -125,6 +125,8 @@ fn decode_from(content: &[u8], mut offset: u32) -> (StoredEntry, u32) {
 
     let key_size = LittleEndian::read_u32(&content[offset as usize..]);
     offset += RESERVED_KEY_SIZE;
+
+    println!("this is the keysize {}", key_size);
 
     let value_size = LittleEndian::read_u32(&content[offset as usize..]);
     offset += RESERVED_VALUE_SIZE;
@@ -148,8 +150,7 @@ fn decode_from(content: &[u8], mut offset: u32) -> (StoredEntry, u32) {
     )
 }
 
-#[derive(Clone)]
-
+#[derive(Clone, Debug)]
 pub struct MappedStoredEntry<K> {
     pub key: K,
     pub value: Vec<u8>,

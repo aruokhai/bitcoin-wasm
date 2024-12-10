@@ -13,11 +13,11 @@ include!(concat!(env!("OUT_DIR"), "/kv_WIT.rs"));
 pub fn test_store(){
     
     let (storeworld, mut store ,kvstore) = create_kvstore().unwrap();
-
+    println!("hit here first");
     let mut key_value = vec![];
-    for i in 31..40 {
+    for i in 4..30 {
         let k = i * 3;
-        key_value.push((i.to_string(), b"fgkjfgkjgsioureghiuvhngurihuirhdgihiutgurghjfkhgjkhfgbkjhfghfksjghhfgjkhsjk".to_vec()))
+        key_value.push((i.to_string(), b"fgkjjjfgkjgsioureghiuvhngurihuirhdgihiutgurghjfkhgjkhfgbkjhfghfksjghhfgjkhsjk".to_vec()))
     }
 
     for (key,value) in key_value.iter() {

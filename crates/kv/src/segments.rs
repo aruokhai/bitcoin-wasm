@@ -31,6 +31,7 @@ impl<S: Store > Segments<S> {
     pub fn new<K: BitCaskKey>(directory: String, max_segment_size_bytes: u64, clock: Arc<dyn Clock>) -> Result<Self, Error> {
         let file_id_generator = TimestampBasedFileIdGenerator{ clock: clock.clone()};
         let file_id = file_id_generator.next();
+        println!("active segment id {}", file_id);
         let active_segment = Segment::new(file_id, &directory)?;
 
         let mut segments = Segments {
@@ -99,6 +100,7 @@ impl<S: Store > Segments<S> {
         changes: HashMap<K, MappedStoredEntry<K>>,
     ) -> Result<Vec<WriteBackResponse<K>>, Error> {
         let mut segment = Segment::<S>::new(self.file_id_generator.next(), &self.directory)?;
+        println!("newly created old segment id {}", segment.file_id);
         self.inactive_segments.insert(segment.file_id, segment.clone());
 
         let mut write_back_responses = Vec::with_capacity(changes.len());
