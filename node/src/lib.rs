@@ -6,13 +6,13 @@ use node::Node;
 use bindings::exports::component::node::types::{Guest,Error, GuestClientNode, NodeConfig};
 use bindings::component::kvstore::types::{Kvstore };
 
-
-
 mod node;
 mod p2p;
 mod tcpsocket;
 mod util;
 mod messages;
+mod chain;
+mod db;
 
 struct Component;
 

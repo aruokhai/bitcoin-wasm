@@ -1,13 +1,10 @@
-use std::fs::{self, File};
-use std::io::{self, Read, Seek, SeekFrom, Write};
-use std::path::Path;
+use std::io::{Read, Write};
 use std::sync::Arc;
 
 use wasi::filesystem;
 use wasi::filesystem::types::{Descriptor, DescriptorFlags, OpenFlags, PathFlags};
 
 use crate::errors::Error;
-use crate::segment::{SEGMENT_FILE_PREFIX, SEGMENT_FILE_SUFFIX};
 
 pub trait Store: Clone   {
     fn append(&mut self, bytes: &[u8]) -> Result<i64, Error>;
@@ -74,7 +71,7 @@ impl Store for WasiStore {
             .map_err(|_| Error::OpenFileError)?;
         let offset = self.current_write_offset;
         self.current_write_offset += bytes.len() as i64;
-        Ok(offset as i64)
+        Ok(offset)
     }
 
     fn read(&self, offset: i64, size: u32) -> Result<Vec<u8>, Error> {
@@ -85,12 +82,12 @@ impl Store for WasiStore {
 
     fn read_full(&self) -> Result<Vec<u8>, Error> {
         let mut buffer = Vec::new();
-        let mut stream =  self.file_descriptor.read_via_stream(0 as u64)
+        let mut stream =  self.file_descriptor.read_via_stream(0_u64)
             .map_err(|err| Error::OpenFileError)?;
         stream.read_to_end(&mut buffer)
             .map_err(|_| Error::StreamError)?;
         drop(stream);
-        return Ok(buffer)
+        Ok(buffer)
     }
 
     fn size_in_bytes(&self) -> i64 {
@@ -98,7 +95,7 @@ impl Store for WasiStore {
     }
 
     fn sync(&self) {
-        self.file_descriptor.sync();
+        let _ = self.file_descriptor.sync();
     }
     
     fn get_files(directory_path: &str) -> Result<Vec<String>, Error> {
@@ -137,7 +134,7 @@ impl Store for WasiStore {
             .map_err(|_| Error::OpenFileError);
 
         if let Ok(dir) = opened_directory {
-            dir.unlink_file_at(&self.file_name);
+            let _ = dir.unlink_file_at(&self.file_name);
         }
     }
     

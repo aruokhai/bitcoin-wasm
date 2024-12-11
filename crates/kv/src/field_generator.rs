@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{bit_cask_key::BitCaskKey, clock, merge_config::MergeConfig};
+use crate::{clock};
 
 pub struct TimestampBasedFileIdGenerator {
     pub clock: Arc<dyn clock::Clock>,

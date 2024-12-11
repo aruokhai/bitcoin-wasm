@@ -22,7 +22,7 @@ pub struct Segment<S: Store> {
 impl<S: Store> Segment<S> {
     pub fn new(file_id: u64, directory: &str) -> Result<Self, Error> {
         let file_path = segment_name(file_id);
-        let store = S::open(&file_path, &directory)?;
+        let store = S::open(&file_path, directory)?;
         Ok(Segment {
             file_id,
             file_path,
@@ -77,5 +77,5 @@ impl<S: Store> Segment<S> {
 
 pub fn segment_name(file_id: u64) -> String {
     let file_name = format!("{}_{}.{}", file_id, SEGMENT_FILE_PREFIX, SEGMENT_FILE_SUFFIX);
-    return  file_name;
+    file_name
 }

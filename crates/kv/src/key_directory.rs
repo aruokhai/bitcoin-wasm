@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::hash::Hash;
 
 use crate::bit_cask_key::BitCaskKey;
 use crate::entry::MappedStoredEntry;

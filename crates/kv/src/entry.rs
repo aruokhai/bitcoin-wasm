@@ -1,8 +1,6 @@
 use std::mem;
-use std::rc::Rc;
 use std::sync::Arc;
 use byteorder::{ByteOrder, LittleEndian};
-use crate::config;
 use crate::clock::Clock;
 use crate::bit_cask_key::Serializable;
 use crate::bit_cask_key::BitCaskKey;
@@ -60,9 +58,9 @@ impl<K: BitCaskKey> Entry<K> {
     /// encode performs the encode operation which converts the Entry to a byte slice which can be written to the disk
     /// Encoding scheme consists of the following structure:
     /// ```
-    ///	┌───────────┬──────────┬────────────┬─────┬───────┐
-    ///	│ timestamp │ key_size │ value_size │ key │ value │
-    ///	└───────────┴──────────┴────────────┴─────┴───────┘
+    /// ┌───────────┬──────────┬────────────┬─────┬───────┐
+    /// │ timestamp │ key_size │ value_size │ key │ value │
+    /// └───────────┴──────────┴────────────┴─────┴───────┘
     /// ```
     /// timestamp, key_size, value_size consist of 32 bits each. The value ([]byte) consists of the value provided by the user and a byte for tombstone, that
     /// is used to signify if the key/value pair is deleted or not. Take a look at the NewDeletedEntry function.

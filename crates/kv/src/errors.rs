@@ -11,9 +11,9 @@ pub enum Error {
     EntryNotFound
 }
 
-impl Into<GuestError> for Error {
-    fn into(self) -> GuestError {
-        match self {
+impl From<Error> for GuestError {
+    fn from(val: Error) -> Self {
+        match val {
             Error::OpenFileError => GuestError::OpenFileError,
             Error::StreamError => GuestError::StreamError,
             Error::EntryNotFound => GuestError::EntryNotFound,

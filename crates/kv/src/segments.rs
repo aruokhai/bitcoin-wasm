@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-use std::fs;
 use std::io::Read;
-use std::path::Path;
 use std::sync::Arc;
 
 use crate::clock::Clock;

@@ -1,4 +1,4 @@
-use wasi::clocks::{self, wall_clock};
+use wasi::clocks::{self};
 
 #[derive(Copy, Clone)]
 pub struct Duration(pub u64);

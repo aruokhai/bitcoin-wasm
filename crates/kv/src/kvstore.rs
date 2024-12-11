@@ -1,10 +1,9 @@
 use std::collections::HashMap;
-use std::sync::{RwLock, RwLockWriteGuard, RwLockReadGuard};
-use std::fmt;
+use std::sync::{RwLock};
 
 use crate::bit_cask_key::BitCaskKey;
 use crate::config::Config;
-use crate::entry::{Entry, MappedStoredEntry};
+use crate::entry::{MappedStoredEntry};
 use crate::errors::Error;
 use crate::key_directory::{ KeyDirectory, Entry as KeyDirectoryEntry };
 use crate::merge_config::MergeConfig;
