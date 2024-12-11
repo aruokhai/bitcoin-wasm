@@ -15,7 +15,7 @@ impl<Key: BitCaskKey> MergeConfig<Key> {
             total_segments_to_read,
             should_read_all_segments: false,
             key_mapper,
-            run_merge_every: 1000, // 5 minutes in seconds
+            run_merge_every: 1000, // 1000 new writes
         }
     }
 

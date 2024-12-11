@@ -32,8 +32,6 @@ pub struct WasiStore {
 
 
 impl Store for WasiStore {
-
-
     fn open(file_path: &str, directory_path:  &str) -> Result<Self, Error> {
         let (directory_descriptor, _) = &filesystem::preopens::get_directories()[0];
         if let Err(err) =  directory_descriptor

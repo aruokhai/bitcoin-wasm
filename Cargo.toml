@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/kvstore", "node", "tests/runner", "crates/tbdex", "crates/kv"]
+  "node", "tests/runner", "crates/kv"]
 
 exclude = [
 "bitcoin-wasm",

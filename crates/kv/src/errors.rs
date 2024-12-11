@@ -1,4 +1,4 @@
-use crate::bindings::exports::component::kv::types::{Error as GuestError};
+use crate::bindings::exports::component::kv::types::Error as GuestError;
 
 
 #[derive(Debug)]

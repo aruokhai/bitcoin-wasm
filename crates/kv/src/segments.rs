@@ -31,7 +31,6 @@ impl<S: Store > Segments<S> {
     pub fn new<K: BitCaskKey>(directory: String, max_segment_size_bytes: u64, clock: Arc<dyn Clock>) -> Result<Self, Error> {
         let file_id_generator = TimestampBasedFileIdGenerator{ clock: clock.clone()};
         let file_id = file_id_generator.next();
-        println!("active segment id {}", file_id);
         let active_segment = Segment::new(file_id, &directory)?;
 
         let mut segments = Segments {
@@ -46,16 +45,22 @@ impl<S: Store > Segments<S> {
         Ok(segments)
     }
 
+    /// Append performs an append operation in the active segment file.
+    /// Before the append operation can be done, the size of the active segment is checked.
+    /// If its size < the size of segment threshold, the key value pair is appended to the active segment, else the active segment is rolled-over
     pub fn  append<K: BitCaskKey>(&mut self, key: K, value: Vec<u8>) -> Result<AppendEntryResponse, Error> {
         self.maybe_rollover_active_segment()?;
         self.active_segment.append(&Entry::new(key, value, self.clock.clone()))
     }
 
+    /// AppendDeleted performs an append operation in the active segment file. Even the `delete` is an append operation in the log file.
+    /// The key will eventually be removed during the merge operation
     pub fn append_deleted<K: BitCaskKey>(&mut self, key: K) -> Result<AppendEntryResponse, Error> {
         self.maybe_rollover_active_segment()?;
         self.active_segment.append(&Entry::new_deleted_entry(key, self.clock.clone()))
     }
 
+    //Read performs a read operation from the offset in the segment file. This method is invoked in the Get operation
     pub fn read(&self, file_id: u64, offset: i64, size: u32) -> Result<StoredEntry, Error> {
         if file_id == self.active_segment.file_id {
             return self.active_segment.read(offset, size);
@@ -67,6 +72,8 @@ impl<S: Store > Segments<S> {
         }
     }
 
+    /// ReadInactiveSegments reads inactive segments identified by `totalSegments`. This operation is performed during merge.
+    /// keyMapper is used to map a byte slice Key to a generically typed Key. keyMapper is basically a means to perform deserialization of keys which is necessary to update the state in KeyDirectory after the merge operation is done, more on this is mentioned in KeyDirectory.go
     pub fn read_inactive_segments<K: BitCaskKey>(
         &self,
         total_segments: usize,
@@ -95,12 +102,13 @@ impl<S: Store > Segments<S> {
         self.read_inactive_segments(self.inactive_segments.len(), key_mapper)
     }
 
+    /// WriteBack writes back the changes (merged changes) to new inactive segments. This operation is performed during merge.
+    /// It writes all the changes into M new inactive segments and once those changes are written to the new inactive segment(s), the state of the keys present in the `changes` parameter is updated in the KeyDirectory. More on this is mentioned in Worker.go inside merge/ package.
     pub fn write_back<K: BitCaskKey + Clone>(
         &mut self,
         changes: HashMap<K, MappedStoredEntry<K>>,
     ) -> Result<Vec<WriteBackResponse<K>>, Error> {
         let mut segment = Segment::<S>::new(self.file_id_generator.next(), &self.directory)?;
-        println!("newly created old segment id {}", segment.file_id);
         self.inactive_segments.insert(segment.file_id, segment.clone());
 
         let mut write_back_responses = Vec::with_capacity(changes.len());
@@ -124,10 +132,12 @@ impl<S: Store > Segments<S> {
         Ok(write_back_responses)
     }
 
+    //RemoveActive removes the active segment file from disk
     pub fn remove_active(&mut self) {
         self.active_segment.remove();
     }
 
+    //RemoveAllInactive removes all the inactive segment files from disk
     pub fn remove_all_inactive(&mut self) {
         for segment in self.inactive_segments.values_mut() {
             segment.remove();

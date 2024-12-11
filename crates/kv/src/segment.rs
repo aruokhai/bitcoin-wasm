@@ -18,6 +18,7 @@ pub struct Segment<S: Store> {
     pub store: S,
 }
 
+// NewSegment represents an append-only log
 impl<S: Store> Segment<S> {
     pub fn new(file_id: u64, directory: &str) -> Result<Self, Error> {
         let file_path = segment_name(file_id);
@@ -29,9 +30,10 @@ impl<S: Store> Segment<S> {
         })
     }
 
-
+    /// append performs an append operation in the segment file. Append operation is a 2-step process:
+    /// 1. Encode the incoming entry, more on this in Entry.go
+    /// 2. Write the encoded entry ([]byte) to the segment file using the Store abstraction
     pub fn append<K: BitCaskKey>(&mut self, entry: &Entry<K>) -> Result<AppendEntryResponse, Error> {
-        println!("about to be encoded {:?}", entry.key);
         let encoded = entry.encode();
         let offset = self.store.append(&encoded)?;
         Ok(AppendEntryResponse {
@@ -41,11 +43,13 @@ impl<S: Store> Segment<S> {
         })
     }
 
+    // read performs a read operation from the offset in the segment file. This method is invoked in the Get operation
     pub fn read(&self, offset: i64, size: u32) -> Result<StoredEntry, Error> {
         let bytes = self.store.read(offset, size)?;
         Ok(decode(&bytes))
     }
 
+    // ReadFull performs a full read of the segment file. This method is called by the reload operation that happens during DB start-up
     pub fn read_full<K: BitCaskKey>(&self, key_mapper: fn(&[u8]) -> K) -> Result<Vec<MappedStoredEntry<K>>, Error> {
         let bytes = self.store.read_full()?;
         Ok(decode_multi(&bytes, key_mapper))

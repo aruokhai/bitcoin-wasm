@@ -28,6 +28,7 @@ pub struct Entry<K: BitCaskKey> {
 }
 
 impl<K: BitCaskKey> Entry<K> {
+    /// NewEntry creates a new instance of Entry with tombstone byte set to 0 (0000 0000)
     pub fn new(key: K, value: Vec<u8>, clock: Arc<dyn Clock>) -> Self {
         Entry {
             key,
@@ -36,7 +37,7 @@ impl<K: BitCaskKey> Entry<K> {
             clock,
         }
     }
-
+    /// NewEntryPreservingTimestamp creates a new instance of Entry with tombstone byte set to 0 (0000 0000) and keeping the provided timestamp
     pub fn new_preserving_timestamp(key: K, value: Vec<u8>, ts: u32, clock: Arc<dyn Clock>) -> Self {
         Entry {
             key,
@@ -46,6 +47,7 @@ impl<K: BitCaskKey> Entry<K> {
         }
     }
 
+    /// NewDeletedEntry creates a new instance of Entry with tombstone byte set to 1 (0000 0001)
     pub fn new_deleted_entry(key: K, clock: Arc<dyn Clock>) -> Self {
         Entry {
             key,
@@ -55,6 +57,17 @@ impl<K: BitCaskKey> Entry<K> {
         }
     }
 
+    /// encode performs the encode operation which converts the Entry to a byte slice which can be written to the disk
+    /// Encoding scheme consists of the following structure:
+    /// ```
+    ///	┌───────────┬──────────┬────────────┬─────┬───────┐
+    ///	│ timestamp │ key_size │ value_size │ key │ value │
+    ///	└───────────┴──────────┴────────────┴─────┴───────┘
+    /// ```
+    /// timestamp, key_size, value_size consist of 32 bits each. The value ([]byte) consists of the value provided by the user and a byte for tombstone, that
+    /// is used to signify if the key/value pair is deleted or not. Take a look at the NewDeletedEntry function.
+    /// A little-endian system, stores the least-significant byte at the smallest address. What is special about 4 bytes key size or 4 bytes value size?
+    /// The maximum integer stored by 4 bytes is 4,294,967,295 (2 ** 32 - 1), roughly ~4.2GB. This means each key or value size can not be greater than 4.2GB.
     pub fn encode(&self) -> Vec<u8> {
         let serialized_key = self.key.serialize();
         let key_len_size = serialized_key.len() as u32;
@@ -70,8 +83,6 @@ impl<K: BitCaskKey> Entry<K> {
             self.timestamp
         };
 
-        println!("len {}", encoded.len());
-        println!("value being stored {:?}", &self.value.value.clone());
         // Write the header
         encoded.extend_from_slice(&timestamp.to_le_bytes()); // Write timestamp as little-endian
         encoded.extend_from_slice(&key_len_size.to_le_bytes());   // Write key length
@@ -91,10 +102,13 @@ pub struct StoredEntry {
     pub timestamp: u32,
 }
 
+/// decode performs the decode operation and returns an instance of StoredEntry
 pub fn decode(content: &[u8]) -> StoredEntry {
     decode_from(content, 0).0
 }
 
+/// decodeMulti performs multiple decode operations and returns an array of MappedStoredEntry
+/// This method is invoked when a segment file needs to be read completely. This happens during reload and merge operations.
 pub fn decode_multi<K: BitCaskKey>(
     content: &[u8],
     key_mapper: fn(&[u8]) -> K,
@@ -111,6 +125,7 @@ pub fn decode_multi<K: BitCaskKey>(
             deleted: entry.deleted,
             timestamp: entry.timestamp,
             key_offset: offset,
+            // TODO: verify if correct
             entry_length: traversed_offset - offset,
         });
         offset = traversed_offset;
@@ -119,14 +134,23 @@ pub fn decode_multi<K: BitCaskKey>(
     entries
 }
 
+/// decodeFrom performs the decode operation.
+/// Encoding scheme consists of the following structure:
+/// ```
+///	┌───────────┬──────────┬────────────┬─────┬───────┐
+///	│ timestamp │ key_size │ value_size │ key │ value │
+///	└───────────┴──────────┴────────────┴─────┴───────┘
+/// ```
+/// In order to perform `decode`, the code reads the first 4 bytes to get the timestamp, next 4 bytes to get the key size, next 4 bytes to get the value size
+/// Note: the value size is the size including the length of the byte slice provided by the user and one byte for the tombstone marker
+/// Reading further from the offset to the offset+keySize return the actual key, followed by next read from offset to offset+valueSize which returns the actual value.
+/// DeletedFlag is determined by taking the last byte from the `value` byte slice and performing an AND operation with 0x01.
 fn decode_from(content: &[u8], mut offset: u32) -> (StoredEntry, u32) {
     let timestamp = LittleEndian::read_u32(&content[offset as usize..]);
     offset += RESERVED_TIMESTAMP_SIZE;
 
     let key_size = LittleEndian::read_u32(&content[offset as usize..]);
     offset += RESERVED_KEY_SIZE;
-
-    println!("this is the keysize {}", key_size);
 
     let value_size = LittleEndian::read_u32(&content[offset as usize..]);
     offset += RESERVED_VALUE_SIZE;
@@ -138,7 +162,6 @@ fn decode_from(content: &[u8], mut offset: u32) -> (StoredEntry, u32) {
     offset += value_size;
 
     let value_length = value.len();
-    println!("value_length {}", value_length);
     (
         StoredEntry {
             key: serialized_key.to_vec(),

@@ -5,6 +5,7 @@ use std::hash::Hash;
 use crate::bit_cask_key::BitCaskKey;
 use crate::entry::MappedStoredEntry;
 
+// MergedState encapsulates key and its entry from inactive segment files
 #[derive(Debug)]
 pub struct MergedState<Key: BitCaskKey> {
     pub value_by_key: HashMap<Key, MappedStoredEntry<Key>>,
@@ -20,7 +21,7 @@ impl<Key: BitCaskKey + Eq + Hash + Clone> MergedState<Key> {
         }
     }
 
-    // Equivalent to merge method
+    // merge performs a merge operation between 2 sets of entries
     pub fn merge(
         &mut self,
         entries: Vec<MappedStoredEntry<Key>>,
@@ -30,7 +31,7 @@ impl<Key: BitCaskKey + Eq + Hash + Clone> MergedState<Key> {
         self.merge_with(other_entries);
     }
 
-    // transfers all state
+    // takeAll accepts all the entries as is and dumps these entries in the hashmap
     pub fn take_all(&mut self, mapped_entries: Vec<MappedStoredEntry<Key>>) {
         for entry in mapped_entries {
             if entry.deleted {
@@ -41,7 +42,7 @@ impl<Key: BitCaskKey + Eq + Hash + Clone> MergedState<Key> {
         }
     }
 
-    // Merge existing segment entries with current segment
+    // mergeWith performs a merge operation with the new set of entries based on timestamp. The value of key with the latest timestamp is retained
     pub fn merge_with(&mut self, mapped_entries: Vec<MappedStoredEntry<Key>>) {
         for new_entry in mapped_entries {
             if let Some(existing) = self.value_by_key.get(&new_entry.key) {
@@ -58,7 +59,6 @@ impl<Key: BitCaskKey + Eq + Hash + Clone> MergedState<Key> {
         }
     }
 
-    // Update entries by timestamp comparison and if deleted
     fn maybe_update(&mut self, existing_entry: &MappedStoredEntry<Key>, new_entry: MappedStoredEntry<Key>) {
         if new_entry.timestamp > existing_entry.timestamp {
             if new_entry.deleted {
