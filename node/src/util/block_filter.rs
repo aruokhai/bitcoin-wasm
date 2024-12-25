@@ -10,7 +10,6 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::io::Read;
 use std::{cmp, io};
-use std::hash::Hash;
 use bitcoin::hashes::siphash24;
 
 use super::{var_int, Hash256};

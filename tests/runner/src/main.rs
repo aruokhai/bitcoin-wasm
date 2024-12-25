@@ -10,7 +10,7 @@ use wasmtime_wasi_http::{self, WasiHttpCtx, WasiHttpView};
 mod artifacts;
 
 fn main() {
-    //test_node();
-    test_store();
+    test_node();
+    //test_store();
 }
 

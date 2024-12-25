@@ -16,7 +16,7 @@ mod out_point;
 pub mod ping;
 pub mod tx;
 pub mod tx_in;
-mod tx_out;
+pub mod tx_out;
 mod version;
 pub mod reject;
 pub mod compact_filter_header;

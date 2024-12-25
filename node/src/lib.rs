@@ -3,8 +3,8 @@ mod bindings;
 use std::{cell::RefCell};
 
 use node::Node;
-use bindings::exports::component::node::types::{Guest,Error, GuestClientNode, NodeConfig};
-use bindings::component::kvstore::types::{Kvstore };
+use bindings::exports::component::node::types::{Guest, GuestClientNode, NodeConfig};
+use bindings::component::kv::types::{Kvstore };
 
 mod node;
 mod p2p;
@@ -13,7 +13,6 @@ mod util;
 mod messages;
 mod chain;
 mod db;
-
 struct Component;
 
 struct BitcoinNode {
@@ -21,22 +20,12 @@ struct BitcoinNode {
 }
 
 impl GuestClientNode for BitcoinNode {
-    fn get_balance(&self) -> Result<i64, Error> {
-        return  self.inner.borrow_mut().get_balance().map_err(|err| err.into());
+    fn get_balance(&self) -> Result<i64, u32> {
+        return  self.inner.borrow_mut().balance().map_err(|err| err.to_error_code());
     }
 
-    // fn new(config: NodeConfig, tbdx_config: Option<TbdexConfig>) -> Self {
-    //     let tbdex = if let Some(config) = tbdx_config {
-    //         let new_tbdex_client = Client::new(&config.pfi_uri, &config.vc_url, &config.acct_number);
-    //         Some(RefCell::new(new_tbdex_client))
-    //     } else {
-    //         None
-    //     };
-    //     Self{ inner:  Node::new(config.into()).into(), tbdex}
-    // }
-
-    fn add_filter(&self, filter: String) -> Result<(), Error> {
-        return  self.inner.borrow_mut().add_filter(filter).map_err(|err| err.into());
+    fn add_filter(&self, filter: String) -> Result<(), u32> {
+        return  self.inner.borrow_mut().add_filter(filter).map_err(|err| err.to_error_code());
     }
 
     fn new(config: NodeConfig) -> Self {

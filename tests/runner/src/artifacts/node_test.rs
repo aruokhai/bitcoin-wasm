@@ -12,7 +12,7 @@ include!(concat!(env!("OUT_DIR"), "/node_WIT.rs"));
 pub fn test_node(){
     
     let (nodeworld, mut store ,node) = create_node().unwrap();
-    let wallet_filter = "0014622d0e3b6cc7af423cc297fd931a9528e8548292".to_string();
+    let wallet_filter = "0014c894cacf116202a9e85047a906eb215f26ab03d3".to_string();
     nodeworld.component_node_types().client_node().call_add_filter(&mut store, node.clone(), &wallet_filter).unwrap().unwrap();
     let balance = nodeworld.component_node_types().client_node().call_get_balance(&mut store, node.clone()).unwrap().unwrap();
     assert_eq!(balance, 10_0000_0000);
@@ -66,7 +66,7 @@ impl ServerWasiView {
         let http_ctx = WasiHttpCtx::new();
         let ctx = WasiCtxBuilder::new()
             .inherit_stdio()
-            .preopened_dir("/tmp", ".", DirPerms::all(), FilePerms::all()).unwrap()
+            .preopened_dir("./testfolder", ".", DirPerms::all(), FilePerms::all()).unwrap()
             .inherit_network()
             .allow_ip_name_lookup(true)
             .allow_tcp(true)

@@ -2,7 +2,7 @@ package component:node@0.1.0;
 
 /// An example world for the component to target.
 world nodeworld {
-    import component:kvstore/types@0.1.0;
+    import component:kv/types@0.1.0;
     export types;
 }
 
@@ -26,18 +26,6 @@ interface types {
         filesystem-error(u8),
         invalid-magic-bytes,
         stream-error
-    }
-
-    
-    variant error {
-        network-error,
-        fetch-compact-filter(u32),
-        fetch-compact-filter-header(u32),
-        fetch-block(u32),
-        fetch-transaction(u32),
-        fetch-header(u32),
-        store-error(store-error),
-        serialization-error,
     }
 
     record socket-address {
@@ -70,9 +58,9 @@ interface types {
 
         constructor(config: node-config);
 
-        get-balance: func() -> result<s64, error>;
+        get-balance: func() -> result<s64, u32>;
 
-        add-filter: func(filter: string) -> result<_, error>;
+        add-filter: func(filter: string) -> result<_, u32>;
 
      
 

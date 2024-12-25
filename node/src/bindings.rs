@@ -3,7 +3,7 @@
 #[allow(dead_code)]
 pub mod component {
     #[allow(dead_code)]
-    pub mod kvstore {
+    pub mod kv {
         #[allow(dead_code, clippy::all)]
         pub mod types {
             #[used]
@@ -12,58 +12,26 @@ pub mod component {
             static __FORCE_SECTION_REF: fn() =
                 super::super::super::__link_custom_section_describing_imports;
             use super::super::super::_rt;
-            #[derive(Clone)]
-            pub struct KeyValuePair {
-                pub key: _rt::String,
-                pub value: _rt::String,
-            }
-            impl ::core::fmt::Debug for KeyValuePair {
-                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                    f.debug_struct("KeyValuePair")
-                        .field("key", &self.key)
-                        .field("value", &self.value)
-                        .finish()
-                }
-            }
-            pub type Key = _rt::String;
             #[derive(Clone, Copy)]
             pub enum Error {
-                KeyNotFound,
-                KeyAlreadyExists,
-                UnexpectedError,
-                KeyOverflowError,
-                ValueOverflowError,
-                TryFromSliceError,
-                Utf8Error,
-                FilesystemError(u8),
-                InvalidMagicBytes,
+                OpenFileError,
                 StreamError,
+                FileNotFound(u64),
+                InvalidData,
+                ParseError,
+                EntryNotFound,
             }
             impl ::core::fmt::Debug for Error {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                     match self {
-                        Error::KeyNotFound => f.debug_tuple("Error::KeyNotFound").finish(),
-                        Error::KeyAlreadyExists => {
-                            f.debug_tuple("Error::KeyAlreadyExists").finish()
-                        }
-                        Error::UnexpectedError => f.debug_tuple("Error::UnexpectedError").finish(),
-                        Error::KeyOverflowError => {
-                            f.debug_tuple("Error::KeyOverflowError").finish()
-                        }
-                        Error::ValueOverflowError => {
-                            f.debug_tuple("Error::ValueOverflowError").finish()
-                        }
-                        Error::TryFromSliceError => {
-                            f.debug_tuple("Error::TryFromSliceError").finish()
-                        }
-                        Error::Utf8Error => f.debug_tuple("Error::Utf8Error").finish(),
-                        Error::FilesystemError(e) => {
-                            f.debug_tuple("Error::FilesystemError").field(e).finish()
-                        }
-                        Error::InvalidMagicBytes => {
-                            f.debug_tuple("Error::InvalidMagicBytes").finish()
-                        }
+                        Error::OpenFileError => f.debug_tuple("Error::OpenFileError").finish(),
                         Error::StreamError => f.debug_tuple("Error::StreamError").finish(),
+                        Error::FileNotFound(e) => {
+                            f.debug_tuple("Error::FileNotFound").field(e).finish()
+                        }
+                        Error::InvalidData => f.debug_tuple("Error::InvalidData").finish(),
+                        Error::ParseError => f.debug_tuple("Error::ParseError").finish(),
+                        Error::EntryNotFound => f.debug_tuple("Error::EntryNotFound").finish(),
                     }
                 }
             }
@@ -108,7 +76,7 @@ pub mod component {
 
                     #[cfg(target_arch = "wasm32")]
                     {
-                        #[link(wasm_import_module = "component:kvstore/types@0.1.0")]
+                        #[link(wasm_import_module = "component:kv/types@0.1.0")]
                         extern "C" {
                             #[link_name = "[resource-drop]kvstore"]
                             fn drop(_: u32);
@@ -124,7 +92,7 @@ pub mod component {
                 pub fn new() -> Self {
                     unsafe {
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:kvstore/types@0.1.0")]
+                        #[link(wasm_import_module = "component:kv/types@0.1.0")]
                         extern "C" {
                             #[link_name = "[constructor]kvstore"]
                             fn wit_import() -> i32;
@@ -141,24 +109,20 @@ pub mod component {
             }
             impl Kvstore {
                 #[allow(unused_unsafe, clippy::all)]
-                pub fn insert(&self, kv: &KeyValuePair) -> Result<(), Error> {
+                pub fn insert(&self, key: &str, value: &[u8]) -> Result<(), Error> {
                     unsafe {
-                        #[repr(align(1))]
-                        struct RetArea([::core::mem::MaybeUninit<u8>; 3]);
-                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 3]);
-                        let KeyValuePair {
-                            key: key0,
-                            value: value0,
-                        } = kv;
-                        let vec1 = key0;
+                        #[repr(align(8))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 24]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 24]);
+                        let vec0 = key;
+                        let ptr0 = vec0.as_ptr().cast::<u8>();
+                        let len0 = vec0.len();
+                        let vec1 = value;
                         let ptr1 = vec1.as_ptr().cast::<u8>();
                         let len1 = vec1.len();
-                        let vec2 = value0;
-                        let ptr2 = vec2.as_ptr().cast::<u8>();
-                        let len2 = vec2.len();
-                        let ptr3 = ret_area.0.as_mut_ptr().cast::<u8>();
+                        let ptr2 = ret_area.0.as_mut_ptr().cast::<u8>();
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:kvstore/types@0.1.0")]
+                        #[link(wasm_import_module = "component:kv/types@0.1.0")]
                         extern "C" {
                             #[link_name = "[method]kvstore.insert"]
                             fn wit_import(
@@ -184,45 +148,41 @@ pub mod component {
                         }
                         wit_import(
                             (self).handle() as i32,
+                            ptr0.cast_mut(),
+                            len0,
                             ptr1.cast_mut(),
                             len1,
-                            ptr2.cast_mut(),
-                            len2,
-                            ptr3,
+                            ptr2,
                         );
-                        let l4 = i32::from(*ptr3.add(0).cast::<u8>());
-                        match l4 {
+                        let l3 = i32::from(*ptr2.add(0).cast::<u8>());
+                        match l3 {
                             0 => {
                                 let e = ();
                                 Ok(e)
                             }
                             1 => {
                                 let e = {
-                                    let l5 = i32::from(*ptr3.add(1).cast::<u8>());
-                                    let v7 = match l5 {
-                                        0 => Error::KeyNotFound,
-                                        1 => Error::KeyAlreadyExists,
-                                        2 => Error::UnexpectedError,
-                                        3 => Error::KeyOverflowError,
-                                        4 => Error::ValueOverflowError,
-                                        5 => Error::TryFromSliceError,
-                                        6 => Error::Utf8Error,
-                                        7 => {
-                                            let e7 = {
-                                                let l6 = i32::from(*ptr3.add(2).cast::<u8>());
+                                    let l4 = i32::from(*ptr2.add(8).cast::<u8>());
+                                    let v6 = match l4 {
+                                        0 => Error::OpenFileError,
+                                        1 => Error::StreamError,
+                                        2 => {
+                                            let e6 = {
+                                                let l5 = *ptr2.add(16).cast::<i64>();
 
-                                                l6 as u8
+                                                l5 as u64
                                             };
-                                            Error::FilesystemError(e7)
+                                            Error::FileNotFound(e6)
                                         }
-                                        8 => Error::InvalidMagicBytes,
+                                        3 => Error::InvalidData,
+                                        4 => Error::ParseError,
                                         n => {
-                                            debug_assert_eq!(n, 9, "invalid enum discriminant");
-                                            Error::StreamError
+                                            debug_assert_eq!(n, 5, "invalid enum discriminant");
+                                            Error::EntryNotFound
                                         }
                                     };
 
-                                    v7
+                                    v6
                                 };
                                 Err(e)
                             }
@@ -233,19 +193,19 @@ pub mod component {
             }
             impl Kvstore {
                 #[allow(unused_unsafe, clippy::all)]
-                pub fn search(&self, key: &Key) -> Result<KeyValuePair, Error> {
+                pub fn get(&self, key: &str) -> Result<_rt::Vec<u8>, Error> {
                     unsafe {
-                        #[repr(align(4))]
-                        struct RetArea([::core::mem::MaybeUninit<u8>; 20]);
-                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 20]);
+                        #[repr(align(8))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 24]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 24]);
                         let vec0 = key;
                         let ptr0 = vec0.as_ptr().cast::<u8>();
                         let len0 = vec0.len();
                         let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:kvstore/types@0.1.0")]
+                        #[link(wasm_import_module = "component:kv/types@0.1.0")]
                         extern "C" {
-                            #[link_name = "[method]kvstore.search"]
+                            #[link_name = "[method]kvstore.get"]
                             fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
                         }
 
@@ -258,49 +218,37 @@ pub mod component {
                         match l2 {
                             0 => {
                                 let e = {
-                                    let l3 = *ptr1.add(4).cast::<*mut u8>();
-                                    let l4 = *ptr1.add(8).cast::<usize>();
+                                    let l3 = *ptr1.add(8).cast::<*mut u8>();
+                                    let l4 = *ptr1.add(12).cast::<usize>();
                                     let len5 = l4;
-                                    let bytes5 = _rt::Vec::from_raw_parts(l3.cast(), len5, len5);
-                                    let l6 = *ptr1.add(12).cast::<*mut u8>();
-                                    let l7 = *ptr1.add(16).cast::<usize>();
-                                    let len8 = l7;
-                                    let bytes8 = _rt::Vec::from_raw_parts(l6.cast(), len8, len8);
 
-                                    KeyValuePair {
-                                        key: _rt::string_lift(bytes5),
-                                        value: _rt::string_lift(bytes8),
-                                    }
+                                    _rt::Vec::from_raw_parts(l3.cast(), len5, len5)
                                 };
                                 Ok(e)
                             }
                             1 => {
                                 let e = {
-                                    let l9 = i32::from(*ptr1.add(4).cast::<u8>());
-                                    let v11 = match l9 {
-                                        0 => Error::KeyNotFound,
-                                        1 => Error::KeyAlreadyExists,
-                                        2 => Error::UnexpectedError,
-                                        3 => Error::KeyOverflowError,
-                                        4 => Error::ValueOverflowError,
-                                        5 => Error::TryFromSliceError,
-                                        6 => Error::Utf8Error,
-                                        7 => {
-                                            let e11 = {
-                                                let l10 = i32::from(*ptr1.add(5).cast::<u8>());
+                                    let l6 = i32::from(*ptr1.add(8).cast::<u8>());
+                                    let v8 = match l6 {
+                                        0 => Error::OpenFileError,
+                                        1 => Error::StreamError,
+                                        2 => {
+                                            let e8 = {
+                                                let l7 = *ptr1.add(16).cast::<i64>();
 
-                                                l10 as u8
+                                                l7 as u64
                                             };
-                                            Error::FilesystemError(e11)
+                                            Error::FileNotFound(e8)
                                         }
-                                        8 => Error::InvalidMagicBytes,
+                                        3 => Error::InvalidData,
+                                        4 => Error::ParseError,
                                         n => {
-                                            debug_assert_eq!(n, 9, "invalid enum discriminant");
-                                            Error::StreamError
+                                            debug_assert_eq!(n, 5, "invalid enum discriminant");
+                                            Error::EntryNotFound
                                         }
                                     };
 
-                                    v11
+                                    v8
                                 };
                                 Err(e)
                             }
@@ -311,17 +259,17 @@ pub mod component {
             }
             impl Kvstore {
                 #[allow(unused_unsafe, clippy::all)]
-                pub fn delete(&self, key: &Key) -> Result<(), Error> {
+                pub fn delete(&self, key: &str) -> Result<(), Error> {
                     unsafe {
-                        #[repr(align(1))]
-                        struct RetArea([::core::mem::MaybeUninit<u8>; 3]);
-                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 3]);
+                        #[repr(align(8))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 24]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 24]);
                         let vec0 = key;
                         let ptr0 = vec0.as_ptr().cast::<u8>();
                         let len0 = vec0.len();
                         let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
                         #[cfg(target_arch = "wasm32")]
-                        #[link(wasm_import_module = "component:kvstore/types@0.1.0")]
+                        #[link(wasm_import_module = "component:kv/types@0.1.0")]
                         extern "C" {
                             #[link_name = "[method]kvstore.delete"]
                             fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
@@ -340,27 +288,23 @@ pub mod component {
                             }
                             1 => {
                                 let e = {
-                                    let l3 = i32::from(*ptr1.add(1).cast::<u8>());
+                                    let l3 = i32::from(*ptr1.add(8).cast::<u8>());
                                     let v5 = match l3 {
-                                        0 => Error::KeyNotFound,
-                                        1 => Error::KeyAlreadyExists,
-                                        2 => Error::UnexpectedError,
-                                        3 => Error::KeyOverflowError,
-                                        4 => Error::ValueOverflowError,
-                                        5 => Error::TryFromSliceError,
-                                        6 => Error::Utf8Error,
-                                        7 => {
+                                        0 => Error::OpenFileError,
+                                        1 => Error::StreamError,
+                                        2 => {
                                             let e5 = {
-                                                let l4 = i32::from(*ptr1.add(2).cast::<u8>());
+                                                let l4 = *ptr1.add(16).cast::<i64>();
 
-                                                l4 as u8
+                                                l4 as u64
                                             };
-                                            Error::FilesystemError(e5)
+                                            Error::FileNotFound(e5)
                                         }
-                                        8 => Error::InvalidMagicBytes,
+                                        3 => Error::InvalidData,
+                                        4 => Error::ParseError,
                                         n => {
-                                            debug_assert_eq!(n, 9, "invalid enum discriminant");
-                                            Error::StreamError
+                                            debug_assert_eq!(n, 5, "invalid enum discriminant");
+                                            Error::EntryNotFound
                                         }
                                     };
 
@@ -390,103 +334,6 @@ pub mod exports {
                 static __FORCE_SECTION_REF: fn() =
                     super::super::super::super::__link_custom_section_describing_imports;
                 use super::super::super::super::_rt;
-                #[derive(Clone, Copy)]
-                pub enum StoreError {
-                    KeyNotFound,
-                    KeyAlreadyExists,
-                    UnexpectedError,
-                    KeyOverflowError,
-                    ValueOverflowError,
-                    TryFromSliceError,
-                    Utf8Error,
-                    FilesystemError(u8),
-                    InvalidMagicBytes,
-                    StreamError,
-                }
-                impl ::core::fmt::Debug for StoreError {
-                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                        match self {
-                            StoreError::KeyNotFound => {
-                                f.debug_tuple("StoreError::KeyNotFound").finish()
-                            }
-                            StoreError::KeyAlreadyExists => {
-                                f.debug_tuple("StoreError::KeyAlreadyExists").finish()
-                            }
-                            StoreError::UnexpectedError => {
-                                f.debug_tuple("StoreError::UnexpectedError").finish()
-                            }
-                            StoreError::KeyOverflowError => {
-                                f.debug_tuple("StoreError::KeyOverflowError").finish()
-                            }
-                            StoreError::ValueOverflowError => {
-                                f.debug_tuple("StoreError::ValueOverflowError").finish()
-                            }
-                            StoreError::TryFromSliceError => {
-                                f.debug_tuple("StoreError::TryFromSliceError").finish()
-                            }
-                            StoreError::Utf8Error => {
-                                f.debug_tuple("StoreError::Utf8Error").finish()
-                            }
-                            StoreError::FilesystemError(e) => f
-                                .debug_tuple("StoreError::FilesystemError")
-                                .field(e)
-                                .finish(),
-                            StoreError::InvalidMagicBytes => {
-                                f.debug_tuple("StoreError::InvalidMagicBytes").finish()
-                            }
-                            StoreError::StreamError => {
-                                f.debug_tuple("StoreError::StreamError").finish()
-                            }
-                        }
-                    }
-                }
-                #[derive(Clone, Copy)]
-                pub enum Error {
-                    NetworkError,
-                    FetchCompactFilter(u32),
-                    FetchCompactFilterHeader(u32),
-                    FetchBlock(u32),
-                    FetchTransaction(u32),
-                    FetchHeader(u32),
-                    StoreError(StoreError),
-                    SerializationError,
-                }
-                impl ::core::fmt::Debug for Error {
-                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                        match self {
-                            Error::NetworkError => f.debug_tuple("Error::NetworkError").finish(),
-                            Error::FetchCompactFilter(e) => {
-                                f.debug_tuple("Error::FetchCompactFilter").field(e).finish()
-                            }
-                            Error::FetchCompactFilterHeader(e) => f
-                                .debug_tuple("Error::FetchCompactFilterHeader")
-                                .field(e)
-                                .finish(),
-                            Error::FetchBlock(e) => {
-                                f.debug_tuple("Error::FetchBlock").field(e).finish()
-                            }
-                            Error::FetchTransaction(e) => {
-                                f.debug_tuple("Error::FetchTransaction").field(e).finish()
-                            }
-                            Error::FetchHeader(e) => {
-                                f.debug_tuple("Error::FetchHeader").field(e).finish()
-                            }
-                            Error::StoreError(e) => {
-                                f.debug_tuple("Error::StoreError").field(e).finish()
-                            }
-                            Error::SerializationError => {
-                                f.debug_tuple("Error::SerializationError").finish()
-                            }
-                        }
-                    }
-                }
-                impl ::core::fmt::Display for Error {
-                    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                        write!(f, "{:?}", self)
-                    }
-                }
-
-                impl std::error::Error for Error {}
                 #[derive(Clone)]
                 pub struct SocketAddress {
                     pub ip: _rt::String,
@@ -746,70 +593,7 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr1.add(0).cast::<u8>() = (1i32) as u8;
-                            match e {
-                                Error::NetworkError => {
-                                    *ptr1.add(8).cast::<u8>() = (0i32) as u8;
-                                }
-                                Error::FetchCompactFilter(e) => {
-                                    *ptr1.add(8).cast::<u8>() = (1i32) as u8;
-                                    *ptr1.add(12).cast::<i32>() = _rt::as_i32(e);
-                                }
-                                Error::FetchCompactFilterHeader(e) => {
-                                    *ptr1.add(8).cast::<u8>() = (2i32) as u8;
-                                    *ptr1.add(12).cast::<i32>() = _rt::as_i32(e);
-                                }
-                                Error::FetchBlock(e) => {
-                                    *ptr1.add(8).cast::<u8>() = (3i32) as u8;
-                                    *ptr1.add(12).cast::<i32>() = _rt::as_i32(e);
-                                }
-                                Error::FetchTransaction(e) => {
-                                    *ptr1.add(8).cast::<u8>() = (4i32) as u8;
-                                    *ptr1.add(12).cast::<i32>() = _rt::as_i32(e);
-                                }
-                                Error::FetchHeader(e) => {
-                                    *ptr1.add(8).cast::<u8>() = (5i32) as u8;
-                                    *ptr1.add(12).cast::<i32>() = _rt::as_i32(e);
-                                }
-                                Error::StoreError(e) => {
-                                    *ptr1.add(8).cast::<u8>() = (6i32) as u8;
-                                    match e {
-                                        StoreError::KeyNotFound => {
-                                            *ptr1.add(12).cast::<u8>() = (0i32) as u8;
-                                        }
-                                        StoreError::KeyAlreadyExists => {
-                                            *ptr1.add(12).cast::<u8>() = (1i32) as u8;
-                                        }
-                                        StoreError::UnexpectedError => {
-                                            *ptr1.add(12).cast::<u8>() = (2i32) as u8;
-                                        }
-                                        StoreError::KeyOverflowError => {
-                                            *ptr1.add(12).cast::<u8>() = (3i32) as u8;
-                                        }
-                                        StoreError::ValueOverflowError => {
-                                            *ptr1.add(12).cast::<u8>() = (4i32) as u8;
-                                        }
-                                        StoreError::TryFromSliceError => {
-                                            *ptr1.add(12).cast::<u8>() = (5i32) as u8;
-                                        }
-                                        StoreError::Utf8Error => {
-                                            *ptr1.add(12).cast::<u8>() = (6i32) as u8;
-                                        }
-                                        StoreError::FilesystemError(e) => {
-                                            *ptr1.add(12).cast::<u8>() = (7i32) as u8;
-                                            *ptr1.add(13).cast::<u8>() = (_rt::as_i32(e)) as u8;
-                                        }
-                                        StoreError::InvalidMagicBytes => {
-                                            *ptr1.add(12).cast::<u8>() = (8i32) as u8;
-                                        }
-                                        StoreError::StreamError => {
-                                            *ptr1.add(12).cast::<u8>() = (9i32) as u8;
-                                        }
-                                    }
-                                }
-                                Error::SerializationError => {
-                                    *ptr1.add(8).cast::<u8>() = (7i32) as u8;
-                                }
-                            }
+                            *ptr1.add(8).cast::<i32>() = _rt::as_i32(e);
                         }
                     };
                     ptr1
@@ -836,70 +620,7 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr2.add(0).cast::<u8>() = (1i32) as u8;
-                            match e {
-                                Error::NetworkError => {
-                                    *ptr2.add(4).cast::<u8>() = (0i32) as u8;
-                                }
-                                Error::FetchCompactFilter(e) => {
-                                    *ptr2.add(4).cast::<u8>() = (1i32) as u8;
-                                    *ptr2.add(8).cast::<i32>() = _rt::as_i32(e);
-                                }
-                                Error::FetchCompactFilterHeader(e) => {
-                                    *ptr2.add(4).cast::<u8>() = (2i32) as u8;
-                                    *ptr2.add(8).cast::<i32>() = _rt::as_i32(e);
-                                }
-                                Error::FetchBlock(e) => {
-                                    *ptr2.add(4).cast::<u8>() = (3i32) as u8;
-                                    *ptr2.add(8).cast::<i32>() = _rt::as_i32(e);
-                                }
-                                Error::FetchTransaction(e) => {
-                                    *ptr2.add(4).cast::<u8>() = (4i32) as u8;
-                                    *ptr2.add(8).cast::<i32>() = _rt::as_i32(e);
-                                }
-                                Error::FetchHeader(e) => {
-                                    *ptr2.add(4).cast::<u8>() = (5i32) as u8;
-                                    *ptr2.add(8).cast::<i32>() = _rt::as_i32(e);
-                                }
-                                Error::StoreError(e) => {
-                                    *ptr2.add(4).cast::<u8>() = (6i32) as u8;
-                                    match e {
-                                        StoreError::KeyNotFound => {
-                                            *ptr2.add(8).cast::<u8>() = (0i32) as u8;
-                                        }
-                                        StoreError::KeyAlreadyExists => {
-                                            *ptr2.add(8).cast::<u8>() = (1i32) as u8;
-                                        }
-                                        StoreError::UnexpectedError => {
-                                            *ptr2.add(8).cast::<u8>() = (2i32) as u8;
-                                        }
-                                        StoreError::KeyOverflowError => {
-                                            *ptr2.add(8).cast::<u8>() = (3i32) as u8;
-                                        }
-                                        StoreError::ValueOverflowError => {
-                                            *ptr2.add(8).cast::<u8>() = (4i32) as u8;
-                                        }
-                                        StoreError::TryFromSliceError => {
-                                            *ptr2.add(8).cast::<u8>() = (5i32) as u8;
-                                        }
-                                        StoreError::Utf8Error => {
-                                            *ptr2.add(8).cast::<u8>() = (6i32) as u8;
-                                        }
-                                        StoreError::FilesystemError(e) => {
-                                            *ptr2.add(8).cast::<u8>() = (7i32) as u8;
-                                            *ptr2.add(9).cast::<u8>() = (_rt::as_i32(e)) as u8;
-                                        }
-                                        StoreError::InvalidMagicBytes => {
-                                            *ptr2.add(8).cast::<u8>() = (8i32) as u8;
-                                        }
-                                        StoreError::StreamError => {
-                                            *ptr2.add(8).cast::<u8>() = (9i32) as u8;
-                                        }
-                                    }
-                                }
-                                Error::SerializationError => {
-                                    *ptr2.add(4).cast::<u8>() = (7i32) as u8;
-                                }
-                            }
+                            *ptr2.add(4).cast::<i32>() = _rt::as_i32(e);
                         }
                     };
                     ptr2
@@ -953,8 +674,8 @@ pub mod exports {
                     }
 
                     fn new(config: NodeConfig) -> Self;
-                    fn get_balance(&self) -> Result<i64, Error>;
-                    fn add_filter(&self, filter: _rt::String) -> Result<(), Error>;
+                    fn get_balance(&self) -> Result<i64, u32>;
+                    fn add_filter(&self, filter: _rt::String) -> Result<(), u32>;
                 }
                 #[doc(hidden)]
 
@@ -997,7 +718,6 @@ pub mod exports {
     }
 }
 mod _rt {
-    pub use alloc_crate::string::String;
 
     use core::fmt;
     use core::marker;
@@ -1100,19 +820,20 @@ mod _rt {
             core::hint::unreachable_unchecked()
         }
     }
+    pub use alloc_crate::boxed::Box;
+    pub use alloc_crate::string::String;
     pub use alloc_crate::vec::Vec;
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn run_ctors_once() {
+        wit_bindgen_rt::run_ctors_once();
+    }
     pub unsafe fn string_lift(bytes: Vec<u8>) -> String {
         if cfg!(debug_assertions) {
             String::from_utf8(bytes).unwrap()
         } else {
             String::from_utf8_unchecked(bytes)
         }
-    }
-    pub use alloc_crate::boxed::Box;
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn run_ctors_once() {
-        wit_bindgen_rt::run_ctors_once();
     }
 
     pub fn as_i64<T: AsI64>(t: T) -> i64 {
@@ -1246,37 +967,31 @@ pub(crate) use __export_nodeworld_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:nodeworld:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1509] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xe5\x0a\x01A\x02\x01\
-A\x04\x01B\x13\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01s\x04\
-\0\x03key\x03\0\x02\x01q\x0a\x0dkey-not-found\0\0\x12key-already-exists\0\0\x10u\
-nexpected-error\0\0\x12key-overflow-error\0\0\x14value-overflow-error\0\0\x14try\
--from-slice-error\0\0\x0autf8-error\0\0\x10filesystem-error\x01}\0\x13invalid-ma\
-gic-bytes\0\0\x0cstream-error\0\0\x04\0\x05error\x03\0\x04\x04\0\x07kvstore\x03\x01\
-\x01i\x06\x01@\0\0\x07\x04\0\x14[constructor]kvstore\x01\x08\x01h\x06\x01j\0\x01\
-\x05\x01@\x02\x04self\x09\x02kv\x01\0\x0a\x04\0\x16[method]kvstore.insert\x01\x0b\
-\x01j\x01\x01\x01\x05\x01@\x02\x04self\x09\x03key\x03\0\x0c\x04\0\x16[method]kvs\
-tore.search\x01\x0d\x01@\x02\x04self\x09\x03key\x03\0\x0a\x04\0\x16[method]kvsto\
-re.delete\x01\x0e\x03\x01\x1dcomponent:kvstore/types@0.1.0\x05\0\x01B\x1a\x01r\x02\
-\x03keys\x05values\x04\0\x0ekey-value-pair\x03\0\0\x01q\x0a\x0dkey-not-found\0\0\
-\x12key-already-exists\0\0\x10unexpected-error\0\0\x12key-overflow-error\0\0\x14\
-value-overflow-error\0\0\x14try-from-slice-error\0\0\x0autf8-error\0\0\x10filesy\
-stem-error\x01}\0\x13invalid-magic-bytes\0\0\x0cstream-error\0\0\x04\0\x0bstore-\
-error\x03\0\x02\x01q\x08\x0dnetwork-error\0\0\x14fetch-compact-filter\x01y\0\x1b\
-fetch-compact-filter-header\x01y\0\x0bfetch-block\x01y\0\x11fetch-transaction\x01\
-y\0\x0cfetch-header\x01y\0\x0bstore-error\x01\x03\0\x13serialization-error\0\0\x04\
-\0\x05error\x03\0\x04\x01r\x02\x02ips\x04port{\x04\0\x0esocket-address\x03\0\x06\
-\x01m\x03\x07mainnet\x07testnet\x07regtest\x04\0\x0fbitcoin-network\x03\0\x08\x01\
-ks\x01r\x04\x03fee\x0a\x19estimated-settlement-timew\x02ids\x04rates\x04\0\x10of\
-fering-bargain\x03\0\x0b\x01r\x04\x0ewallet-addresss\x11genesis-blockhashs\x07ne\
-twork\x09\x0esocket-address\x07\x04\0\x0bnode-config\x03\0\x0d\x04\0\x0bclient-n\
-ode\x03\x01\x01i\x0f\x01@\x01\x06config\x0e\0\x10\x04\0\x18[constructor]client-n\
-ode\x01\x11\x01h\x0f\x01j\x01x\x01\x05\x01@\x01\x04self\x12\0\x13\x04\0\x1f[meth\
-od]client-node.get-balance\x01\x14\x01j\0\x01\x05\x01@\x02\x04self\x12\x06filter\
-s\0\x15\x04\0\x1e[method]client-node.add-filter\x01\x16\x04\x01\x1acomponent:nod\
-e/types@0.1.0\x05\x01\x04\x01\x1ecomponent:node/nodeworld@0.1.0\x04\0\x0b\x0f\x01\
-\0\x09nodeworld\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\
-\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1197] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xad\x08\x01A\x02\x01\
+A\x04\x01B\x10\x01q\x06\x0fopen-file-error\0\0\x0cstream-error\0\0\x0efile-not-f\
+ound\x01w\0\x0cinvalid-data\0\0\x0bparse-error\0\0\x0fentry-not-found\0\0\x04\0\x05\
+error\x03\0\0\x04\0\x07kvstore\x03\x01\x01i\x02\x01@\0\0\x03\x04\0\x14[construct\
+or]kvstore\x01\x04\x01h\x02\x01p}\x01j\0\x01\x01\x01@\x03\x04self\x05\x03keys\x05\
+value\x06\0\x07\x04\0\x16[method]kvstore.insert\x01\x08\x01j\x01\x06\x01\x01\x01\
+@\x02\x04self\x05\x03keys\0\x09\x04\0\x13[method]kvstore.get\x01\x0a\x01@\x02\x04\
+self\x05\x03keys\0\x07\x04\0\x16[method]kvstore.delete\x01\x0b\x03\x01\x18compon\
+ent:kv/types@0.1.0\x05\0\x01B\x18\x01r\x02\x03keys\x05values\x04\0\x0ekey-value-\
+pair\x03\0\0\x01q\x0a\x0dkey-not-found\0\0\x12key-already-exists\0\0\x10unexpect\
+ed-error\0\0\x12key-overflow-error\0\0\x14value-overflow-error\0\0\x14try-from-s\
+lice-error\0\0\x0autf8-error\0\0\x10filesystem-error\x01}\0\x13invalid-magic-byt\
+es\0\0\x0cstream-error\0\0\x04\0\x0bstore-error\x03\0\x02\x01r\x02\x02ips\x04por\
+t{\x04\0\x0esocket-address\x03\0\x04\x01m\x03\x07mainnet\x07testnet\x07regtest\x04\
+\0\x0fbitcoin-network\x03\0\x06\x01ks\x01r\x04\x03fee\x08\x19estimated-settlemen\
+t-timew\x02ids\x04rates\x04\0\x10offering-bargain\x03\0\x09\x01r\x04\x0ewallet-a\
+ddresss\x11genesis-blockhashs\x07network\x07\x0esocket-address\x05\x04\0\x0bnode\
+-config\x03\0\x0b\x04\0\x0bclient-node\x03\x01\x01i\x0d\x01@\x01\x06config\x0c\0\
+\x0e\x04\0\x18[constructor]client-node\x01\x0f\x01h\x0d\x01j\x01x\x01y\x01@\x01\x04\
+self\x10\0\x11\x04\0\x1f[method]client-node.get-balance\x01\x12\x01j\0\x01y\x01@\
+\x02\x04self\x10\x06filters\0\x13\x04\0\x1e[method]client-node.add-filter\x01\x14\
+\x04\x01\x1acomponent:node/types@0.1.0\x05\x01\x04\x01\x1ecomponent:node/nodewor\
+ld@0.1.0\x04\0\x0b\x0f\x01\0\x09nodeworld\x03\0\0\0G\x09producers\x01\x0cprocess\
+ed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

@@ -1,5 +1,7 @@
 use crate::util::{Error, Result, Serializable};
 use ring::digest::{digest, SHA256};
+use serde::Deserialize;
+use serde::Serialize;
 use std::cmp::Ordering;
 use std::fmt;
 use std::io;
@@ -8,7 +10,7 @@ use std::io::{Read, Write};
 /// 256-bit hash for blocks and transactions
 ///
 /// It is interpreted as a single little-endian number for display.
-#[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Copy,Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Hash256(pub [u8; 32]);
 
 impl Hash256 {

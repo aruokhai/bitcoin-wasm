@@ -4,7 +4,5 @@ members = [
   "node", "tests/runner", "crates/kv"]
 
 exclude = [
-"bitcoin-wasm",
-   "lightning-wasm",
-  "wallet","crates/tbdex",
+  "crates/tbdex",
 ]

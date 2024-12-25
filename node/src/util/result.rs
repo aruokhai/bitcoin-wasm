@@ -4,11 +4,21 @@ use wasi::io::streams::StreamError;
 use wasi::sockets::tcp::ErrorCode;
 use std::io;
 use std::string::FromUtf8Error;
+use crate::bindings;
+use bindings::component::kv::types::Error as StoreError;
 
 /// Standard error type used in the library
 #[derive(Debug)]
 pub enum Error {
     /// An argument provided is invalid
+    DBError(StoreError),
+    SerializationError(String),
+    FetchCompactFilter(u32),
+    FetchCompactFilterHeader(u32),
+    FetchBlock(u32),
+    FilterMatchEror,
+    NetworkError,
+    FetchHeader(u32),
     BadArgument(String),
     /// The data given is not valid
     BadData(String),
@@ -70,6 +80,14 @@ impl Error {
             Error::TCPError(_) => 17,
             Error::SliceError(_) => 18,
             Error::PeerNotFound => 19,
+            Error::DBError(_) => 20,
+            Error::SerializationError(_) => 21,
+            Error::FetchCompactFilter(_) => 22,
+            Error::FetchCompactFilterHeader(_) => 23,
+            Error::FetchBlock(_) => 24,
+            Error::FilterMatchEror => 25,
+            Error::NetworkError => 26,
+            Error::FetchHeader(_) => 27,
         }
     }
 }
@@ -96,6 +114,14 @@ impl std::fmt::Display for Error {
             Error::TCPError(c) => f.write_str(&format!("TCP socket Error: {}", c)),
             Error::SliceError(c) => f.write_str(&format!("Slice Error: {}", c)),
             Error::PeerNotFound => f.write_str("P2P peer not found"),
+            Error::DBError(error) => f.write_str(&format!("DBError: {}", error)),
+            Error::SerializationError(error) => f.write_str(&format!("Serialization: {}", error)),
+            Error::FetchCompactFilter(e) => f.write_str(&format!("Fetching Compact Filter Error: {}", e)),
+            Error::FetchCompactFilterHeader(e) => f.write_str(&format!("Fetching Compact Filter Header Error: {}", e)),
+            Error::FetchBlock(e) => f.write_str(&format!("Fetching Block Error: {}", e)),
+            Error::FilterMatchEror => f.write_str(&format!("Filter Match Error")),
+            Error::NetworkError => f.write_str(&format!("Network Error")),
+            Error::FetchHeader(e) => f.write_str(&format!("Fetching Header Error: {}", e)),
 
         }
     }
@@ -122,7 +148,15 @@ impl std::error::Error for Error {
             Error::WrongP2PMessage => "Wrong P2P message gotten Error",
             Error::TCPError(_) => "TCP error",
             Error::SliceError(_) => "Slice error",
-            Error::PeerNotFound => "P2P Peer Not Found"
+            Error::PeerNotFound => "P2P Peer Not Found",
+            Error::DBError(_) => "DB Error",
+            Error::SerializationError(_) => "Serialization Error",
+            Error::FetchCompactFilter(_) => "Fetch Compact Filter Error",
+            Error::FetchCompactFilterHeader(_) => "Fetch Compact Filter Header Error",
+            Error::FetchBlock(_) => "Fetch Block Error",
+            Error::FilterMatchEror => "Filter Match Error",
+            Error::NetworkError => "Network Error",
+            Error::FetchHeader(_) => "Fetch Header Error",
         }
     }
 

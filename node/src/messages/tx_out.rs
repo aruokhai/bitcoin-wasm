@@ -1,10 +1,11 @@
 use crate::util::{var_int, Result, Serializable};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use serde::{Deserialize, Serialize};
 use std::io;
 use std::io::{Read, Write};
 
 /// Transaction output
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Eq, Hash, Clone)]
 pub struct TxOut {
     /// Number of satoshis to spend
     pub satoshis: i64,

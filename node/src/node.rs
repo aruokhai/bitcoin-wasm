@@ -1,12 +1,16 @@
 use std::cell::RefCell;
+use std::sync::Arc;
 use std::{hash::Hash, iter::zip, vec};
 
 use bitcoin::{
     block, network as bitcoin_network,
 };
-use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork,Error as WasiError, NodeConfig as WasiNodeConfig, StoreError as NodeStoreError};
-use bindings::component::kvstore::types::{Kvstore,KeyValuePair, Error as StoreError };
+use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork,NodeConfig as WasiNodeConfig };
+use bindings::component::kv::types::{Kvstore, Error as StoreError };
 
+use crate::chain::CompactChain;
+use crate::db::KeyValueDb;
+use crate::util::Error;
 use crate::{bindings, messages::{block::Block, compact_filter::{self, CompactFilter}, filter_locator::NO_HASH_STOP, headers, BlockHeader, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, sha256d, Hash256}};
 
 
@@ -28,37 +32,8 @@ impl From<WasiBitcoinNetwork> for bitcoin_network::Network {
     }
 }
 
-impl Into<WasiError> for NodeError {
-    fn into(self) -> WasiError {
-        match self {
-            NodeError::NetworkError => WasiError::NetworkError,
-            NodeError::FetchCompactFilter(error_code) => WasiError::FetchCompactFilter(error_code),
-            NodeError::FetchCompactFilterHeader(error_code) => WasiError::FetchCompactFilterHeader(error_code),
-            NodeError::FetchBlock(error_code) => WasiError::FetchBlock(error_code),
-            NodeError::FetchTransaction(error_code) => WasiError::FetchTransaction(error_code),
-            NodeError::FetchHeader(error_code) => WasiError::FetchHeader(error_code),
-            NodeError::StoreError(error)=> WasiError::StoreError(error),
-            NodeError::SerializationError => WasiError::SerializationError,
-        }
-    }
-} 
 
-impl From<StoreError> for NodeStoreError {
-    fn from(value: StoreError) -> Self {
-        match value {
-            StoreError::KeyNotFound => NodeStoreError::KeyNotFound,
-            StoreError::KeyAlreadyExists => NodeStoreError::KeyAlreadyExists,
-            StoreError::UnexpectedError => NodeStoreError::UnexpectedError,
-            StoreError::KeyOverflowError => NodeStoreError::KeyOverflowError,
-            StoreError::ValueOverflowError => NodeStoreError::ValueOverflowError,
-            StoreError::TryFromSliceError => NodeStoreError::TryFromSliceError,
-            StoreError::Utf8Error => NodeStoreError::Utf8Error,
-            StoreError::FilesystemError(error_code) => NodeStoreError::FilesystemError(error_code),
-            StoreError::InvalidMagicBytes => NodeStoreError::InvalidMagicBytes,
-            StoreError::StreamError => NodeStoreError::StreamError,
-        }
-    }
-}
+
 
 impl From<WasiNodeConfig> for NodeConfig {
     fn from(val: WasiNodeConfig) -> Self {
@@ -105,233 +80,36 @@ pub struct NodeConfig {
     pub genesis_blockhash: Hash256,
 }
 
-#[derive(Debug)]
-pub enum NodeError {
-    NetworkError,
-    FetchCompactFilter(u32),
-    FetchCompactFilterHeader(u32),
-    FetchBlock(u32),
-    FetchTransaction(u32),
-    FetchHeader(u32),
-    StoreError(NodeStoreError),
-    SerializationError,
-}
 
 
 pub struct Node {
-    p2p: P2P,
-    last_block_hash: Hash256,
-    last_block_height: u64,
-    balance_sats: i64,
-    store: RefCell<Kvstore>,
+    chain: CompactChain,
 }
 
 
 impl Node {
 
-    pub fn new(node_config: NodeConfig, mut store: RefCell<Kvstore>) -> Self {
-        let mut p2p = P2P::new();
-        p2p.connect_peer(node_config.socket_address, node_config.network) .expect("Failed to connect to peer");
+    pub fn new(node_config: NodeConfig, store: RefCell<Kvstore>) -> Self {
+        let store = Arc::new(KeyValueDb::new(store)); 
+        let chain = CompactChain::new(node_config.socket_address, node_config.network, store.clone());
 
-        let mut last_block_height= 0;
-        let mut balance_sats =  0;
-        let mut last_block_hash = node_config.genesis_blockhash;
-
-        if let Ok(stored_last_block_hash) = store.get_mut().search(&"last_block_hash".to_string()) {
-                last_block_hash = Hash256::decode(stored_last_block_hash.value.as_str()).expect("Cant decode block hash");
-        }
-
-        if let Ok(stored_balance_sat) = store.get_mut().search(&"balance_sats".to_string()) {
-            balance_sats = stored_balance_sat.value.parse::<i64>().expect("Cant parse Balance");
-        }
-
-        if let Ok(stored_last_block_height) = store.get_mut().search(&"last_block_height".to_string()) {
-            last_block_height = stored_last_block_height.value.parse::<u64>().expect("Cant parse BLock height Value");
-        }
-
-        Self { p2p, last_block_hash, last_block_height, balance_sats, store}
+        Self { chain }
 
     }
 
-    pub fn add_filter(& mut self, filter: String) -> Result<(), NodeError> {
+    pub fn balance(&mut self) -> Result<i64, Error> {
+        self.chain.sync_state()?;
+        let utxos = self.chain.get_utxos()?;
 
-        let mut stored_filter_scripts = self.get_filters()?;
-
-        stored_filter_scripts.push(filter.into_bytes());
-
-        let string_data: Vec<String> = stored_filter_scripts.iter()
-        .map(|vec| String::from_utf8(vec.clone()).unwrap_or_else(|_| String::from("Invalid UTF-8")))
-        .collect();
-
-        // Serialize the Vec<String> to a JSON string
-        let json_string = serde_json::to_string(&string_data).map_err(|_| NodeError::SerializationError)?;
-
-        self.store.get_mut().insert(&KeyValuePair { key: "filter_scripts".to_string(), value: json_string}).map_err(|err| NodeError::StoreError(err.into()))?;
-
-        Ok(())
+        return Ok(utxos.into_iter().fold(0, |acc, e| acc + e.tx_out.satoshis));  
     }
 
-    fn get_filters(& mut self) -> Result<Vec<Vec<u8>>, NodeError> {
-
-        let filter_scripts = if let Ok(stored_filter_scripts) = self.store.get_mut().search(&"filter_scripts".to_string()) {
-            let string_vec: Vec<String> = serde_json::from_str(&stored_filter_scripts.value).map_err(|_| NodeError::SerializationError)?;
-
-            // Convert Vec<String> to Vec<Vec<u8>>
-            let byte_vecs: Vec<Vec<u8>> = string_vec
-                .iter()
-                .map(|s| s.as_bytes().to_vec()) // Convert each String to Vec<u8>
-                .collect(); // Collect results into Vec<Vec<u8>>
-            
-            byte_vecs
-        } else { 
-            vec![]
-        };
-
-        return Ok(filter_scripts)
+    pub fn add_filter(& mut self, filter: String) -> Result<(), Error> {
+        let decoded_filter = hex::decode(filter).map_err(|e| Error::FromHexError(e))?;
+        return self.chain.add_filter(decoded_filter);
 
     }
 
-    
-    fn get_and_verify_compact_filters(& mut self, start_height: u32, last_block_hash: Hash256) -> Result<Vec<CompactFilter>, NodeError> {
-        let filter_header = self.p2p.get_compact_filter_headers(start_height, last_block_hash).map_err(|err| NodeError::FetchCompactFilterHeader(err.to_error_code()))?;
-        let filters = self.p2p.get_compact_filters(start_height, last_block_hash).map_err(|err| NodeError::FetchCompactFilter(err.to_error_code()))?;
-
-        
-        for (filter_hash, compact_filter) in zip(filter_header.filter_hashes, filters.clone()) {
-            let computed_hash = sha256d(&compact_filter.filter_bytes);
-            assert_eq!(computed_hash, filter_hash, "Hash doesn't match for filter");
-            println!("assertion 2 correct");
-        }
-        println!("all assertions  correct");
-        return Ok(filters);
-    }
-
-    pub fn get_balance(& mut self) -> Result<i64, NodeError> {
-
-        self.sync_balance()?;
-        return Ok(self.balance_sats)
-
-    }
-
-
-    pub fn sync_balance(& mut self) -> Result<(),NodeError> {
-        self.p2p.keep_alive().map_err(|_| NodeError::NetworkError)?;
-        
-        let mut last_block_hash = self.last_block_hash;
-        let mut last_block_height = self.last_block_height;
-        let mut balance_sats = self.balance_sats;
-        let mut is_sync = true;
-        const MAX_HEADER_LEN: usize = 2000;
- 
-
-        while is_sync {
-
-            let block_headers = self.p2p.fetch_headers(last_block_hash)
-            .map_err(|err| NodeError::FetchHeader(err.to_error_code()))?;
-            
-            if block_headers.len() == 0 {
-                return Ok(());
-            }
-
-            last_block_hash = block_headers.last()
-                .expect("No block headers found")
-                .hash();
-    
-            last_block_height = last_block_height+ block_headers.len() as u64;
-            let filter_indexer = 500;
-    
-            
-            let mut block_headers_counter = 0;
-            let mut current_block_num = self.last_block_height + 1 ;
-    
-            while current_block_num <  last_block_height {
-                
-                let next_block_num = current_block_num + filter_indexer; 
-                let last_know_block_hash = if next_block_num > last_block_height {
-                    last_block_hash
-                } else {
-                    block_headers_counter += filter_indexer;
-                    block_headers[block_headers_counter as usize -1].hash()
-                };
-    
-                let block_filters = self.get_and_verify_compact_filters(current_block_num as u32,last_know_block_hash)?;
-                if block_filters.is_empty() {
-                    continue;
-                }
-                
-                balance_sats += self.calculate_balance(block_filters)?;
-                current_block_num = next_block_num;
-            }
-            if block_headers.len() < MAX_HEADER_LEN {
-                is_sync = false;
-            }
-        }  
-
-        self.balance_sats = balance_sats;
-        self.last_block_height = last_block_height;
-        self.last_block_hash = last_block_hash;
-
-        self.store.get_mut().insert(&KeyValuePair { key: "balance_sats".to_string(), value: balance_sats.to_string()}).map_err(|err| NodeError::StoreError(err.into()))?;
-        self.store.get_mut().insert(&KeyValuePair { key: "last_block_height".to_string(), value: last_block_height.to_string()}).map_err(|err| NodeError::StoreError(err.into()))?;
-        self.store.get_mut().insert(&KeyValuePair { key: "last_block_hash".to_string(), value: last_block_hash.encode()}).map_err(|err| NodeError::StoreError(err.into()))?;
-
-        
-        Ok(())
-        
-    }
-
-
-    fn calculate_balance(&mut self, filters: Vec<CompactFilter>) -> Result<i64, NodeError> {
-
-        let mut amount_sats = 0;
-
-        let blockhash_present: Vec<_> = filters.into_iter().filter_map(|filter| {
-            let filter_algo = util::block_filter::BlockFilter::new(&filter.filter_bytes);
-            let filter_query = self.get_filters().unwrap().clone().into_iter();
-            let result = filter_algo.match_any(&filter.block_hash, filter_query).unwrap();
-            println!("{}", result);
-            match result {
-                true => Some(filter.block_hash),
-                false => None,
-            }
-        }).collect();
-
-
-        let block_inv: Vec<_> = blockhash_present.into_iter().map(|hash| {
-            InvVect{ obj_type: 2, hash }
-        }).collect();
-
-        let blocks = self.p2p.get_block(Inv{ objects: block_inv}).map_err(|err| NodeError::FetchBlock(err.to_error_code()))?;
-
-
-        for block in blocks {
-             for txn in block.txns {
-                 for output in txn.outputs {
-                     if let Ok(filters) = self.get_filters(){
-                        if filters.contains(&output.lock_script) {
-                            amount_sats += output.satoshis;
-                        }
-                     }
-                 }
-
-                // TODO: Fix not working
-                //  for input in txn.inputs {
-                //     println!("this is prevout hash {:?}", input.prev_output.hash);
-                //     if input.prev_output.hash == NO_HASH_STOP {
-                //         continue;
-                //     }
-                    
-                //     let transaction_inv = Inv{ objects: vec![InvVect{ obj_type: 0x40000001, hash: input.prev_output.hash }]};
-                //     let prev = self.p2p.get_transaction(transaction_inv).map_err(|err| NodeError::FetchTransaction(err))?;
-                //     let prev_out = &prev[0].outputs[input.prev_output.index as usize];
-                //     if self.filter_scripts.contains(&prev_out.lock_script) {
-                //         amount_sats -= prev_out.satoshis;
-                //     }
-                // }
-             }
-        }
-        return  Ok(amount_sats);
-    }
 
  
 }
