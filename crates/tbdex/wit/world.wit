@@ -1,6 +1,39 @@
 package component:tbdex@0.1.0;
 
-/// An example world for the component to target.
+interface types { 
+
+    record key-value-pair {
+        key: string,
+        value: string,
+    }
+
+
+    enum error{
+        offer-not-found,
+    }
+
+    record offering-bargain {
+        fee: option<string>,
+        estimated-settlement-time: u64,
+        id: string,
+        rate: string,
+    }
+    
+
+    resource client {
+
+        constructor(pfi-uri: string, vc-url: string, acct-number: string );
+
+        get-offer: func() -> result<offering-bargain, error>;
+
+        convert: func(offer-id: string, amount: string, address: string) -> result<string, error>;
+   
+    }
+
+}
+
+
+
 world tbdex {
     export types;
 }

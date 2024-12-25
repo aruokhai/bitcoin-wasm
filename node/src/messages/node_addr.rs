@@ -68,7 +68,7 @@ impl Default for NodeAddr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hex;
+    
     use std::io::Cursor;
 
     #[test]

@@ -49,7 +49,7 @@ impl MessageHeader {
         let mut p = vec![0; self.payload_size as usize];
         reader.read_exact(p.as_mut())?;
         let hash = digest::digest(&digest::SHA256, p.as_ref());
-        let hash = digest::digest(&digest::SHA256, &hash.as_ref());
+        let hash = digest::digest(&digest::SHA256, hash.as_ref());
         let h = &hash.as_ref();
         let j = &self.checksum;
         if h[0] != j[0] || h[1] != j[1] || h[2] != j[2] || h[3] != j[3] {
@@ -106,7 +106,7 @@ impl fmt::Debug for MessageHeader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hex;
+    
     use std::io::Cursor;
 
     #[test]

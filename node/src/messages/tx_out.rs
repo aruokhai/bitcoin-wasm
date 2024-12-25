@@ -1,10 +1,11 @@
 use crate::util::{var_int, Result, Serializable};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use serde::{Deserialize, Serialize};
 use std::io;
 use std::io::{Read, Write};
 
 /// Transaction output
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Eq, Hash, Clone)]
 pub struct TxOut {
     /// Number of satoshis to spend
     pub satoshis: i64,
@@ -12,12 +13,12 @@ pub struct TxOut {
     pub lock_script: Vec<u8>,
 }
 
-// impl TxOut {
-//     /// Returns the size of the transaction output in bytes
-//     pub fn size(&self) -> usize {
-//         8 + var_int::size(self.lock_script.0.len() as u64) + self.lock_script.0.len()
-//     }
-// }
+impl TxOut {
+    /// Returns the size of the transaction output in bytes
+    pub fn size(&self) -> usize {
+        8 + var_int::size(self.lock_script.len() as u64) + self.lock_script.len()
+    }
+}
 
 impl Serializable<TxOut> for TxOut {
     fn read(reader: &mut dyn Read) -> Result<TxOut> {
@@ -43,20 +44,20 @@ impl Serializable<TxOut> for TxOut {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use std::io::Cursor;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
 
-//     #[test]
-//     fn write_read() {
-//         let mut v = Vec::new();
-//         let t = TxOut {
-//             satoshis: 4400044000,
-//             lock_script: Script(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 100, 99, 98, 97, 96]),
-//         };
-//         t.write(&mut v).unwrap();
-//         assert!(v.len() == t.size());
-//         assert!(TxOut::read(&mut Cursor::new(&v)).unwrap() == t);
-//     }
-// }
+    #[test]
+    fn write_read() {
+        let mut v = Vec::new();
+        let t = TxOut {
+            satoshis: 4400044000,
+            lock_script: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 100, 99, 98, 97, 96],
+        };
+        t.write(&mut v).unwrap();
+        assert!(v.len() == t.size());
+        assert!(TxOut::read(&mut Cursor::new(&v)).unwrap() == t);
+    }
+}

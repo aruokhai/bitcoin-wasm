@@ -1,6 +1,5 @@
-use crate::util::{sha256d, var_int, Error, Hash256, Result, Serializable};
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use std::cmp::min;
+use crate::util::{var_int, Hash256, Result, Serializable};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 use std::io;
 use std::io::{Read, Write};
 use crate::messages::message::Payload;

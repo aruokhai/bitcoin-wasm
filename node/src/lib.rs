@@ -3,64 +3,33 @@ mod bindings;
 use std::{cell::RefCell};
 
 use node::Node;
-use bindings::exports::component::node::types::{Guest,Error, GuestClientNode, NodeConfig, TbdexConfig, OfferingBargain};
-use bindings::component::tbdex::types::{Client, Error as TBdexError, };
-
-
-
+use bindings::exports::component::node::types::{Guest, GuestClientNode, NodeConfig};
+use bindings::component::kv::types::{Kvstore };
 
 mod node;
 mod p2p;
 mod tcpsocket;
 mod util;
-mod wallet;
 mod messages;
-
+mod chain;
+mod db;
 struct Component;
 
 struct BitcoinNode {
     inner: RefCell<Node>,
-    tbdex: Option<RefCell<Client>>,
 }
 
 impl GuestClientNode for BitcoinNode {
-    fn get_balance(&self) -> Result<i64, Error> {
-        return  self.inner.borrow_mut().get_balance().map_err(|_| Error::NetworkError);
+    fn get_balance(&self) -> Result<i64, u32> {
+        return  self.inner.borrow_mut().balance().map_err(|err| err.to_error_code());
     }
 
-    fn get_conversion_offer(&self) -> Result<OfferingBargain, Error> {
-        match &self.tbdex {
-            Some(client) =>{
-                let offer =client.borrow().get_offer().map_err(|_| Error::TbdexError)?;
-                return  Ok( OfferingBargain { rate: offer.rate, fee: offer.fee, id: offer.id, estimated_settlement_time: offer.estimated_settlement_time})
-            },
-            None => {
-                return Err(Error::NoTbdx)
-            },
-        };
+    fn add_filter(&self, filter: String) -> Result<(), u32> {
+        return  self.inner.borrow_mut().add_filter(filter).map_err(|err| err.to_error_code());
     }
 
-    fn convert_amount(&self, amount: String, offer_id: String) -> Result<String, Error> {
-        match &self.tbdex {
-            Some(client) =>{
-                let address = self.inner.borrow().wallet.address.clone();
-                let res = client.borrow().convert(&offer_id, &amount, &address).map_err(|_| Error::TbdexError)?;
-                return  Ok(res)
-            },
-            None => {
-                return Err(Error::NoTbdx)
-            },
-        };
-    }
-
-    fn new(config: NodeConfig, tbdx_config: Option<TbdexConfig>) -> Self {
-        let tbdex = if let Some(config) = tbdx_config {
-            let new_tbdex_client = Client::new(&config.pfi_uri, &config.vc_url, &config.acct_number);
-            Some(RefCell::new(new_tbdex_client))
-        } else {
-            None
-        };
-        return Self{ inner:  Node::new(config.into()).into(), tbdex: tbdex.into()};
+    fn new(config: NodeConfig) -> Self {
+        Self{ inner:  Node::new(config.into(), Kvstore::new().into()).into()}
     }
 }
 

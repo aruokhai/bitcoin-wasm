@@ -1,0 +1,32 @@
+package component:kv@0.1.0;
+
+world kvworld {
+    export types;
+}
+
+
+interface types { 
+
+    variant error {
+        open-file-error,
+        stream-error,
+        file-not-found(u64),
+        invalid-data,
+        parse-error,
+        entry-not-found
+    }
+    
+
+    resource kvstore {
+
+        constructor();
+
+        insert: func(key: string, value: list<u8>) -> result<_, error>;
+
+        get: func(key: string) -> result<list<u8>, error>;
+
+        delete: func(key: string) -> result<_, error>;
+
+       
+    }
+}

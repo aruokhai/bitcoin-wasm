@@ -1,27 +1,16 @@
 use std::{env, fs::{read_to_string, write}, path::{Path, PathBuf}, process::Command};
 use wit_component::ComponentEncoder;
 
-// #[derive(Debug, Deserialize)]
-// struct Dependencies {
-//     dep: Vec<Dependency>,
-    
-// }
-
-// #[derive(Debug, Deserialize)]
-// struct Dependency {
-//     name: String,
-//     deps: Vec<Dependency>
-// }
 
 fn main() {
     println!("cargo:rerun-if-changed=../../");
-    compose_test_component();
+    build_and_compose_test_component();
     // build_and_generate_tests();
 }
 
 
 
-fn compose_test_component() {
+fn build_and_compose_test_component() {
     let meta = cargo_metadata::MetadataCommand::new().exec().unwrap();
     let targets = meta
         .packages
@@ -35,12 +24,28 @@ fn compose_test_component() {
         .unwrap()
         .as_object(). unwrap();
         
-    let mut wit_world = Vec::new();
-    wit_world.push("wasmtime::component::bindgen!({\n".to_string());
-    wit_world.push("inline: \"".to_string());
+    
     for (key, path) in targets.into_iter() {
-        let _ = build_compose_component(&key);
+        
+        // build component
+        let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+        let mut cmd = Command::new("cargo-component");
+        cmd.arg("build")
+            .arg(format!("--package={}",&key))
+            .env("CARGO_TARGET_DIR", &out_dir)
+            .env("CARGO_PROFILE_DEV_DEBUG", "1");
+            println!("running: {cmd:?}");
+            let status = cmd.status().unwrap();
+            assert!(status.success());
+
+        compose_component(&key);
+
+        let mut wit_world = Vec::new();
+        wit_world.push("wasmtime::component::bindgen!({\n".to_string());
+        wit_world.push("inline: \"".to_string());
         let wit_path = path.as_object().unwrap().get("path").unwrap().as_str().unwrap();
+        println!("hello wit{}",wit_path);
+
         for line in read_to_string(wit_path).unwrap().lines() {
             if line.contains("import") {
                 continue;
@@ -51,15 +56,19 @@ fn compose_test_component() {
             wit_world.push(line.to_string());
             wit_world.push("\n".to_string());
         }
+
+        wit_world.push("\"});".to_string());
+        let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join(format!("{}_WIT.rs", &key));
+        write(out_dir, wit_world.join("")).unwrap();
     }
-    wit_world.push("\"});".to_string());
-    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("WIT.rs");
-    write(out_dir, wit_world.join(" ")).unwrap();
+   
     println!("done with generating build details");
        
 }
 
-fn build_compose_component(package_name: &str) -> PathBuf {
+
+
+fn compose_component(package_name: &str) -> PathBuf {
     println!("package name is {}", package_name);
     let meta = cargo_metadata::MetadataCommand::new().exec().unwrap();
     let targets = meta
@@ -83,6 +92,7 @@ fn build_compose_component(package_name: &str) -> PathBuf {
         .as_object().unwrap();
 
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+
     let mut cmd = Command::new("cargo-component");
     cmd.arg("build")
         .arg(format!("--package={}",package_name))
@@ -91,6 +101,7 @@ fn build_compose_component(package_name: &str) -> PathBuf {
         println!("running: {cmd:?}");
         let status = cmd.status().unwrap();
         assert!(status.success());
+    
     let built_path = out_dir
         .join("wasm32-wasi")
         .join("debug")
@@ -109,14 +120,16 @@ fn build_compose_component(package_name: &str) -> PathBuf {
 
     for (key, path) in real_targets.into_iter() {
         let modified_key = key.split(":").collect::<Vec<&str>>()[1];
-        let real_path: &str = path.get("path").unwrap().as_str().unwrap();
-        let path  = build_compose_component(modified_key); 
+        let path  = compose_component(modified_key); 
+        println!("this is output path{:?}", path);
         wac.arg("--plug")
         .arg(format!("{}",path.to_str().unwrap()));
     }
 
     let output_path = out_dir
-        .join(format!("{}{}.wasm",package_name, package_name));
+        .join("wasm32-wasi")
+        .join("debug")
+        .join(format!("{}-composed.wasm",package_name));
     wac.arg("-o")
     .arg(format!("{}",output_path.to_str().unwrap()));
     let status = wac.status().unwrap();

@@ -1,21 +1,17 @@
-use wasi::sockets::{network::IpAddress, tcp::IpSocketAddress};
+use std::cell::RefCell;
+use std::sync::Arc;
+use std::{hash::Hash, iter::zip, vec};
+
 use bitcoin::{
-    consensus::{encode, serialize, Decodable, Encodable}, network as bitcoin_network, Network
+    block, network as bitcoin_network,
 };
-use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork, NodeConfig as WasiNodeConfig};
+use bindings::exports::component::node::types::{BitcoinNetwork as WasiBitcoinNetwork,NodeConfig as WasiNodeConfig };
+use bindings::component::kv::types::{Kvstore, Error as StoreError };
 
-use crate::{bindings, messages::{block::Block, BlockHeader, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, Hash256}, wallet::Wallet};
-
-
-
-
-pub struct Node {
-    p2p: P2P,
-    headers: Vec<BlockHeader>,
-    last_block_hash: Hash256,
-    last_block_num: u64,
-    pub wallet: Wallet,
-}
+use crate::chain::CompactChain;
+use crate::db::KeyValueDb;
+use crate::util::Error;
+use crate::{bindings, messages::{block::Block, compact_filter::{self, CompactFilter}, filter_locator::NO_HASH_STOP, headers, BlockHeader, Inv, InvVect}, p2p::{P2PControl, P2P}, util::{self, sha256d, Hash256}};
 
 
 
@@ -26,163 +22,94 @@ pub struct CustomIPV4SocketAddress {
 
 
 
-impl Into<bitcoin_network::Network> for WasiBitcoinNetwork {
-    fn into(self) -> bitcoin_network::Network {
-        match self {
+impl From<WasiBitcoinNetwork> for bitcoin_network::Network {
+    fn from(val: WasiBitcoinNetwork) -> Self {
+        match val {
             WasiBitcoinNetwork::Mainnet => bitcoin_network::Network::Bitcoin,
             WasiBitcoinNetwork::Testnet => bitcoin_network::Network::Testnet,
             WasiBitcoinNetwork::Regtest => bitcoin_network::Network::Regtest,
         }
     }
-} 
+}
 
-impl Into<NodeConfig> for WasiNodeConfig {
-    fn into(self) -> NodeConfig {
-        let WasiNodeConfig { network, socket_address, genesis_blockhash, wallet_filter, wallet_address  } = self;
+
+
+
+impl From<WasiNodeConfig> for NodeConfig {
+    fn from(val: WasiNodeConfig) -> Self {
+        let WasiNodeConfig { network, socket_address, genesis_blockhash, wallet_address } = val;
+
+        // Convert the network type
         let network: bitcoin_network::Network = network.into();
-        
-        let binding = socket_address.ip.clone();
-        let ip_s: Vec<_> = binding.split(".").collect();
-        let socket_address = CustomIPV4SocketAddress{ 
-            ip: (u8::from_str_radix(ip_s[0], 10).unwrap()
-                ,u8::from_str_radix(ip_s[1],10).unwrap()
-                ,u8::from_str_radix(ip_s[2],10).unwrap()
-                ,u8::from_str_radix(ip_s[3],10).unwrap()),
-            port: socket_address.port
-        };
-        let wallet_filter = hex::decode(wallet_filter).unwrap();
-        let genesis_blockhash = Hash256::decode(&genesis_blockhash).unwrap();
 
-        return NodeConfig { wallet_address, network,  socket_address, wallet_filter, genesis_blockhash };
+        // Parse the socket address IP
+        let ip_segments: Vec<u8> = socket_address.ip
+            .split('.')
+            .filter_map(|segment| u8::from_str_radix(segment, 10).ok())
+            .collect();
+
+        if ip_segments.len() != 4 {
+            panic!("Invalid IP address: {}", socket_address.ip);
+        }
+
+        // Construct the CustomIPV4SocketAddress
+        let socket_address = CustomIPV4SocketAddress {
+            ip: (ip_segments[0], ip_segments[1], ip_segments[2], ip_segments[3]),
+            port: socket_address.port,
+        };
+
+        // Decode the  genesis blockhash with error handling
+        let genesis_blockhash = Hash256::decode(&genesis_blockhash).expect("Failed to decode genesis blockhash");
+
+        // Construct and return the NodeConfig
+        NodeConfig {
+            wallet_address,
+            network,
+            socket_address,
+            genesis_blockhash,
+        }
     }
 }
+
+
 
 pub struct NodeConfig {
     pub socket_address: CustomIPV4SocketAddress,
     pub network: bitcoin_network::Network,
     pub wallet_address: String,
-    pub wallet_filter: Vec<u8>,
     pub genesis_blockhash: Hash256,
 }
 
-pub enum NodeError {
-    NetworkError
+
+
+pub struct Node {
+    chain: CompactChain,
 }
 
 
 impl Node {
 
-    pub fn new(node_config: NodeConfig) -> Self {
-        let mut p2p = P2P::new();
-        p2p.connect_peer(node_config.socket_address, node_config.network.into()).unwrap();
-        let block_headers = p2p.fetch_headers(node_config.genesis_blockhash).unwrap();
-        let last_block_hash = block_headers.last().clone().unwrap().hash();
+    pub fn new(node_config: NodeConfig, store: RefCell<Kvstore>) -> Self {
+        let store = Arc::new(KeyValueDb::new(store)); 
+        let chain = CompactChain::new(node_config.socket_address, node_config.network, store.clone());
 
-        let last_block_num = block_headers.len() - 1;
-        let mut filters = Vec::new();
-        let mut counter = 0 ;
-        while counter <  last_block_num {
-            let next_counter = counter + 500; 
-            let last_know_block_hash = if next_counter > last_block_num {
-                last_block_hash
-            } else {
-                block_headers[next_counter].hash()
-            };
-            let block_filters = p2p.get_compact_filters(counter as u32,last_know_block_hash).unwrap();
-            filters.extend(block_filters);
-            counter = next_counter;
-        }
+        Self { chain }
 
-        let blockhash_present: Vec<_> = filters.into_iter().filter_map(|filter| {
-            let filter_algo = util::block_filter::BlockFilter::new(&filter.filter_bytes);
-            let filter_query =vec![node_config.wallet_filter.clone()].into_iter();
-            let result = filter_algo.match_any(&filter.block_hash, filter_query).unwrap();
-            match result {
-                true => Some(filter.block_hash),
-                false => None,
-            }
-       }).collect();
-
-       let inv_objects: Vec<_> = blockhash_present.into_iter().map(|hash| {
-                InvVect{ obj_type: 2, hash }
-           }).collect();
-        let blocks = p2p.get_block(Inv{ objects: inv_objects}).unwrap();
-
-        let mut amount_sats = 0;
-        for block in blocks {
-             for txn in block.txns {
-                 for output in txn.outputs {
-                     if output.lock_script == node_config.wallet_filter.clone() {
-                         amount_sats += output.satoshis;
-                     }
-                 }
-             }
-        }
-
-        let wallet = Wallet { address: node_config.wallet_address.clone(), p2wkh_script: node_config.wallet_filter ,
-            amount_sats };
-        return  Node { p2p, headers: block_headers, last_block_hash, last_block_num : last_block_num as u64, wallet };   
     }
-    
-    pub fn get_balance(& mut self) -> std::result::Result<i64, NodeError> {
-        self.p2p.ping_or_reconnect().map_err(|_| NodeError::NetworkError)?;
-        let p2wkh_script = self.wallet.p2wkh_script.clone();
-        let block_headers = self.p2p.fetch_headers(self.last_block_hash).unwrap();
 
-        if block_headers.len() == 0 {
-            return Ok(self.wallet.amount_sats);
-        }
+    pub fn balance(&mut self) -> Result<i64, Error> {
+        self.chain.sync_state()?;
+        let utxos = self.chain.get_utxos()?;
 
-        let mut counter = self.last_block_num;
-        let last_block_hash = block_headers.last().clone().unwrap().hash();
-        self.headers.extend(block_headers);
-        self.last_block_num = self.headers.len() as u64 - 1;
-        let mut filters = Vec::new();
+        return Ok(utxos.into_iter().fold(0, |acc, e| acc + e.tx_out.satoshis));  
+    }
 
-        while counter <= self.last_block_num  {
-            let next_counter = counter + 500;
-            let last_know_block_hash = if next_counter > self.last_block_num {
-                last_block_hash
-            } else {
-                self.headers[next_counter as usize].hash()
-            };
-            let block_filters = self.p2p.get_compact_filters(counter as u32,last_know_block_hash).unwrap();
-            filters.extend(block_filters);
-            counter = next_counter;
-        }
+    pub fn add_filter(& mut self, filter: String) -> Result<(), Error> {
+        let decoded_filter = hex::decode(filter).map_err(|e| Error::FromHexError(e))?;
+        return self.chain.add_filter(decoded_filter);
 
-        let blockhash_present: Vec<_> = filters.into_iter().filter_map(|filter| {
-            let filter_algo = util::block_filter::BlockFilter::new(&filter.filter_bytes);
-            let filter_query =vec![p2wkh_script.clone()].into_iter();
-            let result = filter_algo.match_any(&filter.block_hash, filter_query).unwrap();
-            match result {
-                true => Some(filter.block_hash),
-                false => None,
-            }
-       }).collect();
-
-
-       let inv_objects: Vec<_> = blockhash_present.into_iter().map(|hash| {
-                InvVect{ obj_type: 2, hash }
-           }).collect();
-        let blocks = self.p2p.get_block(Inv{ objects: inv_objects}).unwrap();
-        let mut amount_sats = self.wallet.amount_sats;
-        for block in blocks {
-             for txn in block.txns {
-                 for output in txn.outputs {
-                     if output.lock_script == self.wallet.p2wkh_script.clone() {
-                         amount_sats += output.satoshis;
-                     }
-                 }
-             }
-        }
-
-        self.wallet.amount_sats = amount_sats;
-        return Ok(amount_sats);
     }
 
 
-
-
-    
+ 
 }

@@ -1,17 +1,13 @@
 // use crate::messages::addr::Addr;
 use crate::messages::block::Block;
 use crate::messages::block_locator::BlockLocator;
-// use crate::messages::fee_filter::FeeFilter;
-// use crate::messages::filter_add::FilterAdd;
-// use crate::messages::filter_load::FilterLoad;
 use crate::messages::headers::Headers;
 use crate::messages::inv::Inv;
-// use crate::messages::merkle_block::MerkleBlock;
 use crate::messages::message_header::MessageHeader;
 use crate::messages::ping::Ping;
-// use crate::messages::reject::Reject;
+use crate::messages::reject::Reject;
 // use crate::messages::send_cmpct::SendCmpct;
-// use crate::messages::tx::Tx;
+use crate::messages::tx::Tx;
 use crate::messages::version::Version;
 use crate::util::{Error, Result, Serializable};
 use ring::digest;
@@ -20,6 +16,7 @@ use std::io;
 use std::io::{Cursor, Read, Write};
 
 use super::compact_filter::CompactFilter;
+use super::compact_filter_header::CompactFilterHeader;
 use super::filter_locator::FilterLocator;
 
 /// Checksum to use when there is an empty payload
@@ -114,8 +111,16 @@ pub mod commands {
     /// [GetCfilters command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#getcfilters)
     pub const GETCFILTERS: [u8; 12] = *b"getcfilters\0";
 
+    /// [GetCfheaders command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#getcfilters)
+    pub const GETCFHEADERS: [u8; 12] = *b"getcfheaders";
+
     /// [Cfilters command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#cfilters)
     pub const CFILTERS: [u8; 12] = *b"cfilter\0\0\0\0\0";
+
+    /// [Cfheaders command](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki#cfilters)
+    pub const CFHEADERS: [u8; 12] = *b"cfheaders\0\0\0";
+
+
 
 }
 
@@ -124,10 +129,6 @@ pub mod commands {
 pub enum Message {
     // Addr(Addr),
     Block(Block),
-    // FeeFilter(FeeFilter),
-    // FilterAdd(FilterAdd),
-    // FilterClear,
-    // FilterLoad(FilterLoad),
     GetAddr,
     GetBlocks(BlockLocator),
     GetData(Inv),
@@ -135,18 +136,19 @@ pub enum Message {
     Headers(Headers),
     Inv(Inv),
     Mempool,
-    //MerkleBlock(MerkleBlock),
     NotFound(Inv),
     Other(String),
     Partial(MessageHeader),
     Ping(Ping),
     Pong(Ping),
     GetCFilters(FilterLocator),
+    GetCFHeaders(FilterLocator),
     CFilters(CompactFilter),
-    //Reject(Reject),
+    CFHeaders(CompactFilterHeader),
+    Reject(Reject),
     SendHeaders,
     //SendCmpct(SendCmpct),
-    //Tx(Tx),
+    Tx(Tx),
     Verack,
     Version(Version),
 }
@@ -170,7 +172,7 @@ impl Message {
                         return Ok((Message::Partial(header.clone()), header));
                     }
                 }
-                return Err(e);
+                Err(e)
             }
         }
     }
@@ -194,36 +196,6 @@ impl Message {
             return Ok(Message::Block(block));
         }
 
-        // // Feefilter
-        // if header.command == commands::FEEFILTER {
-        //     let payload = header.payload(reader)?;
-        //     let feefilter = FeeFilter::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::FeeFilter(feefilter));
-        // }
-
-        // // FilterAdd
-        // if header.command == commands::FILTERADD {
-        //     let payload = header.payload(reader)?;
-        //     let filter_add = FilterAdd::read(&mut Cursor::new(payload))?;
-        //     filter_add.validate()?;
-        //     return Ok(Message::FilterAdd(filter_add));
-        // }
-
-        // FilterClear
-        // if header.command == commands::FILTERCLEAR {
-        //     if header.payload_size != 0 {
-        //         return Err(Error::BadData("Bad payload".to_string()));
-        //     }
-        //     return Ok(Message::FilterClear);
-        // }
-
-        // FilterLoad
-        // if header.command == commands::FILTERLOAD {
-        //     let payload = header.payload(reader)?;
-        //     let filter_load = FilterLoad::read(&mut Cursor::new(payload))?;
-        //     filter_load.validate()?;
-        //     return Ok(Message::FilterLoad(filter_load));
-        // }
 
         // Getaddr
         if header.command == commands::GETADDR {
@@ -233,12 +205,6 @@ impl Message {
             return Ok(Message::GetAddr);
         }
 
-        // // Getblocks
-        // if header.command == commands::GETBLOCKS {
-        //     let payload = header.payload(reader)?;
-        //     let block_locator = BlockLocator::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::GetBlocks(block_locator));
-        // }
 
         // Getdata
         if header.command == commands::GETDATA {
@@ -268,6 +234,13 @@ impl Message {
             return Ok(Message::CFilters(cfilters));
         }
 
+        // CFHeader
+        if header.command == commands::CFHEADERS {
+            let payload = header.payload(reader)?;
+            let cfheader = CompactFilterHeader::read(&mut Cursor::new(payload))?;
+            return Ok(Message::CFHeaders(cfheader));
+        }
+
         // Inv
         if header.command == commands::INV {
             let payload = header.payload(reader)?;
@@ -283,12 +256,6 @@ impl Message {
             return Ok(Message::Mempool);
         }
 
-        // // MerkleBlock
-        // if header.command == commands::MERKLEBLOCK {
-        //     let payload = header.payload(reader)?;
-        //     let merkle_block = MerkleBlock::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::MerkleBlock(merkle_block));
-        // }
 
         // Notfound
         if header.command == commands::NOTFOUND {
@@ -311,12 +278,12 @@ impl Message {
             return Ok(Message::Pong(pong));
         }
 
-        // // Reject
-        // if header.command == commands::REJECT {
-        //     let payload = header.payload(reader)?;
-        //     let reject = Reject::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::Reject(reject));
-        // }
+        // Reject
+        if header.command == commands::REJECT {
+            let payload = header.payload(reader)?;
+            let reject = Reject::read(&mut Cursor::new(payload))?;
+            return Ok(Message::Reject(reject));
+        }
 
         // // Sendcmpct
         // if header.command == commands::SENDCMPCT {
@@ -334,11 +301,11 @@ impl Message {
         }
 
         // // Tx
-        // if header.command == commands::TX {
-        //     let payload = header.payload(reader)?;
-        //     let tx = Tx::read(&mut Cursor::new(payload))?;
-        //     return Ok(Message::Tx(tx));
-        // }
+        if header.command == commands::TX {
+            let payload = header.payload(reader)?;
+            let tx = Tx::read(&mut Cursor::new(payload))?;
+            return Ok(Message::Tx(tx));
+        }
 
         // Version
         if header.command == commands::VERSION {
@@ -361,7 +328,7 @@ impl Message {
             header.payload(reader)?;
         }
         let command = String::from_utf8(header.command.to_vec()).unwrap_or("Unknown".to_string());
-        return Ok(Message::Other(command));
+        Ok(Message::Other(command))
     }
 
     /// Writes a Bitcoin P2P message with its payload to bytes
@@ -370,19 +337,17 @@ impl Message {
         match self {
             // Message::Addr(p) => write_with_payload(writer, ADDR, p, magic),
             Message::Block(p) => write_with_payload(writer, BLOCK, p, magic),
-            // Message::FeeFilter(p) => write_with_payload(writer, FEEFILTER, p, magic),
-            // Message::FilterAdd(p) => write_with_payload(writer, FILTERADD, p, magic),
-            //Message::FilterClear => write_without_payload(writer, FILTERCLEAR, magic),
-            //Message::FilterLoad(p) => write_with_payload(writer, FILTERLOAD, p, magic),
+            Message::Tx(p) => write_with_payload(writer, TX, p, magic),
             Message::GetAddr => write_without_payload(writer, GETADDR, magic),
             Message::GetBlocks(p) => write_with_payload(writer, GETBLOCKS, p, magic),
             Message::GetData(p) => write_with_payload(writer, GETDATA, p, magic),
             Message::GetHeaders(p) => write_with_payload(writer, GETHEADERS, p, magic),
             Message::GetCFilters(p) => write_with_payload(writer, GETCFILTERS, p, magic),
+            Message::GetCFHeaders(p) => write_with_payload(writer, GETCFHEADERS, p, magic),
             Message::Headers(p) => write_with_payload(writer, HEADERS, p, magic),
+            Message::CFHeaders(p) => write_with_payload(writer, CFHEADERS, p, magic),
             Message::CFilters(p) => write_with_payload(writer, CFILTERS, p, magic),
             Message::Mempool => write_without_payload(writer, MEMPOOL, magic),
-          //  Message::MerkleBlock(p) => write_with_payload(writer, MERKLEBLOCK, p, magic),
             Message::NotFound(p) => write_with_payload(writer, NOTFOUND, p, magic),
             Message::Inv(p) => write_with_payload(writer, INV, p, magic),
             Message::Other(s) => Err(io::Error::new(io::ErrorKind::InvalidData, s.as_str())),
@@ -392,7 +357,7 @@ impl Message {
             )),
             Message::Ping(p) => write_with_payload(writer, PING, p, magic),
             Message::Pong(p) => write_with_payload(writer, PONG, p, magic),
-          //  Message::Reject(p) => write_with_payload(writer, REJECT, p, magic),
+           Message::Reject(p) => write_with_payload(writer, REJECT, p, magic),
             Message::SendHeaders => write_without_payload(writer, SENDHEADERS, magic),
         //    Message::SendCmpct(p) => write_with_payload(writer, SENDCMPCT, p, magic),
         //    Message::Tx(p) => write_with_payload(writer, TX, p, magic),
@@ -407,10 +372,7 @@ impl fmt::Debug for Message {
         match self {
             // Message::Addr(p) => f.write_str(&format!("{:#?}", p)),
             Message::Block(p) => f.write_str(&format!("{:#?}", p)),
-            // Message::FeeFilter(p) => f.write_str(&format!("{:#?}", p)),
-            // Message::FilterAdd(p) => f.write_str(&format!("{:#?}", p)),
-            // Message::FilterClear => f.write_str("FilterClear"),
-            // Message::FilterLoad(p) => f.write_str(&format!("{:#?}", p)),
+            Message::Tx(p) => f.write_str(&format!("{:#?}", p)),
             Message::GetAddr => f.write_str("GetAddr"),
             Message::GetBlocks(p) => f
                 .debug_struct("GetBlocks")
@@ -429,17 +391,21 @@ impl fmt::Debug for Message {
                 .debug_struct("GetFilters")
                 .field("block_locator_hashes", &p.hash_stop)
                 .finish(),
+            Message::GetCFHeaders(p) => f
+                .debug_struct("GetFiltersHeaders")
+                .field("block_locator_hashes", &p.hash_stop)
+                .finish(),
            Message::Headers(p) => f.write_str(&format!("{:#?}", p)),
            Message::CFilters(p) => f.write_str(&format!("{:#?}", p)),
+           Message::CFHeaders(p) => f.write_str(&format!("{:#?}", p)),
             Message::Inv(p) => f.write_str(&format!("{:#?}", p)),
             Message::Mempool => f.write_str("Mempool"),
-          //  Message::MerkleBlock(p) => f.write_str(&format!("{:#?}", p)),
             Message::NotFound(p) => f.debug_struct("NotFound").field("inv", &p).finish(),
             Message::Other(p) => f.write_str(&format!("{:#?}", p)),
             Message::Partial(h) => f.write_str(&format!("Partial {:#?}", h)),
             Message::Ping(p) => f.write_str(&format!("{:#?}", p)),
             Message::Pong(p) => f.debug_struct("Pong").field("nonce", &p.nonce).finish(),
-          //  Message::Reject(p) => f.write_str(&format!("{:#?}", p)),
+            Message::Reject(p) => f.write_str(&format!("{:#?}", p)),
             Message::SendHeaders => f.write_str("SendHeaders"),
          //   Message::SendCmpct(p) => f.write_str(&format!("{:#?}", p)),
           //  Message::Tx(p) => f.write_str(&format!("{:#?}", p)),
@@ -472,7 +438,7 @@ fn write_with_payload<T: Serializable<T>>(
     let mut bytes = Vec::with_capacity(payload.size());
     payload.write(&mut bytes)?;
     let hash = digest::digest(&digest::SHA256, bytes.as_ref());
-    let hash = digest::digest(&digest::SHA256, &hash.as_ref());
+    let hash = digest::digest(&digest::SHA256, hash.as_ref());
     let h = &hash.as_ref();
     let checksum = [h[0], h[1], h[2], h[3]];
 
@@ -480,7 +446,7 @@ fn write_with_payload<T: Serializable<T>>(
         magic,
         command,
         payload_size: payload.size() as u32,
-        checksum: checksum,
+        checksum,
     };
 
     header.write(writer)?;

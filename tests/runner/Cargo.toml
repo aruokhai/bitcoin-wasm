@@ -15,4 +15,5 @@ cargo_metadata = "0.18.1"
 
 
 [package.metadata.runnercomponent]
-"artifacts" = {path = "../artifacts/wit/world.wit"}
+"node" = {path = "../../node/wit/world.wit"}
+"kv" = {path = "../../crates/kv/wit/world.wit"}

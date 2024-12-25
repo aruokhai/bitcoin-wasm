@@ -45,7 +45,7 @@ impl BlockHeader {
     /// Checks that the block header is valid
     pub fn validate(&self, hash: &Hash256, prev_headers: &[BlockHeader]) -> Result<()> {
         // Timestamp > median timestamp of last 11 blocks
-        if prev_headers.len() > 0 {
+        if !prev_headers.is_empty() {
             let h = &prev_headers[prev_headers.len() - min(prev_headers.len(), 11)..];
             let mut timestamps: Vec<u32> = h.iter().map(|x| x.timestamp).collect();
             timestamps.sort();
@@ -67,14 +67,14 @@ impl BlockHeader {
     /// Calculates the target difficulty hash
     fn difficulty_target(&self) -> Result<Hash256> {
         let exp = (self.bits >> 24) as usize;
-        if exp < 3 || exp > 32 {
+        if !(3..=32).contains(&exp) {
             let msg = format!("Difficulty exponent out of range: {:?}", self.bits);
             return Err(Error::BadArgument(msg));
         }
         let mut difficulty = [0_u8; 32];
         difficulty[exp - 1] = ((self.bits >> 16) & 0xff) as u8;
         difficulty[exp - 2] = ((self.bits >> 08) & 0xff) as u8;
-        difficulty[exp - 3] = ((self.bits >> 00) & 0xff) as u8;
+        difficulty[exp - 3] = (self.bits & 0xff) as u8;
         Ok(Hash256(difficulty))
     }
 }

@@ -1,10 +1,7 @@
-use crate::messages::{BlockHeader, OutPoint, Payload};
+use crate::messages::{BlockHeader, Payload};
 use crate::util::{
-    sha256d, var_int, Error, Hash256, Result, Serializable, BITCOIN_CASH_FORK_HEIGHT_MAINNET,
-    BITCOIN_CASH_FORK_HEIGHT_TESTNET, GENESIS_UPGRADE_HEIGHT_MAINNET,
-    GENESIS_UPGRADE_HEIGHT_TESTNET,
+    var_int, Result, Serializable,
 };
-use std::collections::{HashSet, VecDeque};
 use std::fmt;
 use std::io;
 use std::io::{Read, Write};
@@ -154,8 +151,7 @@ impl Payload<Block> for Block {
         let mut size = BlockHeader::SIZE;
         size += var_int::size(self.txns.len() as u64);
         for txn in self.txns.iter() {
-            // size += txn.size();
-            size +=1
+            size += txn.size();
         }
         size
     }

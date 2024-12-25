@@ -6,14 +6,10 @@
 //! that minimizes filter size by using Golomb-Rice coding for compression.
 //!
 
-use siphasher::sip::SipHasher;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::io::Read;
 use std::{cmp, io};
-use std::collections::HashSet;
-use std::hash::Hasher;
-use std::hash::Hash;
 use bitcoin::hashes::siphash24;
 
 use super::{var_int, Hash256};

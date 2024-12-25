@@ -1,7 +1,0 @@
-package component:cli;
-
-/// An example world for the component to target.
-world example {
-    import component:artifacts/test-store@0.1.0;
-    
-}

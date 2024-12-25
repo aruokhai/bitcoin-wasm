@@ -1,6 +1,7 @@
 use crate::util::{Error, Result, Serializable};
-use hex;
 use ring::digest::{digest, SHA256};
+use serde::Deserialize;
+use serde::Serialize;
 use std::cmp::Ordering;
 use std::fmt;
 use std::io;
@@ -9,13 +10,13 @@ use std::io::{Read, Write};
 /// 256-bit hash for blocks and transactions
 ///
 /// It is interpreted as a single little-endian number for display.
-#[derive(Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Copy,Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Hash256(pub [u8; 32]);
 
 impl Hash256 {
     /// Converts the hash into a hex string
     pub fn encode(&self) -> String {
-        let mut r = self.0.clone();
+        let mut r = self.0;
         r.reverse();
         hex::encode(r)
     }
@@ -51,7 +52,7 @@ impl Serializable<Hash256> for Hash256 {
 
 /// Hashes a data array twice using SHA256
 pub fn sha256d(data: &[u8]) -> Hash256 {
-    let sha256 = digest(&SHA256, &data);
+    let sha256 = digest(&SHA256, data);
     let sha256d = digest(&SHA256, sha256.as_ref());
     let mut hash256 = [0; 32];
     hash256.clone_from_slice(sha256d.as_ref());
@@ -86,7 +87,7 @@ impl fmt::Debug for Hash256 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hex;
+    
     use std::io::Cursor;
 
     #[test]

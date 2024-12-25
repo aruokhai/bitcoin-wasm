@@ -10,7 +10,7 @@ use std::io::{Read, Write};
 #[derive(Default, PartialEq, Eq, Hash, Clone)]
 pub struct Headers {
     /// List of sequential block headers
-    pub headers: Vec<BlockHeader>,
+    pub inner: Vec<BlockHeader>,
 }
 
 impl Serializable<Headers> for Headers {
@@ -21,12 +21,12 @@ impl Serializable<Headers> for Headers {
             headers.push(BlockHeader::read(reader)?);
             let _txn_count = reader.read_u8();
         }
-        Ok(Headers { headers })
+        Ok(Headers { inner: headers })
     }
 
     fn write(&self, writer: &mut dyn Write) -> io::Result<()> {
-        var_int::write(self.headers.len() as u64, writer)?;
-        for header in self.headers.iter() {
+        var_int::write(self.inner.len() as u64, writer)?;
+        for header in self.inner.iter() {
             header.write(writer)?;
             writer.write_u8(0)?;
         }
@@ -36,13 +36,13 @@ impl Serializable<Headers> for Headers {
 
 impl Payload<Headers> for Headers {
     fn size(&self) -> usize {
-        var_int::size(self.headers.len() as u64) + (BlockHeader::SIZE + 1) * self.headers.len()
+        var_int::size(self.inner.len() as u64) + (BlockHeader::SIZE + 1) * self.inner.len()
     }
 }
 
 impl fmt::Debug for Headers {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let h = format!("[<{} block headers>]", self.headers.len());
+        let h = format!("[<{} block headers>]", self.inner.len());
         f.debug_struct("Headers").field("headers", &h).finish()
     }
 }
@@ -50,7 +50,7 @@ impl fmt::Debug for Headers {
 /// Returns the hash for a header at a particular index utilizing prev_hash if possible
 pub fn header_hash(i: usize, headers: &Vec<BlockHeader>) -> Result<Hash256> {
     if i + 1 < headers.len() {
-        return Ok(headers[i + 1].prev_hash);
+        Ok(headers[i + 1].prev_hash)
     } else if i + 1 == headers.len() {
         return Ok(headers[i].hash());
     } else {
@@ -68,7 +68,7 @@ mod tests {
     fn write_read() {
         let mut v = Vec::new();
         let p = Headers {
-            headers: vec![
+            inner: vec![
                 BlockHeader {
                     version: 12345,
                     prev_hash: Hash256::decode(
