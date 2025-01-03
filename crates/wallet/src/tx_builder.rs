@@ -54,59 +54,6 @@ use super::utils::shuffle_slice;
 use crate::errors::CreateTxError;
 use crate::types::{KeychainKind, Utxo,WeightedUtxo};
 
-/// A transaction builder
-///
-/// A `TxBuilder` is created by calling [`build_tx`] or [`build_fee_bump`] on a wallet. After
-/// assigning it, you set options on it until finally calling [`finish`] to consume the builder and
-/// generate the transaction.
-///
-/// Each option setting method on `TxBuilder` takes and returns `&mut self` so you can chain calls
-/// as in the following example:
-///
-/// ```
-/// # use bdk_wallet::*;
-/// # use bdk_wallet::tx_builder::*;
-/// # use bitcoin::*;
-/// # use core::str::FromStr;
-/// # use bdk_wallet::ChangeSet;
-/// # use bdk_wallet::error::CreateTxError;
-/// # use anyhow::Error;
-/// # let mut wallet = doctest_wallet!();
-/// # let addr1 = Address::from_str("2N4eQYCbKUHCCTUjBJeHcJp9ok6J2GZsTDt").unwrap().assume_checked();
-/// # let addr2 = addr1.clone();
-/// // chaining
-/// let psbt1 = {
-///     let mut builder = wallet.build_tx();
-///     builder
-///         .ordering(TxOrdering::Untouched)
-///         .add_recipient(addr1.script_pubkey(), Amount::from_sat(50_000))
-///         .add_recipient(addr2.script_pubkey(), Amount::from_sat(50_000));
-///     builder.finish()?
-/// };
-///
-/// // non-chaining
-/// let psbt2 = {
-///     let mut builder = wallet.build_tx();
-///     builder.ordering(TxOrdering::Untouched);
-///     for addr in &[addr1, addr2] {
-///         builder.add_recipient(addr.script_pubkey(), Amount::from_sat(50_000));
-///     }
-///     builder.finish()?
-/// };
-///
-/// assert_eq!(psbt1.unsigned_tx.output[..2], psbt2.unsigned_tx.output[..2]);
-/// # Ok::<(), anyhow::Error>(())
-/// ```
-///
-/// At the moment [`coin_selection`] is an exception to the rule as it consumes `self`.
-/// This means it is usually best to call [`coin_selection`] on the return value of `build_tx` before assigning it.
-///
-/// For further examples see [this module](super::tx_builder)'s documentation;
-///
-/// [`build_tx`]: Wallet::build_tx
-/// [`build_fee_bump`]: Wallet::build_fee_bump
-/// [`finish`]: Self::finish
-/// [`coin_selection`]: Self::coin_selection
 #[derive(Debug)]
 pub struct TxBuilder<'a, Cs> {
     pub(crate) wallet: &'a mut Wallet,
@@ -162,7 +109,6 @@ impl Default for FeePolicy {
 // Methods supported for any CoinSelectionAlgorithm.
 impl<'a, Cs> TxBuilder<'a, Cs> {
     /// Set a custom fee rate.
-    ///
     /// This method sets the mining fee paid by the transaction as a rate on its size.
     /// This means that the total fee paid is equal to `fee_rate` times the size
     /// of the transaction. Default is 1 sat/vB in accordance with Bitcoin Core's default
@@ -190,81 +136,7 @@ impl<'a, Cs> TxBuilder<'a, Cs> {
         self
     }
 
-    /// Set the policy path to use while creating the transaction for a given keychain.
-    ///
-    /// This method accepts a map where the key is the policy node id (see
-    /// [`Policy::id`](crate::descriptor::Policy::id)) and the value is the list of the indexes of
-    /// the items that are intended to be satisfied from the policy node (see
-    /// [`SatisfiableItem::Thresh::items`](crate::descriptor::policy::SatisfiableItem::Thresh::items)).
-    ///
-    /// ## Example
-    ///
-    /// An example of when the policy path is needed is the following descriptor:
-    /// `wsh(thresh(2,pk(A),sj:and_v(v:pk(B),n:older(6)),snj:and_v(v:pk(C),after(630000))))`,
-    /// derived from the miniscript policy `thresh(2,pk(A),and(pk(B),older(6)),and(pk(C),after(630000)))`.
-    /// It declares three descriptor fragments, and at the top level it uses `thresh()` to
-    /// ensure that at least two of them are satisfied. The individual fragments are:
-    ///
-    /// 1. `pk(A)`
-    /// 2. `and(pk(B),older(6))`
-    /// 3. `and(pk(C),after(630000))`
-    ///
-    /// When those conditions are combined in pairs, it's clear that the transaction needs to be created
-    /// differently depending on how the user intends to satisfy the policy afterwards:
-    ///
-    /// * If fragments `1` and `2` are used, the transaction will need to use a specific
-    ///   `n_sequence` in order to spend an `OP_CSV` branch.
-    /// * If fragments `1` and `3` are used, the transaction will need to use a specific `locktime`
-    ///   in order to spend an `OP_CLTV` branch.
-    /// * If fragments `2` and `3` are used, the transaction will need both.
-    ///
-    /// When the spending policy is represented as a tree (see
-    /// [`Wallet::policies`](super::Wallet::policies)), every node
-    /// is assigned a unique identifier that can be used in the policy path to specify which of
-    /// the node's children the user intends to satisfy: for instance, assuming the `thresh()`
-    /// root node of this example has an id of `aabbccdd`, the policy path map would look like:
-    ///
-    /// `{ "aabbccdd" => [0, 1] }`
-    ///
-    /// where the key is the node's id, and the value is a list of the children that should be
-    /// used, in no particular order.
-    ///
-    /// If a particularly complex descriptor has multiple ambiguous thresholds in its structure,
-    /// multiple entries can be added to the map, one for each node that requires an explicit path.
-    ///
-    /// ```
-    /// # use std::str::FromStr;
-    /// # use std::collections::BTreeMap;
-    /// # use bitcoin::*;
-    /// # use bdk_wallet::*;
-    /// # let to_address =
-    /// Address::from_str("2N4eQYCbKUHCCTUjBJeHcJp9ok6J2GZsTDt")
-    ///     .unwrap()
-    ///     .assume_checked();
-    /// # let mut wallet = doctest_wallet!();
-    /// let mut path = BTreeMap::new();
-    /// path.insert("aabbccdd".to_string(), vec![0, 1]);
-    ///
-    /// let builder = wallet
-    ///     .build_tx()
-    ///     .add_recipient(to_address.script_pubkey(), Amount::from_sat(50_000))
-    ///     .policy_path(path, KeychainKind::External);
-    ///
-    /// # Ok::<(), anyhow::Error>(())
-    /// ```
-    pub fn policy_path(
-        &mut self,
-        policy_path: BTreeMap<String, Vec<usize>>,
-        keychain: KeychainKind,
-    ) -> &mut Self {
-        let to_update = match keychain {
-            KeychainKind::Internal => &mut self.params.internal_policy_path,
-            KeychainKind::External => &mut self.params.external_policy_path,
-        };
-
-        *to_update = Some(policy_path);
-        self
-    }
+    
 
     /// Add the list of outpoints to the internal list of UTXOs that **must** be spent.
     ///
@@ -289,7 +161,7 @@ impl<'a, Cs> TxBuilder<'a, Cs> {
                 let satisfaction_weight = descriptor.max_weight_to_satisfy().unwrap();
                 self.params.utxos.push(WeightedUtxo {
                     satisfaction_weight,
-                    utxo: Utxo::Local(utxo),
+                    utxo,
                 });
             }
         }

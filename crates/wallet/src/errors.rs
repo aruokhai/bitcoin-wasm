@@ -13,7 +13,7 @@
 
 
 use crate::coin_selection;
-use bitcoin::{absolute, psbt, Amount, OutPoint, Sequence, Txid};
+use bitcoin::{absolute, psbt, Amount, OutPoint, Sequence, Txid, bip32::Error as Bip32_Error};
 use core::fmt;
 
 
@@ -71,6 +71,9 @@ pub enum CreateTxError {
     UnknownUtxo,
     /// Missing non_witness_utxo on foreign utxo for given `OutPoint`
     MissingNonWitnessUtxo(OutPoint),
+    /// Creating Pubkey Error
+    PubKeyError(Bip32_Error),
+    NoPubKey 
     
 }
 
@@ -149,8 +152,6 @@ impl From<coin_selection::InsufficientFunds> for CreateTxError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for CreateTxError {}
 
 #[derive(Debug)]
 /// Error returned from [`Wallet::build_fee_bump`]
