@@ -9,7 +9,6 @@ mod utils;
 mod types;
 mod errors;
 
-mod tx_builder;
 mod wallet;
 
 

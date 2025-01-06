@@ -27,10 +27,10 @@ pub enum KeychainKind {
 
 impl KeychainKind {
     /// Return [`KeychainKind`] as a byte
-    pub fn as_byte(&self) -> u8 {
+    pub fn as_u32(&self) -> u32 {
         match self {
-            KeychainKind::External => b'e',
-            KeychainKind::Internal => b'i',
+            KeychainKind::External =>  0,
+            KeychainKind::Internal => 1,
         }
     }
 }
